@@ -62,17 +62,19 @@
             </div>
         </div>
 
-        <div class="flex flex-col gap-2 bg-[#222226] border border-[#29292e] rounded-xl p-3">
-            <select id="spinner" class="w-full bg-[#29292e] border border-[#3a3a40] rounded-lg p-2 text-xs text-gray-300 focus:outline-none">
-                <option value="">-- Pilih Teks Tambahan --</option>
-                <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
-                <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
-                <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
-                <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen...">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen...</option>
-                <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...</option>
-            </select>
-            <button id="btn_copas_pilihan" onclick="copasPilihan()" class="w-full bg-[#3a3f4d] hover:bg-gray-650 text-xs text-gray-200 py-2 rounded-lg font-medium active:scale-95 transition text-center">
+        <div class="flex gap-2 bg-[#222226] border border-[#29292e] rounded-xl p-3 items-center justify-between overflow-hidden">
+            <div class="min-w-0 flex-1">
+                <select id="spinner" class="w-full bg-[#29292e] border border-[#3a3a40] rounded-lg p-2 text-xs text-gray-300 focus:outline-none truncate">
+                    <option value="">-- Pilih Teks Tambahan --</option>
+                    <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
+                    <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
+                    <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
+                    <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
+                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen...">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen...</option>
+                    <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...</option>
+                </select>
+            </div>
+            <button id="btn_copas_pilihan" onclick="copasPilihan()" class="flex-shrink-0 bg-[#3a3f4d] hover:bg-gray-650 text-xs text-gray-200 px-3 py-2 rounded-lg font-medium active:scale-95 transition whitespace-nowrap">
                 Copas Pilihan
             </button>
         </div>
