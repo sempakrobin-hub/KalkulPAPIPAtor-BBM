@@ -7,6 +7,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body { background-color: #121214; color: #e1e1e6; }
+        /* Trick CSS murni untuk memastikan select box terpotong rapi di semua browser */
+        select.custom-select {
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            padding-right: 2rem;
+        }
     </style>
 </head>
 <body class="flex flex-col justify-center items-center min-h-screen p-4 font-sans space-y-4">
@@ -62,9 +69,9 @@
             </div>
         </div>
 
-        <div class="flex gap-2 bg-[#222226] border border-[#29292e] rounded-xl p-3 items-center justify-between overflow-hidden">
-            <div class="min-w-0 flex-1">
-                <select id="spinner" class="w-full bg-[#29292e] border border-[#3a3a40] rounded-lg p-2 text-xs text-gray-300 focus:outline-none truncate">
+        <div class="grid grid-cols-12 gap-2 bg-[#222226] border border-[#29292e] rounded-xl p-3 items-center table-layout-fixed w-full overflow-hidden">
+            <div class="col-span-8 min-w-0">
+                <select id="spinner" class="custom-select w-full bg-[#29292e] border border-[#3a3a40] rounded-lg p-2 text-xs text-gray-300 focus:outline-none block cursor-pointer">
                     <option value="">-- Pilih Teks Tambahan --</option>
                     <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
                     <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
@@ -74,7 +81,7 @@
                     <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...</option>
                 </select>
             </div>
-            <button id="btn_copas_pilihan" onclick="copasPilihan()" class="flex-shrink-0 bg-[#3a3f4d] hover:bg-gray-650 text-xs text-gray-200 px-3 py-2 rounded-lg font-medium active:scale-95 transition whitespace-nowrap">
+            <button id="btn_copas_pilihan" onclick="copasPilihan()" class="col-span-4 bg-[#3a3f4d] hover:bg-gray-650 text-[11px] text-gray-200 py-2 rounded-lg font-medium active:scale-95 transition text-center truncate whitespace-nowrap">
                 Copas Pilihan
             </button>
         </div>
