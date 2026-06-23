@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Editable Log</title>
+    <title>Kalkulator BBM Cloud Pro - Log Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -101,11 +101,11 @@
         </div>
     </div>
 
-    <div id="modal_histori" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-lg rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
+    <div id="modal_histori" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-md rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
                 <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Riwayat & Edit Log</h3>
-                <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400">&times;</button>
+                <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
             </div>
             
             <div id="histori_container" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
@@ -227,7 +227,6 @@
             }
         }
 
-        // MENAMPILKAN LOG DALAM BENTUK ELEMENT INPUT YANG BISA DIEDIT
         async function lihatHistori() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) { return alert("Isi plat nomor dulu!"); }
@@ -243,42 +242,41 @@
                 if (error) throw error;
                 if (!data || data.length === 0) { return alert("Tidak ada riwayat untuk plat ini."); }
 
-                document.getElementById("histori_title").innerText = `Histori & Edit Log: ${plat}`;
+                document.getElementById("histori_title").innerText = `Histori & Edit: ${plat}`;
                 const container = document.getElementById("histori_container");
-                container.innerHTML = ""; // Bersihkan log lama
+                container.innerHTML = ""; 
 
-                data.forEach((r, index) => {
+                data.forEach((r) => {
                     const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
                     
-                    // Card Item Log bertingkat
                     const logCard = document.createElement("div");
                     logCard.className = "bg-[#2d323f] p-3 rounded border border-gray-700 flex flex-col space-y-2";
                     logCard.innerHTML = `
                         <div class="flex justify-between text-[10px] text-gray-400 font-bold border-b border-gray-600 pb-1 mb-1">
-                            <span>#ID: ${r.id} (${tgl})</span>
+                            <span>ID Data: ${r.id} (${tgl})</span>
                             <span class="text-[#34c759] font-black">${r.rasio} KM/L (${r.status})</span>
                         </div>
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="text-[9px] text-gray-400 block font-bold">START</label>
-                                <input type="number" id="edit_start_${r.id}" value="${r.km_start}" class="w-full bg-[#1e222b] px-1 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600">
+                                <input type="number" id="edit_start_${r.id}" value="${r.km_start}" class="w-full bg-[#1e222b] px-1.5 py-1 text-white rounded outline-none border border-gray-600">
                             </div>
                             <div>
                                 <label class="text-[9px] text-gray-400 block font-bold">AKHIR</label>
-                                <input type="number" id="edit_akhir_${r.id}" value="${r.km_akhir}" class="w-full bg-[#1e222b] px-1 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600">
+                                <input type="number" id="edit_akhir_${r.id}" value="${r.km_akhir}" class="w-full bg-[#1e222b] px-1.5 py-1 text-white rounded outline-none border border-gray-600">
                             </div>
                             <div>
                                 <label class="text-[9px] text-gray-400 block font-bold">LITER</label>
-                                <input type="number" id="edit_liter_${r.id}" value="${r.liter}" class="w-full bg-[#1e222b] px-1 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600">
+                                <input type="number" id="edit_liter_${r.id}" value="${r.liter}" class="w-full bg-[#1e222b] px-1.5 py-1 text-white rounded outline-none border border-gray-600">
                             </div>
                         </div>
                         <div>
                             <label class="text-[9px] text-gray-400 block font-bold">REMARK</label>
-                            <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" class="w-full bg-[#1e222b] px-2 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600" placeholder="-">
+                            <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" class="w-full bg-[#1e222b] px-2 py-1 text-white rounded outline-none border border-gray-600" placeholder="-">
                         </div>
                         <div class="flex justify-end pt-1">
-                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="bg-[#0a84ff] text-white px-3 py-1 rounded text-[10px] font-bold hover:opacity-80">
-                                UPDATE DATA #${r.id}
+                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="w-full bg-[#0a84ff] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-90">
+                                SIMPAN PERUBAHAN DATA #${r.id}
                             </button>
                         </div>
                     `;
@@ -291,7 +289,6 @@
             }
         }
 
-        // FUNGSI UNTUK MENGEKSEKUSI PERUBAHAN DATA KE SUPABASE
         async function updateLog(id) {
             const start = parseFloat(document.getElementById(`edit_start_${id}`).value);
             const akhir = parseFloat(document.getElementById(`edit_akhir_${id}`).value);
@@ -304,7 +301,6 @@
             if (akhir < start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
             if (liter <= 0) { return alert("Liter harus lebih besar dari 0!"); }
 
-            // Hitung ulang kalkulasi rasio & status baru secara otomatis saat diedit
             const jarak = akhir - start;
             const rasio = parseFloat((jarak / liter).toFixed(2));
             let status;
@@ -313,11 +309,13 @@
             else status = "JOSJIS";
 
             const btnUpdate = document.getElementById(`btn_update_${id}`);
-            btnUpdate.innerText = "Memperbarui...";
+            const textLama = btnUpdate.innerText;
+            btnUpdate.innerText = "Memproses ke Cloud...";
             btnUpdate.disabled = true;
 
             try {
-                const { error } = await _supabase
+                // Eksekusi Update ke Database Supabase
+                const { data, error, status: responseStatus } = await _supabase
                     .from('log_bbm')
                     .update({ 
                         km_start: start, 
@@ -328,17 +326,27 @@
                         status: status,
                         remark: remark ? remark : null 
                     })
-                    .eq('id', id);
+                    .eq('id', id)
+                    .select(); // Mengembalikan data hasil update untuk validasi keberhasilan
 
-                if (error) throw error;
+                if (error) {
+                    throw error;
+                }
 
-                alert(`Data Log ID #${id} Berhasil Diperbarui di Cloud!`);
-                lihatHistori(); // Refresh list data log di dalam modal
+                // Proteksi jika RLS menolak diam-diam (berhasil 200/204 tapi data kembali kosong)
+                if (!data || data.length === 0) {
+                    throw new Error("Data gagal diperbarui. Kemungkinan RLS (Row Level Security) 'UPDATE' di Supabase belum diaktifkan.");
+                }
+
+                alert(`Sukses! Log ID #${id} berhasil diperbarui.`);
+                lihatHistori(); // Memperbarui tampilan isi list log terbaru
             } catch (err) {
-                alert("Gagal memperbarui data:\n" + err.message);
+                alert("Gagal Update Data ke Cloud!\n\nAlasan Eror:\n" + err.message);
             } finally {
-                btnUpdate.innerText = `UPDATE DATA #${id}`;
-                btnUpdate.disabled = false;
+                if(document.getElementById(`btn_update_${id}`)) {
+                    document.getElementById(`btn_update_${id}`).innerText = textLama;
+                    document.getElementById(`btn_update_${id}`).disabled = false;
+                }
             }
         }
 
