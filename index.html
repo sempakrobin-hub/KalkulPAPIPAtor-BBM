@@ -1,12 +1,133 @@
-<script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator BBM Cloud Pro - Vertical Layout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #14161d;
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-[#1e222b] border border-gray-700 shadow-2xl flex flex-col rounded-lg overflow-hidden">
+        
+        <div class="p-4 flex flex-col space-y-3.5">
+            
+            <div class="flex items-center gap-2">
+                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">PLAT</span>
+                    <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="B 1234 X" oncontextmenu="handleRightClick(event)">
+                </div>
+                <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-4 py-2 rounded text-[11px] font-bold hover:opacity-80 w-16">CEK</button>
+            </div>
+
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12 flex-shrink-0">START</span>
+                <input type="number" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+            </div>
+
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12 flex-shrink-0">AKHIR</span>
+                <input type="number" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+            </div>
+
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12 flex-shrink-0">LITER</span>
+                <input type="number" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+            </div>
+
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12 flex-shrink-0">RMK</span>
+                <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-" oncontextmenu="handleRightClick(event)">
+            </div>
+
+            <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold pt-1">
+                <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
+                <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded hover:opacity-80 uppercase">SAVE</button>
+                <button onclick="lihatHistori()" class="bg-[#0a84ff] text-white py-2 rounded hover:opacity-80 uppercase">LOG</button>
+                <button onclick="resetForm()" class="bg-[#3a3f4d] text-gray-300 py-2 rounded hover:opacity-80 uppercase">RESET</button>
+            </div>
+
+            <div class="flex items-center justify-around bg-[#2d323f] px-3 py-2 rounded h-10 text-center">
+                <span id="label_hasil" class="text-[#34c759] font-bold text-sm border-r border-gray-700 pr-2 flex-1">- KM/L</span>
+                <span id="label_jarak" class="text-[#a0a5b5] text-[11px] border-r border-gray-700 px-2 flex-1">Jarak: -</span>
+                <span id="label_status" class="text-white font-bold text-[10px] px-2 py-0.5 rounded bg-transparent min-w-[60px] text-center">-</span>
+            </div>
+
+            <div class="bg-[#2d323f] p-2.5 rounded flex flex-col space-y-2 min-h-[60px]">
+                <p id="label_rekues" class="text-[11px] italic text-gray-300 leading-relaxed">
+                    Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
+                </p>
+                <div class="text-right">
+                    <button onclick="copasTeks(this)" id="btn_copas" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-2.5 py-1 rounded hover:opacity-80 whitespace-nowrap">
+                        Copas
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col space-y-1.5 pt-1">
+                <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
+                    <option value="-- Pilih Teks Tambahan --">-- Pilih Teks Tambahan --</option>
+                    <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
+                    <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
+                    <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
+                    <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
+                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" / "Delivery Material Badan".</option>
+                    <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
+                </select>
+                <div class="text-right">
+                    <button onclick="copasPilihan(this)" id="btn_copas_pilihan" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:opacity-80 whitespace-nowrap">
+                        Copas Pilihan
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.25em] py-2 w-full text-center select-none uppercase">
+            P A P I P A
+        </div>
+    </div>
+
+    <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
+            
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
+                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
+                <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
+            </div>
+            
+            <div class="bg-[#13161c] border border-gray-800 rounded p-3 flex-1 overflow-y-auto font-mono text-[11px]">
+                <div class="text-center text-gray-500 mb-3 border-b border-gray-800 pb-1" id="sub_header_modal">
+                    --- 10 Riwayat Terakhir (Cloud) ---
+                </div>
+                
+                <div id="histori_container" class="space-y-2 text-gray-300">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
         const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let data_siap_simpan = null;
-        let id_log_sedang_diedit = null; // Terkunci aman di scope global
+        let id_log_sedang_diedit = null; 
 
-        // --- EMULASI AUTO PASTE DARI CLICK KANAN UNTUK WEB ---
         async function handleRightClick(event) {
             event.preventDefault(); 
             try {
@@ -90,7 +211,6 @@
 
             document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
 
-            // Menyusun payload data siap simpan
             data_siap_simpan = { 
                 plat_nomor: plat, 
                 km_start: km_start, 
@@ -101,13 +221,12 @@
                 status: kesimpulan 
             };
 
-            // Warna tombol penanda aksi
             const btnSave = document.getElementById("btn_save");
             if (id_log_sedang_diedit !== null) {
-                btnSave.style.backgroundColor = "#ff9f0a"; // Oranye jika UPDATE
+                btnSave.style.backgroundColor = "#ff9f0a"; 
                 btnSave.innerText = "UPDATE";
             } else {
-                btnSave.style.backgroundColor = "#0a84ff"; // Biru jika BARU
+                btnSave.style.backgroundColor = "#0a84ff"; 
                 btnSave.innerText = "SAVE";
             }
         }
@@ -124,7 +243,6 @@
             btnSave.innerText = "...";
 
             try {
-                // VALIDASI FIX: Memastikan percabangan berjalan mulus berdasarkan keberadaan ID log
                 if (id_log_sedang_diedit !== null) {
                     const { error } = await _supabase
                         .from('log_bbm')
@@ -205,8 +323,6 @@
 
         function lemparKeForm(encodedData) {
             const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
-            
-            // Mengunci ID log lama ke global variabel agar tidak hilang saat dihitung ulang
             id_log_sedang_diedit = dataObj.id; 
 
             document.getElementById("entry_plat").value = dataObj.plat_nomor;
@@ -216,7 +332,7 @@
             document.getElementById("entry_remark").value = dataObj.remark || "";
             
             tutupHistori();
-            hitungRasio(); // Memanggil kalkulasi ulang dengan membawa ID edit yang aktif
+            hitungRasio(); 
         }
 
         async function deleteLog(id, plat) {
@@ -295,3 +411,5 @@
             btnSave.innerText = "SAVE";
         }
     </script>
+</body>
+</html>
