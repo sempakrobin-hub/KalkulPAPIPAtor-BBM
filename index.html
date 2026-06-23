@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Fixed Layout</title>
+    <title>Kalkulator BBM Cloud Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -21,10 +21,10 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- CONTAINER UTAMA (Kotak Hitam) -->
-    <div class="w-full max-w-md bg-[#1e222b] border border-gray-700 shadow-2xl rounded-lg overflow-hidden flex flex-col">
+    <!-- CONTAINER UTAMA (Dipastikan flex-col agar elemen menyusun ke bawah, bukan ke samping) -->
+    <div class="w-full max-w-md bg-[#1e222b] border border-gray-700 shadow-2xl flex flex-col rounded-xl overflow-hidden">
         
-        <!-- Area Form (Konten Utama di Dalam Kotak) -->
+        <!-- AREA FORM UTAMA -->
         <div class="p-4 flex flex-col space-y-3.5">
             
             <div class="flex items-center gap-2">
@@ -98,8 +98,8 @@
 
         </div>
 
-        <!-- FIX BANNER DI SINI (Paling Bawah Kotak) -->
-        <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.4em] py-2 w-full text-center select-none uppercase mt-auto">
+        <!-- FIX BANNER: Di bawah, memanjang horizontal dari kiri ke kanan -->
+        <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.4em] py-2.5 w-full text-center select-none uppercase border-t border-gray-700">
             P A P I P A
         </div>
     </div>
@@ -107,10 +107,12 @@
     <!-- Modal Histori -->
     <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
+            
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
                 <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
                 <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
             </div>
+            
             <div class="bg-[#13161c] border border-gray-800 rounded p-3 flex-1 overflow-y-auto font-mono text-[11px]">
                 <div class="text-center text-gray-500 mb-3 border-b border-gray-800 pb-1" id="sub_header_modal">
                     --- 10 Riwayat Terakhir (Cloud) ---
@@ -134,7 +136,7 @@
                 const text = await navigator.clipboard.readText();
                 event.target.value = text;
             } catch (err) {
-                console.log("Izin baca clipboard ditolak/tidak didukung oleh browser.");
+                console.log("Izin baca clipboard ditolak.");
             }
         }
 
@@ -307,8 +309,8 @@
                             ${barisTeks}
                         </div>
                         <div class="flex items-center space-x-3 flex-shrink-0 select-none">
-                            <button onclick="lemparKeForm('${dataString}')" title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px] active:scale-95 transition-all">✏️ EDIT</button>
-                            <button onclick="deleteLog(${r.id}, '${plat}')" id="text_del_${r.id}" title="Hapus dari Cloud" class="text-red-400 hover:text-red-300 font-bold px-1 py-0.5 border border-red-500/20 bg-red-500/10 rounded text-[10px] active:scale-95 transition-all">🗑️ HAPUS</button>
+                            <button onclick="lemparKeForm('${dataString}')" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px]">✏️ EDIT</button>
+                            <button onclick="deleteLog(${r.id}, '${plat}')" id="text_del_${r.id}" class="text-red-400 hover:text-red-300 font-bold px-1 py-0.5 border border-red-500/20 bg-red-500/10 rounded text-[10px]">🗑️ HAPUS</button>
                         </div>
                     `;
                     container.appendChild(lineContainer);
@@ -335,7 +337,7 @@
         }
 
         async function deleteLog(id, plat) {
-            const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus data log ID #${id} secara permanen?`);
+            const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus data log ID #${id}?`);
             if (!konfirmasi) return;
 
             const btnDel = document.getElementById(`text_del_${id}`);
@@ -349,7 +351,6 @@
                     .eq('id', id);
 
                 if (error) throw error;
-
                 alert(`Log ID #${id} berhasil terhapus.`);
                 
                 if (id_log_sedang_diedit === id) {
@@ -357,10 +358,9 @@
                     document.getElementById("btn_save").innerText = "SAVE";
                     document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
                 }
-
                 lihatHistori(); 
             } catch (err) {
-                alert("Gagal menghapus data dari Cloud:\n" + err.message);
+                alert("Gagal menghapus data:\n" + err.message);
                 btnDel.innerText = "🗑️ HAPUS";
                 btnDel.disabled = false;
             }
