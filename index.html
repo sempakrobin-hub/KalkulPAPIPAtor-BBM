@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Minimalist Text List</title>
+    <title>Kalkulator BBM Cloud Pro - Horizontal Flex Layout</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -19,100 +19,99 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="bg-[#14161d] min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="w-full max-w-md bg-[#1e222b] border border-gray-700 shadow-2xl flex flex-col overflow-hidden rounded-lg">
+    <div class="w-full max-w-5xl bg-[#1e222b] border border-gray-700 shadow-2xl flex flex-col rounded-lg overflow-hidden">
         
         <div class="bg-[#f3c623] text-black font-black text-center text-xs tracking-widest py-1.5 select-none">
             P A P I P A
         </div>
 
-        <div class="flex-1 flex flex-col p-4 space-y-4">
+        <div class="p-4 flex flex-col space-y-4">
             
-            <div class="grid grid-cols-3 gap-2 items-center">
-                <div class="col-span-2 flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5]">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] min-w-[150px]">
                     <span class="mr-2">PLAT</span>
                     <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="B 1234 X">
+                    <button onclick="cekPlat()" id="btn_cek" class="ml-2 bg-[#ff9f0a] text-white px-2 py-0.5 rounded text-[10px] font-bold hover:opacity-80">CEK</button>
                 </div>
-                <button onclick="cekPlat()" id="btn_cek" class="h-full bg-[#ff9f0a] text-white font-bold rounded text-xs hover:opacity-80 py-2">CEK</button>
-            </div>
 
-            <div class="grid grid-cols-3 gap-2">
-                <div class="flex flex-col bg-[#2d323f] rounded p-2 text-[10px] font-bold text-[#a0a5b5]">
-                    <span class="mb-1">START</span>
-                    <input type="number" id="entry_start" class="bg-transparent text-white text-sm font-normal outline-none">
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] w-[140px]">
+                    <span class="mr-2">START</span>
+                    <input type="number" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none">
                 </div>
-                <div class="flex flex-col bg-[#2d323f] rounded p-2 text-[10px] font-bold text-[#a0a5b5]">
-                    <span class="mb-1">AKHIR</span>
-                    <input type="number" id="entry_akhir" class="bg-transparent text-white text-sm font-normal outline-none">
-                </div>
-                <div class="flex flex-col bg-[#2d323f] rounded p-2 text-[10px] font-bold text-[#a0a5b5]">
-                    <span class="mb-1">LITER</span>
-                    <input type="number" id="entry_liter" class="bg-transparent text-white text-sm font-normal outline-none">
-                </div>
-            </div>
 
-            <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5]">
-                <span class="mr-3">RMK</span>
-                <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
-            </div>
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] w-[140px]">
+                    <span class="mr-2">AKHIR</span>
+                    <input type="number" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none">
+                </div>
 
-            <div class="grid grid-cols-3 items-center bg-[#2d323f] px-3 py-2.5 rounded text-center">
-                <span id="label_hasil" class="text-[#34c759] font-bold text-base border-r border-gray-700">- KM/L</span>
-                <span id="label_jarak" class="text-[#a0a5b5] text-xs border-r border-gray-700">Jarak: -</span>
-                <div class="flex justify-center">
-                    <span id="label_status" class="text-white font-bold text-xs px-2 py-0.5 rounded bg-gray-800 min-w-[60px] text-center">-</span>
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] w-[120px]">
+                    <span class="mr-2">LITER</span>
+                    <input type="number" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none">
+                </div>
+
+                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] min-w-[180px]">
+                    <span class="mr-2">RMK</span>
+                    <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
+                </div>
+
+                <div class="flex items-center gap-1.5 text-xs font-bold">
+                    <button onclick="hitungRasio()" class="bg-[#34c759] text-white px-4 py-2.5 rounded hover:opacity-80 uppercase">HITUNG</button>
+                    <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white px-4 py-2.5 rounded hover:opacity-80 uppercase">SAVE</button>
+                    <button onclick="lihatHistori()" class="bg-[#0a84ff] text-white px-4 py-2.5 rounded hover:opacity-80 uppercase">LOG</button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-4 gap-1.5 text-xs font-bold">
-                <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2.5 rounded hover:opacity-80">HITUNG</button>
-                <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2.5 rounded hover:opacity-80">SAVE</button>
-                <button onclick="lihatHistori()" class="bg-[#0a84ff] text-white py-2.5 rounded hover:opacity-80">LOG</button>
-                <button onclick="resetForm()" class="bg-[#3a3f4d] text-white py-2.5 rounded hover:opacity-80">RESET</button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center pt-2">
+                <div class="flex items-center justify-around bg-[#2d323f] px-3 py-2 rounded h-10 text-center">
+                    <span id="label_hasil" class="text-[#34c759] font-bold text-sm border-r border-gray-700 pr-2">- KM/L</span>
+                    <span id="label_jarak" class="text-[#a0a5b5] text-[11px] border-r border-gray-700 pr-2">Jarak: -</span>
+                    <span id="label_status" class="text-white font-bold text-[10px] px-2 py-0.5 rounded bg-gray-800">-</span>
+                </div>
+
+                <div class="md:col-span-2 bg-[#2d323f] px-3 py-1.5 rounded flex items-center justify-between min-h-10">
+                    <p id="label_rekues" class="text-[11px] italic text-gray-300 flex-1 pr-2">
+                        Data baru. Silakan masukkan data awal secara lengkap.
+                    </p>
+                    <button onclick="copasTeks('label_rekues', this)" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-3 py-1 rounded hover:opacity-80 whitespace-nowrap">
+                        Copas Teks Rekues
+                    </button>
+                </div>
             </div>
 
-            <hr class="border-gray-700">
-
-            <div class="bg-[#2d323f] p-3 rounded flex flex-col space-y-2">
-                <p id="label_rekues" class="text-[11px] italic text-gray-300 leading-relaxed">
-                    Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
-                </p>
-                <button onclick="copasTeks('label_rekues', this)" class="w-full bg-[#3a3f4d] text-white text-xs font-bold py-1.5 rounded hover:opacity-80 transition-colors">
-                    Copas Teks Rekues
-                </button>
-            </div>
-
-            <div class="flex flex-col space-y-2">
-                <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2.5 rounded outline-none border border-transparent focus:border-gray-600">
+            <div class="flex items-center gap-2 pt-1">
+                <select id="menu_var" class="flex-1 bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
                     <option value="">-- Pilih Teks Tambahan --</option>
                     <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
                     <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
                     <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
                     <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" ("Travel") / "Delivery Material Badan" ("PT").</option>
-                    <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
+                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" / "Delivery Material Badan".</option>
                 </select>
-                <button onclick="copasPilihan(this)" class="w-full bg-[#3a3f4d] text-white text-xs font-bold py-1.5 rounded hover:opacity-80 transition-colors">
+                <button onclick="copasPilihan(this)" class="bg-[#3a3f4d] text-white text-[11px] font-bold px-4 py-2 rounded hover:opacity-80 whitespace-nowrap">
                     Copas Pilihan
                 </button>
+                <button onclick="resetForm()" class="bg-[#ff3b30]/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-3 py-2 rounded hover:bg-red-500 hover:text-white uppercase">RESET</button>
             </div>
 
         </div>
     </div>
 
-    <div id="modal_histori" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-md rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
+    <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-2xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
+            
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
                 <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
                 <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
             </div>
             
-            <div class="bg-[#181b22] border border-gray-800 rounded p-3 flex-1 overflow-y-auto">
-                <div class="text-center text-gray-400 font-mono text-[11px] mb-3 border-b border-gray-700 pb-1" id="sub_header_modal">
+            <div class="bg-[#13161c] border border-gray-800 rounded p-3 flex-1 overflow-y-auto font-mono text-[11px]">
+                <div class="text-center text-gray-500 mb-3 border-b border-gray-800 pb-1" id="sub_header_modal">
                     --- 10 Riwayat Terakhir (Cloud) ---
                 </div>
-                <div id="histori_container" class="space-y-2.5 font-mono text-[11px] text-gray-300">
+                
+                <div id="histori_container" class="space-y-2 text-gray-300">
                     </div>
             </div>
         </div>
@@ -130,7 +129,7 @@
             if (!plat) { return alert("Isi kolom PLAT nomor terlebih dahulu!"); }
             
             const btnCek = document.getElementById("btn_cek");
-            btnCek.innerText = "...";
+            btnCek.innerText = "..";
             btnCek.disabled = true;
 
             try {
@@ -258,23 +257,24 @@
                     const rmkText = r.remark ? r.remark : "-";
                     const jarakFormat = r.jarak ? `${r.jarak}k` : `${r.km_akhir - r.km_start}k`;
 
-                    // Format baris persis seperti di gambar awal Anda
+                    // STRING STRUKTUR TEXT LIST SESUAI DENGAN IMAGE_1B55D6
                     const barisTeks = `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
 
-                    // Elemen baris list pembungkus
-                    const rowDiv = document.createElement("div");
-                    rowDiv.className = "flex items-start justify-between space-x-2 border-b border-gray-800 pb-2 hover:bg-gray-800/30 px-1 rounded transition-colors";
+                    // PEMBUNGKUS BARIS YANG MENJAMIN TOMBOL SELALU DISAMPING KANAN
+                    const lineContainer = document.createElement("div");
+                    lineContainer.className = "flex items-center justify-between border-b border-gray-900 py-1.5 hover:bg-gray-800/40 px-1 rounded transition-all";
                     
-                    rowDiv.innerHTML = `
-                        <div class="flex-1 break-words leading-relaxed">
+                    lineContainer.innerHTML = `
+                        <div class="flex-1 whitespace-pre-wrap break-all leading-relaxed pr-4 select-all">
                             ${barisTeks}
                         </div>
-                        <div class="flex items-center space-x-2 flex-shrink-0 select-none pt-0.5">
-                            <button onclick='lemparKeForm(${JSON.stringify(r)})' title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 text-xs font-bold transition-transform active:scale-95">✏️</button>
-                            <button onclick="deleteLog(${r.id})" id="text_del_${r.id}" title="Hapus Permanen" class="text-red-400 hover:text-red-300 text-xs font-bold transition-transform active:scale-95">🗑️</button>
+                        
+                        <div class="flex items-center space-x-3 flex-shrink-0 select-none">
+                            <button onclick='lemparKeForm(${JSON.stringify(r)})' title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px] active:scale-95 transition-all">✏️ EDIT</button>
+                            <button onclick="deleteLog(${r.id})" id="text_del_${r.id}" title="Hapus dari Cloud" class="text-red-400 hover:text-red-300 font-bold px-1 py-0.5 border border-red-500/20 bg-red-500/10 rounded text-[10px] active:scale-95 transition-all">🗑️ HAPUS</button>
                         </div>
                     `;
-                    container.appendChild(rowDiv);
+                    container.appendChild(lineContainer);
                 });
 
                 document.getElementById("modal_histori").style.display = "flex";
@@ -284,23 +284,22 @@
         }
 
         function lemparKeForm(dataObj) {
-            // Isi kembali semua field utama dengan data baris yang dipilih agar bisa di-edit kembali
+            // Mengembalikan nilai ke form utama lebar di atas
             document.getElementById("entry_plat").value = dataObj.plat_nomor;
             document.getElementById("entry_start").value = dataObj.km_start;
             document.getElementById("entry_akhir").value = dataObj.km_akhir;
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
             
-            // Tutup Modal
+            // Tutup Modal & Hitung Ulang
             tutupHistori();
-            
-            // Trigger hitung ulang otomatis di depan
             hitungRasio();
-            alert(`Data ID #${dataObj.id} berhasil dimuat ke form utama! Anda bisa mengubah angka lalu klik 'HITUNG' & 'SAVE' kembali.`);
+            
+            alert(`Log ID #${dataObj.id} berhasil di-load ke form utama! Silakan edit angka lalu klik 'HITUNG' & 'SAVE' untuk simpan perubahan.`);
         }
 
         async function deleteLog(id) {
-            const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log ID #${id} secara permanen dari Cloud?`);
+            const konfirmasi = confirm(`HAPUS PERMANEN data log ID #${id} dari cloud?`);
             if (!konfirmasi) return;
 
             const btnDel = document.getElementById(`text_del_${id}`);
@@ -315,11 +314,11 @@
 
                 if (error) throw error;
 
-                alert(`Sukses! Log ID #${id} telah dihapus.`);
-                lihatHistori(); // Refresh list dalam modal
+                alert(`Sukses! Data ID #${id} berhasil terhapus.`);
+                lihatHistori(); 
             } catch (err) {
-                alert("Gagal menghapus data dari Cloud!\n\n" + err.message);
-                btnDel.innerText = "🗑️";
+                alert("Gagal hapus data:\n" + err.message);
+                btnDel.innerText = "🗑️ HAPUS";
                 btnDel.disabled = false;
             }
         }
@@ -351,7 +350,7 @@
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_status").innerText = "-";
             document.getElementById("label_status").style.backgroundColor = "transparent";
-            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+            document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
         }
     </script>
