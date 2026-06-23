@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Vertikal</title>
+    <title>Kalkulator BBM Cloud Pro - Connected</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             background-color: #1e222b;
             color: #ffffff;
             font-family: 'Arial', sans-serif;
         }
-        /* Menghilangkan spin button pada input number agar lebih rapi */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -34,7 +34,7 @@
                     <span class="mr-2">PLAT</span>
                     <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="B 1234 X">
                 </div>
-                <button onclick="cekPlat()" class="h-full bg-[#ff9f0a] text-white font-bold rounded text-xs hover:opacity-80 py-2">CEK</button>
+                <button onclick="cekPlat()" id="btn_cek" class="h-full bg-[#ff9f0a] text-white font-bold rounded text-xs hover:opacity-80 py-2">CEK</button>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
@@ -112,24 +112,50 @@
     </div>
 
     <script>
-        let db_mock = [
-            { id: 1, tanggal: "2026-06-23T07:00:00", plat_nomor: "B1234XYZ", km_start: 1000, km_akhir: 1120, jarak: 120, liter: 10, rasio: 12.00, status: "CUKUP", remark: "Aman" }
-        ];
+        // KONEKSI UTAMA SUPABASE (Menggunakan kredensial asli Anda)
+        const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
+        
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let data_siap_simpan = null;
 
-        function cekPlat() {
+        async function cekPlat() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) { return alert("Isi kolom PLAT nomor terlebih dahulu!"); }
-            const rows = db_mock.filter(item => item.plat_nomor.replace(/\s+/g, '') === plat.replace(/\s+/g, ''));
-            if (rows.length > 0) {
-                const lastData = rows[0];
-                document.getElementById("entry_start").value = lastData.km_akhir;
-                document.getElementById("entry_akhir").value = "";
-                document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${lastData.remark || "-"}`;
-                document.getElementById("entry_akhir").focus();
-            } else {
-                alert(`Plat nomor ${plat} belum ada di cloud. Silakan isi manual.`);
-                document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
+            
+            const btnCek = document.getElementById("btn_cek");
+            btnCek.innerText = "...";
+            btnCek.disabled = true;
+
+            try {
+                // Query mengambil data terakhir berdasarkan plat nomor
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .eq('plat_nomor', plat)
+                    .order('id', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const lastData = data[0];
+                    document.getElementById("entry_start").value = lastData.km_akhir;
+                    document.getElementById("entry_akhir").value = "";
+                    
+                    const rem = lastData.remark || "-";
+                    document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
+                    document.getElementById("entry_akhir").focus();
+                } else {
+                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
+                    document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
+                }
+            } catch (err) {
+                alert("Gagal terhubung ke database online:\n" + err.message);
+            } finally {
+                btnCek.innerText = "CEK";
+                btnCek.disabled = false;
             }
         }
 
@@ -162,32 +188,75 @@
 
             document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
 
-            data_siap_simpan = { plat_nomor: plat, km_start, km_akhir, jarak, liter, rasio: parseFloat(rasio.toFixed(2)), status: kesimpulan };
+            data_siap_simpan = { 
+                plat_nomor: plat, 
+                km_start: km_start, 
+                km_akhir: km_akhir, 
+                jarak: jarak, 
+                liter: liter, 
+                rasio: parseFloat(rasio.toFixed(2)), 
+                status: kesimpulan 
+            };
             document.getElementById("btn_save").style.backgroundColor = "#0a84ff";
         }
 
-        function simpanKeCloud() {
+        async function simpanKeCloud() {
             if (!data_siap_simpan) { return alert("Hitung rasio terlebih dahulu!"); }
-            data_siap_simpan["remark"] = document.getElementById("entry_remark").value.trim() || null;
-            data_siap_simpan["tanggal"] = new Date().toISOString();
-            db_mock.unshift(data_siap_simpan);
-            alert(`Sukses mengunci data ${data_siap_simpan.plat_nomor}!`);
-            data_siap_simpan = null;
-            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+            
+            const btnSave = document.getElementById("btn_save");
+            const remark_text = document.getElementById("entry_remark").value.trim();
+            data_siap_simpan["remark"] = remark_text ? remark_text : null;
+            
+            btnSave.innerText = "...";
+            btnSave.disabled = true;
+
+            try {
+                const { error } = await _supabase
+                    .from('log_bbm')
+                    .insert([data_siap_simpan]);
+
+                if (error) throw error;
+
+                alert(`Sukses: Data ${data_siap_simpan.plat_nomor} berhasil di-lock ke Cloud!`);
+                data_siap_simpan = null;
+                btnSave.style.backgroundColor = "#3a3f4d";
+            } catch (err) {
+                alert("Gagal menyimpan ke Cloud:\n" + err.message);
+            } finally {
+                btnSave.innerText = "SAVE";
+                btnSave.disabled = false;
+            }
         }
 
-        function lihatHistori() {
+        async function lihatHistori() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) { return alert("Isi plat nomor dulu!"); }
-            const rows = db_mock.filter(item => item.plat_nomor.replace(/\s+/g, '') === plat.replace(/\s+/g, ''));
-            if (rows.length === 0) { return alert("Tidak ada riwayat."); }
 
-            let txt = `--- Riwayat ${plat} ---\n\n`;
-            rows.forEach(r => {
-                txt += `[${r.tanggal.split("T")[0]}] ${r.km_start}->${r.km_akhir} (${r.jarak}k) | ${r.liter}L | ${r.rasio} KM/L (${r.status})\n`;
-            });
-            document.getElementById("histori_content").innerText = txt;
-            document.getElementById("modal_histori").style.display = "flex";
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .eq('plat_nomor', plat)
+                    .order('id', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+                if (!data || data.length === 0) { return alert("Tidak ada riwayat untuk plat ini."); }
+
+                let txt = `--- 10 Riwayat Terakhir ${plat} (Cloud) ---\n\n`;
+                data.forEach(r => {
+                    // Penanganan kolom waktu bawaan Supabase jika ada
+                    const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
+                    const rem = r.remark || "-";
+                    txt += `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${r.jarak}k) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rem}\n`;
+                });
+
+                document.getElementById("histori_title").innerText = `Histori ${plat}`;
+                document.getElementById("histori_content").innerText = txt;
+                document.getElementById("modal_histori").style.display = "flex";
+            } catch (err) {
+                alert("Gagal mengambil data riwayat:\n" + err.message);
+            }
         }
 
         function tutupHistori() { document.getElementById("modal_histori").style.display = "none"; }
@@ -217,6 +286,7 @@
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_status").innerText = "-";
             document.getElementById("label_status").style.backgroundColor = "transparent";
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
         }
     </script>
