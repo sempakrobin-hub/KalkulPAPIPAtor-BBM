@@ -3,180 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Kalkulator BBM Cloud Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #121214; color: #e1e1e6; }
-        /* Trick CSS murni untuk memastikan select box terpotong rapi di semua browser */
-        select.custom-select {
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden;
-            padding-right: 2rem;
+        body {
+            background-color: #1e222b;
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
         }
     </style>
 </head>
-<body class="flex flex-col justify-center items-center min-h-screen p-4 font-sans space-y-4">
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-md bg-[#1a1a1e] rounded-2xl shadow-xl border border-[#29292e] p-6 space-y-6">
+    <div class="w-full max-w-5xl bg-[#1e222b] border border-gray-700 shadow-2xl flex flex-row overflow-hidden rounded-lg">
         
-        <h1 class="text-xl font-bold text-center tracking-wide text-gray-200">Kalkulator BBM</h1>
-        
-        <div class="grid grid-cols-3 gap-3">
-            <div>
-                <label class="block text-xs text-gray-400 font-semibold mb-1 text-center">START</label>
-                <input type="number" id="start" placeholder="0.0" class="w-full bg-[#29292e] border border-[#3a3a40] rounded-xl py-3 px-2 text-center text-white focus:outline-none focus:border-green-500 font-mono text-lg">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-400 font-semibold mb-1 text-center">AKHIR</label>
-                <input type="number" id="akhir" placeholder="0.0" class="w-full bg-[#29292e] border border-[#3a3a40] rounded-xl py-3 px-2 text-center text-white focus:outline-none focus:border-green-500 font-mono text-lg">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-400 font-semibold mb-1 text-center">LITER</label>
-                <input type="number" id="liter" placeholder="0.0" class="w-full bg-[#29292e] border border-[#3a3a40] rounded-xl py-3 px-2 text-center text-white focus:outline-none focus:border-green-500 font-mono text-lg">
-            </div>
-        </div>
+        <div class="flex-1 flex flex-col p-4 space-y-3">
+            
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                
+                <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold text-[#a0a5b5]">
+                    <div class="flex items-center bg-[#2d323f] rounded px-2 py-1">
+                        <span class="mr-1">PLAT</span>
+                        <input type="text" id="entry_plat" class="w-16 bg-transparent text-white text-center font-normal uppercase outline-none" placeholder="B 1234 X">
+                        <button onclick="cekPlat()" class="bg-[#ff9f0a] text-white px-2 py-0.5 rounded text-[10px] ml-1 hover:opacity-80">CEK</button>
+                    </div>
 
-        <div class="flex gap-3">
-            <button onclick="hitungRasio()" class="flex-1 bg-[#34c759] hover:bg-green-600 text-black font-bold py-3 rounded-xl transition duration-200 text-base active:scale-98">
-                HITUNG
-            </button>
-            <button onclick="resetForm()" class="w-20 bg-[#3a3f4d] hover:bg-gray-650 text-white font-semibold py-3 rounded-xl transition duration-200 text-base active:scale-98">
-                Reset
-            </button>
-        </div>
+                    <div class="flex items-center bg-[#2d323f] rounded px-2 py-1">
+                        <span class="mr-1">START</span>
+                        <input type="number" id="entry_start" class="w-16 bg-transparent text-white text-center font-normal outline-none">
+                    </div>
 
-        <div class="grid grid-cols-3 gap-2 bg-[#222226] border border-[#29292e] rounded-xl p-3 text-center items-center">
-            <div>
-                <div id="label_hasil" class="text-lg font-mono font-bold text-[#34c759]">- KM/L</div>
-            </div>
-            <div>
-                <div id="label_jarak" class="text-sm text-gray-300 font-medium">Jrk: -</div>
-            </div>
-            <div>
-                <span id="label_status" class="text-sm font-bold px-2 py-1 rounded bg-[#29292e] text-gray-400">-</span>
-            </div>
-        </div>
+                    <div class="flex items-center bg-[#2d323f] rounded px-2 py-1">
+                        <span class="mr-1">AKHIR</span>
+                        <input type="number" id="entry_akhir" class="w-16 bg-transparent text-white text-center font-normal outline-none">
+                    </div>
 
-        <div class="bg-[#222226] border border-[#29292e] rounded-xl p-4 space-y-3">
-            <p id="label_rekues" class="text-xs text-gray-400 leading-relaxed min-h-[40px]">
-                Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
-            </p>
-            <div class="flex justify-end">
-                <button id="btn_copas" onclick="copasTeks('label_rekues', 'btn_copas', 'Copas')" class="bg-[#3a3f4d] text-xs text-gray-200 px-4 py-2 rounded-lg font-medium active:scale-95 transition">
+                    <div class="flex items-center bg-[#2d323f] rounded px-2 py-1">
+                        <span class="mr-1">LITER</span>
+                        <input type="number" id="entry_liter" class="w-12 bg-transparent text-white text-center font-normal outline-none">
+                    </div>
+
+                    <div class="flex items-center bg-[#2d323f] rounded px-2 py-1">
+                        <span class="mr-1">RMK</span>
+                        <input type="text" id="entry_remark" class="w-24 bg-transparent text-white font-normal outline-none" placeholder="-">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1 text-[12px] font-bold">
+                    <button onclick="hitungRasio()" class="bg-[#34c759] text-white px-3 py-1.5 rounded hover:opacity-80">HITUNG</button>
+                    <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white px-3 py-1.5 rounded hover:opacity-80">SAVE</button>
+                    <button onclick="lihatHistori()" class="bg-[#0a84ff] text-white px-3 py-1.5 rounded hover:opacity-80">LOG</button>
+                    <button onclick="resetForm()" class="bg-[#3a3f4d] text-white px-3 py-1.5 rounded hover:opacity-80">RESET</button>
+                </div>
+
+                <div class="flex items-center bg-[#2d323f] px-3 py-1.5 rounded space-x-4 min-w-[200px] justify-between">
+                    <span id="label_hasil" class="text-[#34c759] font-bold text-sm">- KM/L</span>
+                    <span id="label_jarak" class="text-[#a0a5b5] text-xs">Jarak: -</span>
+                    <span id="label_status" class="text-white font-bold text-xs px-2 py-0.5 rounded bg-gray-800 min-w-[60px] text-center">-</span>
+                </div>
+
+            </div>
+
+            <div class="bg-[#2d323f] p-2 rounded flex items-center justify-between">
+                <p id="label_rekues" class="text-[11px] italic text-gray-300">
+                    Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
+                </p>
+                <button onclick="copasTeks('label_rekues', this)" class="bg-[#3a3f4d] text-white text-[11px] font-bold px-3 py-1 rounded ml-4 hover:opacity-80 min-w-[65px]">
                     Copas
                 </button>
             </div>
-        </div>
 
-        <div class="grid grid-cols-12 gap-2 bg-[#222226] border border-[#29292e] rounded-xl p-3 items-center table-layout-fixed w-full overflow-hidden">
-            <div class="col-span-8 min-w-0">
-                <select id="spinner" class="custom-select w-full bg-[#29292e] border border-[#3a3a40] rounded-lg p-2 text-xs text-gray-300 focus:outline-none block cursor-pointer">
+            <div class="flex items-center justify-between gap-3">
+                <select id="menu_var" class="flex-1 bg-[#2d323f] text-white text-[11px] p-1.5 rounded outline-none border border-transparent focus:border-gray-600">
                     <option value="">-- Pilih Teks Tambahan --</option>
                     <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
                     <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
                     <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
                     <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen...">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen...</option>
-                    <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih...</option>
+                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" atau "Delivery Material Badan".</option>
+                    <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
                 </select>
+                <button onclick="copasPilihan(this)" class="bg-[#3a3f4d] text-white text-[11px] font-bold px-4 py-1.5 rounded hover:opacity-80 whitespace-nowrap min-w-[110px]">
+                    Copas Pilihan
+                </button>
             </div>
-            <button id="btn_copas_pilihan" onclick="copasPilihan()" class="col-span-4 bg-[#3a3f4d] hover:bg-gray-650 text-[11px] text-gray-200 py-2 rounded-lg font-medium active:scale-95 transition text-center truncate whitespace-nowrap">
-                Copas Pilihan
-            </button>
+
+        </div>
+
+        <div class="w-6 bg-[#f3c623] flex flex-col justify-center items-center font-black text-[10px] text-black tracking-widest break-all select-none py-2">
+            P<br>A<br>P<br>I<br>P<br>A
         </div>
 
     </div>
 
-    <div class="bg-yellow-400 text-black font-extrabold text-[10px] tracking-widest px-3 py-1 rounded-full shadow-md uppercase select-none">
-        PAPIPA
+    <div id="modal_histori" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-2xl rounded-lg shadow-2xl p-4 flex flex-col">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
+                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Riwayat</h3>
+                <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400">&times;</button>
+            </div>
+            <pre id="histori_content" class="bg-[#2d323f] text-white font-mono text-[11px] p-3 rounded overflow-x-auto h-64 whitespace-pre-wrap"></pre>
+        </div>
     </div>
 
     <script>
-        const templateAwal = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-        let teksHasilTemplate = templateAwal;
+        // Simulasi Database Lokal karena Supabase membutuhkan SDK Client-side / API
+        // Data tiruan awal untuk demonstrasi fitur 'CEK' dan 'LOG'
+        let db_mock = [
+            { id: 1, tanggal: "2026-06-23T07:00:00", plat_nomor: "B1234XYZ", km_start: 1000, km_akhir: 1120, jarak: 120, liter: 10, rasio: 12.00, status: "CUKUP", remark: "Aman" },
+            { id: 2, tanggal: "2026-06-22T14:30:00", plat_nomor: "B1234XYZ", km_start: 850, km_akhir: 1000, jarak: 150, liter: 11, rasio: 13.64, status: "JOSJIS", remark: "Lancar" }
+        ];
 
-        function hitungRasio() {
-            const start = parseFloat(document.getElementById('start').value);
-            const akhir = parseFloat(document.getElementById('akhir').value);
-            const liter = parseFloat(document.getElementById('liter').value);
+        let data_siap_simpan = null;
 
-            if (isNaN(start) || isNaN(akhir) || isNaN(liter) || akhir < start || liter <= 0) {
-                alert("Mohon masukkan angka yang valid (AKHIR harus lebih besar dari START & LITER tidak boleh 0)!");
+        // Auto Paste Trigger saat klik kanan di input (opsional, web modern biasanya pakai Ctrl+V langsung)
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('contextmenu', async function(e) {
+                e.preventDefault();
+                try {
+                    const text = await navigator.clipboard.readText();
+                    this.value = text;
+                } catch (err) {
+                    console.log("Izin clipboard ditolak.");
+                }
+            });
+        });
+
+        function cekPlat() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) {
+                alert("Isi kolom PLAT nomor terlebih dahulu!");
                 return;
             }
 
-            const jarak = akhir - start;
-            const rasio = jarak / liter;
+            // Cari log terakhir dari plat nomor tersebut
+            const rows = db_mock.filter(item => item.plat_nomor.replace(/\s+/g, '') === plat.replace(/\s+/g, ''));
 
-            document.getElementById('label_jarak').innerText = `Jrk: ${jarak.toFixed(1)}K`;
-            document.getElementById('label_hasil').innerText = `${rasio.toFixed(2)} KM/L`;
-
-            const statusEl = document.getElementById('label_status');
-            if (rasio < 11.0) {
-                statusEl.innerText = "KURANG";
-                statusEl.className = "text-xs font-bold px-2 py-1 rounded bg-red-950 text-[#ff3b30]";
-            } else if (rasio >= 11.0 && rasio <= 12.0) {
-                statusEl.innerText = "CUKUP";
-                statusEl.className = "text-xs font-bold px-2 py-1 rounded bg-orange-950 text-[#ff9f0a]";
+            if (rows.length > 0) {
+                const lastData = rows[0]; // data terbaru ada di index teratas jika diurutkan desc
+                document.getElementById("entry_start").value = lastData.km_akhir;
+                document.getElementById("entry_akhir").value = "";
+                
+                const rem = lastData.remark || "-";
+                document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
+                document.getElementById("entry_akhir").focus();
             } else {
-                statusEl.innerText = "JOSJIS";
-                statusEl.className = "text-xs font-bold px-2 py-1 rounded bg-green-950 text-[#34c759]";
+                alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
+                document.getElementById("entry_start").value = "";
+                document.getElementById("entry_akhir").value = "";
+                document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
+            }
+        }
+
+        function hitungRasio() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            const startVal = document.getElementById("entry_start").value;
+            const akhirVal = document.getElementById("entry_akhir").value;
+            const literVal = document.getElementById("entry_liter").value;
+
+            if (!plat || !startVal || !akhirVal || !literVal) {
+                alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
+                return;
             }
 
-            teksHasilTemplate = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
-            document.getElementById('label_rekues').innerText = teksHasilTemplate;
+            const km_start = parseFloat(startVal);
+            const km_akhir = parseFloat(akhirVal);
+            const liter = parseFloat(literVal);
+
+            if (km_akhir < km_start) {
+                alert("Error: KM Akhir tidak boleh lebih kecil dari KM Start!");
+                return;
+            }
+            if (liter <= 0) {
+                alert("Error: BBM harus lebih dari 0!");
+                return;
+            }
+
+            const jarak = km_akhir - km_start;
+            const rasio = jarak / liter;
+
+            document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
+            document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
+
+            let kesimpulan, warna, bgWarna;
+            if (rasio < 11.0) {
+                kesimpulan = "KURANG";
+                warna = "#ffffff";
+                bgWarna = "#ff3b30";
+            } else if (rasio >= 11.0 && rasio <= 12.0) {
+                kesimpulan = "CUKUP";
+                warna = "#ffffff";
+                bgWarna = "#ff9f0a";
+            } else {
+                kesimpulan = "JOSJIS";
+                warna = "#ffffff";
+                bgWarna = "#34c759";
+            }
+
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = kesimpulan;
+            lblStatus.style.color = warna;
+            lblStatus.style.backgroundColor = bgWarna;
+
+            const teks_baru = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
+            document.getElementById("label_rekues").innerText = teks_baru;
+
+            data_siap_simpan = {
+                plat_nomor: plat,
+                km_start: km_start,
+                km_akhir: km_akhir,
+                jarak: jarak,
+                liter: liter,
+                rasio: parseFloat(rasio.toFixed(2)),
+                status: kesimpulan
+            };
+
+            document.getElementById("btn_save").style.backgroundColor = "#0a84ff";
         }
 
-        function copasTeks(elementId, buttonId, teksAsli) {
-            const text = document.getElementById(elementId).innerText;
-            if (text === templateAwal || text.trim() === "") return;
+        function simpanKeCloud() {
+            if (!data_siap_simpan) {
+                alert("Hitung rasio terlebih dahulu sebelum menekan SAVE!");
+                return;
+            }
 
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById(buttonId);
-                btn.innerText = "Suks!";
-                btn.classList.replace('bg-[#3a3f4d]', 'bg-[#34c759]');
-                btn.classList.replace('text-gray-200', 'text-black');
-                setTimeout(() => {
-                    btn.innerText = teksAsli;
-                    btn.classList.replace('bg-[#34c759]', 'bg-[#3a3f4d]');
-                    btn.classList.replace('text-black', 'text-gray-200');
-                }, 1000);
-            });
+            const remark_text = document.getElementById("entry_remark").value.trim();
+            data_siap_simpan["remark"] = remark_text ? remark_text : null;
+            
+            // Set timestamp manual menyerupai database online
+            const sekarang = new Date().toISOString();
+            data_siap_simpan["tanggal"] = sekarang;
+            data_siap_simpan["id"] = db_mock.length + 1;
+
+            // Masukkan ke log teratas
+            db_mock.unshift(data_siap_simpan);
+
+            alert(`Sukses: Data ${data_siap_simpan.plat_nomor} berhasil di-lock ke Cloud (Simulasi)!`);
+
+            data_siap_simpan = null;
+            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
         }
 
-        function copasPilihan() {
-            const select = document.getElementById('spinner');
-            const nilai = select.value;
-            if (!nilai) return;
+        function lihatHistori() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) {
+                alert("Isi kolom PLAT nomor terlebih dahulu untuk melihat histori!");
+                return;
+            }
 
-            navigator.clipboard.writeText(nilai).then(() => {
-                const btn = document.getElementById('btn_copas_pilihan');
-                btn.innerText = "Suks!";
-                btn.classList.replace('bg-[#3a3f4d]', 'bg-[#34c759]');
-                btn.classList.replace('text-gray-200', 'text-black');
-                setTimeout(() => {
-                    btn.innerText = "Copas Pilihan";
-                    btn.classList.replace('bg-[#34c759]', 'bg-[#3a3f4d]');
-                    btn.classList.replace('text-black', 'text-gray-200');
-                }, 1000);
+            const rows = db_mock.filter(item => item.plat_nomor.replace(/\s+/g, '') === plat.replace(/\s+/g, '')).slice(0, 10);
+
+            if (rows.length === 0) {
+                alert(`Belum ada data riwayat untuk plat nomor ${plat}`);
+                return;
+            }
+
+            let teks_histori = `--- 10 Riwayat Terakhir ${plat} (Cloud) ---\n\n`;
+            rows.forEach(row => {
+                const tgl_iso = row.tanggal.split("T")[0];
+                const jam_iso = row.tanggal.split("T")[1].substring(0, 5);
+                const rem = row.remark || "-";
+                teks_histori += `[${tgl_iso} ${jam_iso}] KM: ${row.km_start}->${row.km_akhir} (${row.jarak}k) | ${row.liter}L | ${row.rasio} KM/L (${row.status}) | Rem: ${rem}\n`;
             });
+
+            document.getElementById("histori_title").innerText = `Histori ${plat}`;
+            document.getElementById("histori_content").innerText = teks_histori;
+            document.getElementById("modal_histori").style.display = "flex";
+        }
+
+        function tutupHistori() {
+            document.getElementById("modal_histori").style.display = "none";
+        }
+
+        function copasTeks(elementId, btn) {
+            const teks = document.getElementById(elementId).innerText;
+            if (teks && !teks.includes("...")) {
+                navigator.clipboard.writeText(teks).then(() => {
+                    const oldText = btn.innerText;
+                    const oldBg = btn.style.backgroundColor;
+                    btn.innerText = "Suks!";
+                    btn.style.backgroundColor = "#34c759";
+                    setTimeout(() => {
+                        btn.innerText = oldText;
+                        btn.style.backgroundColor = oldBg;
+                    }, 1000);
+                });
+            } else {
+                alert("Hitung rasio terlebih dahulu!");
+            }
+        }
+
+        function copasPilihan(btn) {
+            const selectMenu = document.getElementById("menu_var");
+            const teksTerpilih = selectMenu.value;
+
+            if (teksTerpilih) {
+                navigator.clipboard.writeText(teksTerpilih).then(() => {
+                    const oldText = btn.innerText;
+                    const oldBg = btn.style.backgroundColor;
+                    btn.innerText = "Suks!";
+                    btn.style.backgroundColor = "#34c759";
+                    setTimeout(() => {
+                        btn.innerText = oldText;
+                        btn.style.backgroundColor = oldBg;
+                    }, 1000);
+                });
+            } else {
+                alert("Silakan pilih teks terlebih dahulu!");
+            }
         }
 
         function resetForm() {
-            document.getElementById('start').value = '';
-            document.getElementById('akhir').value = '';
-            document.getElementById('liter').value = '';
-            document.getElementById('label_jarak').innerText = 'Jrk: -';
-            document.getElementById('label_hasil').innerText = '- KM/L';
+            data_siap_simpan = null;
+            document.getElementById("entry_plat").value = "";
+            document.getElementById("entry_start").value = "";
+            document.getElementById("entry_akhir").value = "";
+            document.getElementById("entry_liter").value = "";
+            document.getElementById("entry_remark").value = "";
             
-            const statusEl = document.getElementById('label_status');
-            statusEl.innerText = '-';
-            statusEl.className = "text-xs font-bold px-2 py-1 rounded bg-[#29292e] text-gray-400";
+            document.getElementById("label_jarak").innerText = "Jarak: -";
+            document.getElementById("label_hasil").innerText = "- KM/L";
             
-            teksHasilTemplate = templateAwal;
-            document.getElementById('label_rekues').innerText = templateAwal;
-            document.getElementById('spinner').value = '';
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = "-";
+            lblStatus.style.backgroundColor = "transparent";
+            lblStatus.style.color = "#ffffff";
+
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+            document.getElementById("menu_var").value = "";
+            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
         }
     </script>
 </body>
