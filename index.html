@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Delete Final</title>
+    <title>Kalkulator BBM Cloud Pro - Fixed Delete</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -101,7 +101,7 @@
         </div>
     </div>
 
-    <div id="modal_histori" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div id="modal_histori" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-[#1e222b] border border-gray-700 w-full max-w-md rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
                 <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Riwayat & Edit Log</h3>
@@ -275,12 +275,12 @@
                             <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" class="w-full bg-[#1e222b] px-2 py-1 text-white rounded outline-none border border-gray-600" placeholder="-">
                         </div>
                         
-                        <div class="flex space-x-2 pt-1 w-full">
-                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="flex-1 bg-[#0a84ff] text-white py-2 rounded text-[11px] font-bold hover:opacity-90 transition-colors uppercase">
-                                Simpan
+                        <div class="grid grid-cols-2 gap-2 pt-2">
+                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="w-full bg-[#0a84ff] text-white py-2 rounded text-xs font-bold hover:opacity-90 transition-colors uppercase">
+                                SIMPAN
                             </button>
-                            <button onclick="deleteLog(${r.id})" id="btn_delete_${r.id}" class="bg-[#ff3b30] text-white px-4 py-2 rounded text-[11px] font-bold hover:opacity-90 transition-colors uppercase">
-                                Hapus
+                            <button onclick="deleteLog(${r.id})" id="btn_delete_${r.id}" class="w-full bg-[#ff3b30] text-white py-2 rounded text-xs font-bold hover:opacity-90 transition-colors uppercase">
+                                HAPUS
                             </button>
                         </div>
                     `;
@@ -313,8 +313,7 @@
             else status = "JOSJIS";
 
             const btnUpdate = document.getElementById(`btn_update_${id}`);
-            const textLama = btnUpdate.innerText;
-            btnUpdate.innerText = "Saving...";
+            btnUpdate.innerText = "...";
             btnUpdate.disabled = true;
 
             try {
@@ -334,23 +333,23 @@
 
                 if (error) throw error;
                 if (!data || data.length === 0) {
-                    throw new Error("Data gagal diperbarui. Periksa RLS UPDATE di Supabase.");
+                    throw new Error("Periksa kembali setelan RLS 'UPDATE' di Supabase.");
                 }
 
                 alert(`Sukses! Log ID #${id} berhasil diperbarui.`);
                 lihatHistori(); 
             } catch (err) {
-                alert("Gagal Update Data ke Cloud!\n\nAlasan Eror:\n" + err.message);
+                alert("Gagal Update Data ke Cloud!\n\n" + err.message);
             } finally {
                 if(document.getElementById(`btn_update_${id}`)) {
-                    document.getElementById(`btn_update_${id}`).innerText = textLama;
+                    document.getElementById(`btn_update_${id}`).innerText = "SIMPAN";
                     document.getElementById(`btn_update_${id}`).disabled = false;
                 }
             }
         }
 
         async function deleteLog(id) {
-            const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log dengan ID #${id} secara permanen? Data tidak dapat dikembalikan.`);
+            const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log ID #${id} secara permanen dari Cloud?`);
             if (!konfirmasi) return;
 
             const btnDelete = document.getElementById(`btn_delete_${id}`);
@@ -365,12 +364,14 @@
 
                 if (error) throw error;
 
-                alert(`Sukses! Log ID #${id} telah dihapus dari cloud.`);
+                alert(`Sukses! Log ID #${id} telah dihapus.`);
                 lihatHistori(); 
             } catch (err) {
-                alert("Gagal menghapus data dari Cloud!\n\nAlasan Eror:\n" + err.message);
-                btnDelete.innerText = "HAPUS";
-                btnDelete.disabled = false;
+                alert("Gagal menghapus data dari Cloud!\n\n" + err.message);
+                if(document.getElementById(`btn_delete_${id}`)) {
+                    btnDelete.innerText = "HAPUS";
+                    btnDelete.disabled = false;
+                }
             }
         }
 
