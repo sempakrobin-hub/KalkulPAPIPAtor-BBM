@@ -256,7 +256,11 @@
                     alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
                 }
                 
-                resetForm();
+                // REVISI: resetForm() dihapus dari sini agar form tidak ter-clear setelah save sukses
+                // Mengembalikan warna tombol SAVE/UPDATE ke default setelah berhasil menyimpan data terbaru
+                btnSave.style.backgroundColor = "#3a3f4d";
+                btnSave.innerText = "SAVE";
+                
             } catch (err) {
                 alert("Gagal memproses data ke Cloud:\n" + err.message);
                 btnSave.innerText = textAwal;
