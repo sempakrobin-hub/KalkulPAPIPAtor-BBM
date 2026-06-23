@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Clean List View</title>
+    <title>Kalkulator BBM Cloud Pro - Minimalist Text List</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -104,12 +104,17 @@
     <div id="modal_histori" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-[#1e222b] border border-gray-700 w-full max-w-md rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
-                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Riwayat Log</h3>
+                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
                 <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
             </div>
             
-            <div id="histori_container" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+            <div class="bg-[#181b22] border border-gray-800 rounded p-3 flex-1 overflow-y-auto">
+                <div class="text-center text-gray-400 font-mono text-[11px] mb-3 border-b border-gray-700 pb-1" id="sub_header_modal">
+                    --- 10 Riwayat Terakhir (Cloud) ---
                 </div>
+                <div id="histori_container" class="space-y-2.5 font-mono text-[11px] text-gray-300">
+                    </div>
+            </div>
         </div>
     </div>
 
@@ -147,7 +152,7 @@
                     document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
                     document.getElementById("entry_akhir").focus();
                 } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
+                    alert(`Plat nomor ${plat} belum ada di cloud. Silakan isi manual.`);
                     document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
                 }
             } catch (err) {
@@ -242,53 +247,34 @@
                 if (error) throw error;
                 if (!data || data.length === 0) { return alert("Tidak ada riwayat untuk plat ini."); }
 
-                document.getElementById("histori_title").innerText = `Histori & Edit: ${plat}`;
+                document.getElementById("histori_title").innerText = `Histori ${plat}`;
+                document.getElementById("sub_header_modal").innerText = `--- 10 Riwayat Terakhir ${plat} (Cloud) ---`;
+                
                 const container = document.getElementById("histori_container");
                 container.innerHTML = ""; 
 
                 data.forEach((r) => {
                     const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
-                    
-                    const logCard = document.createElement("div");
-                    logCard.className = "bg-[#2d323f] p-3 rounded border border-gray-700 flex flex-col space-y-2 relative";
-                    logCard.innerHTML = `
-                        <div class="flex justify-between items-center border-b border-gray-600 pb-1 mb-1">
-                            <div class="text-[10px] text-gray-400 font-bold">
-                                <span>#${r.id} (${tgl})</span>
-                                <span class="text-[#34c759] ml-2 font-black">${r.rasio} KM/L</span>
-                            </div>
-                            <div class="flex space-x-2 text-xs">
-                                <button onclick="aktifkanEdit(${r.id})" title="Edit Log" class="text-blue-400 hover:text-blue-300 font-bold p-1">📝</button>
-                                <button onclick="deleteLog(${r.id})" id="btn_delete_${r.id}" title="Hapus Log" class="text-red-400 hover:text-red-300 font-bold p-1">🗑️</button>
-                            </div>
-                        </div>
+                    const rmkText = r.remark ? r.remark : "-";
+                    const jarakFormat = r.jarak ? `${r.jarak}k` : `${r.km_akhir - r.km_start}k`;
 
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="text-[9px] text-gray-400 block font-bold">START</label>
-                                <input type="number" id="edit_start_${r.id}" value="${r.km_start}" disabled class="w-full bg-[#1e222b]/50 px-1.5 py-1 text-gray-400 rounded outline-none border border-transparent disabled:opacity-70">
-                            </div>
-                            <div>
-                                <label class="text-[9px] text-gray-400 block font-bold">AKHIR</label>
-                                <input type="number" id="edit_akhir_${r.id}" value="${r.km_akhir}" disabled class="w-full bg-[#1e222b]/50 px-1.5 py-1 text-gray-400 rounded outline-none border border-transparent disabled:opacity-70">
-                            </div>
-                            <div>
-                                <label class="text-[9px] text-gray-400 block font-bold">LITER</label>
-                                <input type="number" id="edit_liter_${r.id}" value="${r.liter}" disabled class="w-full bg-[#1e222b]/50 px-1.5 py-1 text-gray-400 rounded outline-none border border-transparent disabled:opacity-70">
-                            </div>
+                    // Format baris persis seperti di gambar awal Anda
+                    const barisTeks = `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
+
+                    // Elemen baris list pembungkus
+                    const rowDiv = document.createElement("div");
+                    rowDiv.className = "flex items-start justify-between space-x-2 border-b border-gray-800 pb-2 hover:bg-gray-800/30 px-1 rounded transition-colors";
+                    
+                    rowDiv.innerHTML = `
+                        <div class="flex-1 break-words leading-relaxed">
+                            ${barisTeks}
                         </div>
-                        <div>
-                            <label class="text-[9px] text-gray-400 block font-bold">REMARK</label>
-                            <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" disabled class="w-full bg-[#1e222b]/50 px-2 py-1 text-gray-400 rounded outline-none border border-transparent disabled:opacity-70" placeholder="-">
-                        </div>
-                        
-                        <div id="wrapper_save_${r.id}" class="hidden pt-1">
-                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="w-full bg-[#34c759] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-90 uppercase transition-all">
-                                SIMPAN PERUBAHAN
-                            </button>
+                        <div class="flex items-center space-x-2 flex-shrink-0 select-none pt-0.5">
+                            <button onclick='lemparKeForm(${JSON.stringify(r)})' title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 text-xs font-bold transition-transform active:scale-95">✏️</button>
+                            <button onclick="deleteLog(${r.id})" id="text_del_${r.id}" title="Hapus Permanen" class="text-red-400 hover:text-red-300 text-xs font-bold transition-transform active:scale-95">🗑️</button>
                         </div>
                     `;
-                    container.appendChild(logCard);
+                    container.appendChild(rowDiv);
                 });
 
                 document.getElementById("modal_histori").style.display = "flex";
@@ -297,74 +283,29 @@
             }
         }
 
-        function aktifkanEdit(id) {
-            // Ubah input yang tadinya lock/disabled menjadi aktif
-            const inputs = [`edit_start_${id}`, `edit_akhir_${id}`, `edit_liter_${id}`, `edit_remark_${id}`];
-            inputs.forEach(inputId => {
-                const el = document.getElementById(inputId);
-                el.removeAttribute("disabled");
-                el.className = "w-full bg-[#1e222b] px-1.5 py-1 text-white rounded outline-none border border-gray-600";
-            });
-            // Munculkan tombol simpan konfirmasi perubahan
-            document.getElementById(`wrapper_save_${id}`).classList.remove("hidden");
-        }
-
-        async function updateLog(id) {
-            const start = parseFloat(document.getElementById(`edit_start_${id}`).value);
-            const akhir = parseFloat(document.getElementById(`edit_akhir_${id}`).value);
-            const liter = parseFloat(document.getElementById(`edit_liter_${id}`).value);
-            const remark = document.getElementById(`edit_remark_${id}`).value.trim();
-
-            if (isNaN(start) || isNaN(akhir) || isNaN(liter)) {
-                return alert("Kolom data angka tidak boleh kosong!");
-            }
-            if (akhir < start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
-            if (liter <= 0) { return alert("Liter harus lebih besar dari 0!"); }
-
-            const jarak = akhir - start;
-            const rasio = parseFloat((jarak / liter).toFixed(2));
-            let status;
-            if (rasio < 11.0) status = "KURANG";
-            else if (rasio <= 12.0) status = "CUKUP";
-            else status = "JOSJIS";
-
-            const btnUpdate = document.getElementById(`btn_update_${id}`);
-            btnUpdate.innerText = "...";
-            btnUpdate.disabled = true;
-
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .update({ 
-                        km_start: start, 
-                        km_akhir: akhir, 
-                        liter: liter, 
-                        jarak: jarak,
-                        rasio: rasio,
-                        status: status,
-                        remark: remark ? remark : null 
-                    })
-                    .eq('id', id)
-                    .select();
-
-                if (error) throw error;
-                alert(`Sukses! Log ID #${id} berhasil diperbarui.`);
-                lihatHistori(); 
-            } catch (err) {
-                alert("Gagal Update Data ke Cloud!\n\n" + err.message);
-                btnUpdate.innerText = "SIMPAN PERUBAHAN";
-                btnUpdate.disabled = false;
-            }
+        function lemparKeForm(dataObj) {
+            // Isi kembali semua field utama dengan data baris yang dipilih agar bisa di-edit kembali
+            document.getElementById("entry_plat").value = dataObj.plat_nomor;
+            document.getElementById("entry_start").value = dataObj.km_start;
+            document.getElementById("entry_akhir").value = dataObj.km_akhir;
+            document.getElementById("entry_liter").value = dataObj.liter;
+            document.getElementById("entry_remark").value = dataObj.remark || "";
+            
+            // Tutup Modal
+            tutupHistori();
+            
+            // Trigger hitung ulang otomatis di depan
+            hitungRasio();
+            alert(`Data ID #${dataObj.id} berhasil dimuat ke form utama! Anda bisa mengubah angka lalu klik 'HITUNG' & 'SAVE' kembali.`);
         }
 
         async function deleteLog(id) {
-            const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log ID #${id} secara permanen?`);
+            const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log ID #${id} secara permanen dari Cloud?`);
             if (!konfirmasi) return;
 
-            const btnDelete = document.getElementById(`btn_delete_${id}`);
-            const textAwal = btnDelete.innerText;
-            btnDelete.innerText = "..";
-            btnDelete.disabled = true;
+            const btnDel = document.getElementById(`text_del_${id}`);
+            btnDel.innerText = "..";
+            btnDel.disabled = true;
 
             try {
                 const { error } = await _supabase
@@ -375,11 +316,11 @@
                 if (error) throw error;
 
                 alert(`Sukses! Log ID #${id} telah dihapus.`);
-                lihatHistori(); 
+                lihatHistori(); // Refresh list dalam modal
             } catch (err) {
                 alert("Gagal menghapus data dari Cloud!\n\n" + err.message);
-                btnDelete.innerText = textAwal;
-                btnDelete.disabled = false;
+                btnDel.innerText = "🗑️";
+                btnDel.disabled = false;
             }
         }
 
