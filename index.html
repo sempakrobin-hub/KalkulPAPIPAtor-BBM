@@ -4,7 +4,7 @@
     
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let data_siap_simpan = null;
-    let id_log_sedang_diedit = null; // Menyimpan ID saat mode EDIT aktif
+    let id_log_sedang_diedit = null; // Ini adalah kunci utama untuk mode EDIT
 
     async function cekPlat() {
         id_log_sedang_diedit = null; 
@@ -76,7 +76,7 @@
 
         document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
 
-        // Perbaikan: Tetap selipkan id lama jika sedang dalam mode EDIT
+        // Menyusun data baru hasil input/edit
         data_siap_simpan = { 
             plat_nomor: plat, 
             km_start: km_start, 
@@ -86,10 +86,6 @@
             rasio: parseFloat(rasio.toFixed(2)), 
             status: kesimpulan 
         };
-        
-        if (id_log_sedang_diedit !== null) {
-            data_siap_simpan["id"] = id_log_sedang_diedit;
-        }
 
         document.getElementById("btn_save").style.backgroundColor = "#0a84ff";
     }
@@ -105,8 +101,9 @@
         btnSave.innerText = "...";
 
         try {
+            // PERBAIKAN UTAMA: Pengecekan didasarkan langsung pada variabel global id_log_sedang_diedit
             if (id_log_sedang_diedit !== null) {
-                // Jalankan UPDATE ke baris ID yang sesuai, bukan insert baru
+                // Jalankan perintah UPDATE (mengubah data lama berdasarkan ID)
                 const { error } = await _supabase
                     .from('log_bbm')
                     .update(data_siap_simpan)
@@ -115,7 +112,7 @@
                 if (error) throw error;
                 alert(`Sukses! Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) berhasil di-update!`);
             } else {
-                // Jalankan INSERT jika data baru
+                // Jalankan perintah INSERT (membuat riwayat data baru)
                 const { error } = await _supabase
                     .from('log_bbm')
                     .insert([data_siap_simpan]);
@@ -129,7 +126,6 @@
             alert("Gagal memproses data ke Cloud:\n" + err.message);
         } finally {
             btnSave.disabled = false;
-            btnSave.innerText = "SAVE";
         }
     }
 
@@ -187,7 +183,9 @@
 
     function lemparKeForm(encodedData) {
         const dataObj = JSON.parse(atob(encodedData));
-        id_log_sedang_diedit = dataObj.id; // Kunci utama biar tetap mengenali baris database asal
+        
+        // Mengunci ID log agar sistem tahu data ini yang mau di-UPDATE nantinya
+        id_log_sedang_diedit = dataObj.id; 
 
         document.getElementById("entry_plat").value = dataObj.plat_nomor;
         document.getElementById("entry_start").value = dataObj.km_start;
@@ -195,6 +193,7 @@
         document.getElementById("entry_liter").value = dataObj.liter;
         document.getElementById("entry_remark").value = dataObj.remark || "";
         
+        // Ubah teks tombol menjadi UPDATE agar terlihat jelas sedang dalam mode edit
         document.getElementById("btn_save").innerText = "UPDATE";
 
         tutupHistori();
