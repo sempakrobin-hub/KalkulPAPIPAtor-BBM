@@ -99,7 +99,7 @@
     </div>
 
     <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-2xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
+        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
                 <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
@@ -112,7 +112,7 @@
                 </div>
                 
                 <div id="histori_container" class="space-y-2 text-gray-300">
-                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -123,8 +123,12 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let data_siap_simpan = null;
+        let id_log_sedang_diedit = null; // Melacak ID log yang sedang dimodifikasi
 
         async function cekPlat() {
+            id_log_sedang_diedit = null; // Reset mode edit ketika cek plat baru
+            document.getElementById("btn_save").innerText = "SAVE";
+
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) { return alert("Isi kolom PLAT nomor terlebih dahulu!"); }
             
@@ -210,24 +214,36 @@
             const remark_text = document.getElementById("entry_remark").value.trim();
             data_siap_simpan["remark"] = remark_text ? remark_text : null;
             
-            btnSave.innerText = "...";
             btnSave.disabled = true;
+            const originalText = btnSave.innerText;
+            btnSave.innerText = "...";
 
             try {
-                const { error } = await _supabase
-                    .from('log_bbm')
-                    .insert([data_siap_simpan]);
+                if (id_log_sedang_diedit !== null) {
+                    // MODE UPDATE: Mengubah riwayat data lama
+                    const { error } = await _supabase
+                        .from('log_bbm')
+                        .update(data_siap_simpan)
+                        .eq('id', id_log_sedang_diedit);
 
-                if (error) throw error;
+                    if (error) throw error;
+                    alert(`Sukses! Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) berhasil diperbarui!`);
+                } else {
+                    // MODE INSERT: Membuat baris baru
+                    const { error } = await _supabase
+                        .from('log_bbm')
+                        .insert([data_siap_simpan]);
 
-                alert(`Sukses: Data ${data_siap_simpan.plat_nomor} berhasil disimpan!`);
-                data_siap_simpan = null;
-                btnSave.style.backgroundColor = "#3a3f4d";
+                    if (error) throw error;
+                    alert(`Sukses! Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
+                }
+                
+                resetForm();
             } catch (err) {
-                alert("Gagal menyimpan ke Cloud:\n" + err.message);
+                alert("Gagal memproses data ke Cloud:\n" + err.message);
             } finally {
-                btnSave.innerText = "SAVE";
                 btnSave.disabled = false;
+                btnSave.innerText = "SAVE";
             }
         }
 
@@ -257,20 +273,21 @@
                     const rmkText = r.remark ? r.remark : "-";
                     const jarakFormat = r.jarak ? `${r.jarak}k` : `${r.km_akhir - r.km_start}k`;
 
-                    // STRING STRUKTUR TEXT LIST SESUAI DENGAN IMAGE_1B55D6
                     const barisTeks = `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
 
-                    // PEMBUNGKUS BARIS YANG MENJAMIN TOMBOL SELALU DISAMPING KANAN
                     const lineContainer = document.createElement("div");
                     lineContainer.className = "flex items-center justify-between border-b border-gray-900 py-1.5 hover:bg-gray-800/40 px-1 rounded transition-all";
                     
+                    // Gunakan data attribute base64 / safe parsing untuk meminimalisir error kutip teks JSON objek
+                    const dataString = btoa(JSON.stringify(r));
+
                     lineContainer.innerHTML = `
                         <div class="flex-1 whitespace-pre-wrap break-all leading-relaxed pr-4 select-all">
                             ${barisTeks}
                         </div>
                         
                         <div class="flex items-center space-x-3 flex-shrink-0 select-none">
-                            <button onclick='lemparKeForm(${JSON.stringify(r)})' title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px] active:scale-95 transition-all">✏️ EDIT</button>
+                            <button onclick="lemparKeForm('${dataString}')" title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px] active:scale-95 transition-all">✏️ EDIT</button>
                             <button onclick="deleteLog(${r.id})" id="text_del_${r.id}" title="Hapus dari Cloud" class="text-red-400 hover:text-red-300 font-bold px-1 py-0.5 border border-red-500/20 bg-red-500/10 rounded text-[10px] active:scale-95 transition-all">🗑️ HAPUS</button>
                         </div>
                     `;
@@ -283,19 +300,24 @@
             }
         }
 
-        function lemparKeForm(dataObj) {
-            // Mengembalikan nilai ke form utama lebar di atas
+        function lemparKeForm(encodedData) {
+            // Decode string data objek log
+            const dataObj = JSON.parse(atob(encodedData));
+            
+            // Set ID Log Global yang menandakan mode saat ini adalah UPDATE
+            id_log_sedang_diedit = dataObj.id;
+
             document.getElementById("entry_plat").value = dataObj.plat_nomor;
             document.getElementById("entry_start").value = dataObj.km_start;
             document.getElementById("entry_akhir").value = dataObj.km_akhir;
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
             
-            // Tutup Modal & Hitung Ulang
+            // Ubah text tombol save menjadi UPDATE agar user paham statusnya
+            document.getElementById("btn_save").innerText = "UPDATE";
+
             tutupHistori();
             hitungRasio();
-            
-            alert(`Log ID #${dataObj.id} berhasil di-load ke form utama! Silakan edit angka lalu klik 'HITUNG' & 'SAVE' untuk simpan perubahan.`);
         }
 
         async function deleteLog(id) {
@@ -315,6 +337,13 @@
                 if (error) throw error;
 
                 alert(`Sukses! Data ID #${id} berhasil terhapus.`);
+                
+                // Jika data yang dihapus kebetulan sedang aktif diedit di depan, reset statusnya
+                if (id_log_sedang_diedit === id) {
+                    id_log_sedang_diedit = null;
+                    document.getElementById("btn_save").innerText = "SAVE";
+                }
+
                 lihatHistori(); 
             } catch (err) {
                 alert("Gagal hapus data:\n" + err.message);
@@ -345,13 +374,17 @@
 
         function resetForm() {
             data_siap_simpan = null;
+            id_log_sedang_diedit = null;
             ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
             document.getElementById("label_jarak").innerText = "Jarak: -";
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_status").innerText = "-";
             document.getElementById("label_status").style.backgroundColor = "transparent";
             document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
-            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+            
+            const btnSave = document.getElementById("btn_save");
+            btnSave.style.backgroundColor = "#3a3f4d";
+            btnSave.innerText = "SAVE";
         }
     </script>
 </body>
