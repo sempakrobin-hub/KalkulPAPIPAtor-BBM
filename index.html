@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Log Fix</title>
+    <title>Kalkulator BBM Cloud Pro - Delete Feature</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -274,9 +274,13 @@
                             <label class="text-[9px] text-gray-400 block font-bold">REMARK</label>
                             <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" class="w-full bg-[#1e222b] px-2 py-1 text-white rounded outline-none border border-gray-600" placeholder="-">
                         </div>
-                        <div class="flex justify-end pt-1">
-                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="w-full bg-[#0a84ff] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-90">
-                                SIMPAN PERUBAHAN DATA #${r.id}
+                        
+                        <div class="grid grid-cols-3 gap-2 pt-1">
+                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="col-span-2 bg-[#0a84ff] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-80 transition-colors">
+                                SIMPAN PERUBAHAN
+                            </button>
+                            <button onclick="deleteLog(${r.id})" id="btn_delete_${r.id}" class="bg-[#ff3b30] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-80 transition-colors">
+                                HAPUS
                             </button>
                         </div>
                     `;
@@ -310,12 +314,11 @@
 
             const btnUpdate = document.getElementById(`btn_update_${id}`);
             const textLama = btnUpdate.innerText;
-            btnUpdate.innerText = "Memproses ke Cloud...";
+            btnUpdate.innerText = "Memproses...";
             btnUpdate.disabled = true;
 
             try {
-                // Eksekusi Update ke Database Supabase
-                const { data, error, status: responseStatus } = await _supabase
+                const { data, error } = await _supabase
                     .from('log_bbm')
                     .update({ 
                         km_start: start, 
@@ -327,19 +330,15 @@
                         remark: remark ? remark : null 
                     })
                     .eq('id', id)
-                    .select(); // Mengembalikan data hasil update untuk validasi keberhasilan
+                    .select();
 
-                if (error) {
-                    throw error;
-                }
-
-                // Proteksi jika RLS menolak diam-diam (berhasil 200/204 tapi data kembali kosong)
+                if (error) throw error;
                 if (!data || data.length === 0) {
-                    throw new Error("Data gagal diperbarui. Kemungkinan RLS (Row Level Security) 'UPDATE' di Supabase belum diaktifkan.");
+                    throw new Error("Data gagal diperbarui. Periksa RLS UPDATE di Supabase.");
                 }
 
                 alert(`Sukses! Log ID #${id} berhasil diperbarui.`);
-                lihatHistori(); // Memperbarui tampilan isi list log terbaru
+                lihatHistori(); 
             } catch (err) {
                 alert("Gagal Update Data ke Cloud!\n\nAlasan Eror:\n" + err.message);
             } finally {
@@ -347,6 +346,32 @@
                     document.getElementById(`btn_update_${id}`).innerText = textLama;
                     document.getElementById(`btn_update_${id}`).disabled = false;
                 }
+            }
+        }
+
+        // FUNGSI UNTUK MENGHAPUS LOG DARI SUPABASE
+        async function deleteLog(id) {
+            const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log dengan ID #${id} secara permanen? Data tidak dapat dikembalikan.`);
+            if (!konfirmasi) return;
+
+            const btnDelete = document.getElementById(`btn_delete_${id}`);
+            btnDelete.innerText = "...";
+            btnDelete.disabled = true;
+
+            try {
+                const { error } = await _supabase
+                    .from('log_bbm')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                alert(`Sukses! Log ID #${id} telah dihapus dari cloud.`);
+                lihatHistori(); // Refresh isi modal log
+            } catch (err) {
+                alert("Gagal menghapus data dari Cloud!\n\nAlasan Eror:\n" + err.message);
+                btnDelete.innerText = "HAPUS";
+                btnDelete.disabled = false;
             }
         }
 
