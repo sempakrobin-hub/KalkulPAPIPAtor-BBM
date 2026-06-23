@@ -1,391 +1,269 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Horizontal Flex Layout</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body {
-            background-color: #1e222b;
-            color: #ffffff;
-            font-family: 'Arial', sans-serif;
-        }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-    </style>
-</head>
-<body class="bg-[#14161d] min-h-screen flex flex-col items-center justify-center p-4">
+<script>
+    const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
+    
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let data_siap_simpan = null;
+    let id_log_sedang_diedit = null; // Menyimpan ID saat mode EDIT aktif
 
-    <div class="w-full max-w-5xl bg-[#1e222b] border border-gray-700 shadow-2xl flex flex-col rounded-lg overflow-hidden">
+    async function cekPlat() {
+        id_log_sedang_diedit = null; 
+        document.getElementById("btn_save").innerText = "SAVE";
+
+        const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+        if (!plat) { return alert("Isi kolom PLAT nomor terlebih dahulu!"); }
         
-        <div class="bg-[#f3c623] text-black font-black text-center text-xs tracking-widest py-1.5 select-none">
-            P A P I P A
-        </div>
+        const btnCek = document.getElementById("btn_cek");
+        btnCek.innerText = "..";
+        btnCek.disabled = true;
 
-        <div class="p-4 flex flex-col space-y-4">
-            
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] min-w-[150px]">
-                    <span class="mr-2">PLAT</span>
-                    <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="B 1234 X">
-                    <button onclick="cekPlat()" id="btn_cek" class="ml-2 bg-[#ff9f0a] text-white px-2 py-0.5 rounded text-[10px] font-bold hover:opacity-80">CEK</button>
-                </div>
+        try {
+            const { data, error } = await _supabase
+                .from('log_bbm')
+                .select('*')
+                .eq('plat_nomor', plat)
+                .order('id', { ascending: false })
+                .limit(1);
 
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] w-[140px]">
-                    <span class="mr-2">START</span>
-                    <input type="number" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none">
-                </div>
+            if (error) throw error;
 
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] w-[140px]">
-                    <span class="mr-2">AKHIR</span>
-                    <input type="number" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none">
-                </div>
-
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] w-[120px]">
-                    <span class="mr-2">LITER</span>
-                    <input type="number" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none">
-                </div>
-
-                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-2 text-[11px] font-bold text-[#a0a5b5] min-w-[180px]">
-                    <span class="mr-2">RMK</span>
-                    <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
-                </div>
-
-                <div class="flex items-center gap-1.5 text-xs font-bold">
-                    <button onclick="hitungRasio()" class="bg-[#34c759] text-white px-4 py-2.5 rounded hover:opacity-80 uppercase">HITUNG</button>
-                    <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white px-4 py-2.5 rounded hover:opacity-80 uppercase">SAVE</button>
-                    <button onclick="lihatHistori()" class="bg-[#0a84ff] text-white px-4 py-2.5 rounded hover:opacity-80 uppercase">LOG</button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center pt-2">
-                <div class="flex items-center justify-around bg-[#2d323f] px-3 py-2 rounded h-10 text-center">
-                    <span id="label_hasil" class="text-[#34c759] font-bold text-sm border-r border-gray-700 pr-2">- KM/L</span>
-                    <span id="label_jarak" class="text-[#a0a5b5] text-[11px] border-r border-gray-700 pr-2">Jarak: -</span>
-                    <span id="label_status" class="text-white font-bold text-[10px] px-2 py-0.5 rounded bg-gray-800">-</span>
-                </div>
-
-                <div class="md:col-span-2 bg-[#2d323f] px-3 py-1.5 rounded flex items-center justify-between min-h-10">
-                    <p id="label_rekues" class="text-[11px] italic text-gray-300 flex-1 pr-2">
-                        Data baru. Silakan masukkan data awal secara lengkap.
-                    </p>
-                    <button onclick="copasTeks('label_rekues', this)" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-3 py-1 rounded hover:opacity-80 whitespace-nowrap">
-                        Copas Teks Rekues
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 pt-1">
-                <select id="menu_var" class="flex-1 bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
-                    <option value="">-- Pilih Teks Tambahan --</option>
-                    <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
-                    <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
-                    <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
-                    <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" / "Delivery Material Badan".</option>
-                </select>
-                <button onclick="copasPilihan(this)" class="bg-[#3a3f4d] text-white text-[11px] font-bold px-4 py-2 rounded hover:opacity-80 whitespace-nowrap">
-                    Copas Pilihan
-                </button>
-                <button onclick="resetForm()" class="bg-[#ff3b30]/20 text-red-400 border border-red-500/30 text-[11px] font-bold px-3 py-2 rounded hover:bg-red-500 hover:text-white uppercase">RESET</button>
-            </div>
-
-        </div>
-    </div>
-
-    <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
-            
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
-                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
-                <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
-            </div>
-            
-            <div class="bg-[#13161c] border border-gray-800 rounded p-3 flex-1 overflow-y-auto font-mono text-[11px]">
-                <div class="text-center text-gray-500 mb-3 border-b border-gray-800 pb-1" id="sub_header_modal">
-                    --- 10 Riwayat Terakhir (Cloud) ---
-                </div>
+            if (data && data.length > 0) {
+                const lastData = data[0];
+                document.getElementById("entry_start").value = lastData.km_akhir;
+                document.getElementById("entry_akhir").value = "";
                 
-                <div id="histori_container" class="space-y-2 text-gray-300">
-                </div>
-            </div>
-        </div>
-    </div>
+                const rem = lastData.remark || "-";
+                document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
+                document.getElementById("entry_akhir").focus();
+            } else {
+                alert(`Plat nomor ${plat} belum ada di cloud. Silakan isi manual.`);
+                document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
+            }
+        } catch (err) {
+            alert("Gagal terhubung ke database online:\n" + err.message);
+        } finally {
+            btnCek.innerText = "CEK";
+            btnCek.disabled = false;
+        }
+    }
 
-    <script>
-        const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
+    function hitungRasio() {
+        const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+        const km_start = parseFloat(document.getElementById("entry_start").value);
+        const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
+        const liter = parseFloat(document.getElementById("entry_liter").value);
+
+        if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
+            return alert("Semua kolom angka harus diisi dengan benar!");
+        }
+        if (km_akhir < km_start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
+        if (liter <= 0) { return alert("BBM harus lebih dari 0!"); }
+
+        const jarak = km_akhir - km_start;
+        const rasio = jarak / liter;
+
+        document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
+        document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
+
+        let kesimpulan, bgWarna;
+        if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
+        else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
+        else { kesimpulan = "JOSJIS"; bgWarna = "#34c759"; }
+
+        const lblStatus = document.getElementById("label_status");
+        lblStatus.innerText = kesimpulan;
+        lblStatus.style.backgroundColor = bgWarna;
+
+        document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
+
+        // Perbaikan: Tetap selipkan id lama jika sedang dalam mode EDIT
+        data_siap_simpan = { 
+            plat_nomor: plat, 
+            km_start: km_start, 
+            km_akhir: km_akhir, 
+            jarak: jarak, 
+            liter: liter, 
+            rasio: parseFloat(rasio.toFixed(2)), 
+            status: kesimpulan 
+        };
         
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let data_siap_simpan = null;
-        let id_log_sedang_diedit = null; // Melacak ID log yang sedang dimodifikasi
-
-        async function cekPlat() {
-            id_log_sedang_diedit = null; // Reset mode edit ketika cek plat baru
-            document.getElementById("btn_save").innerText = "SAVE";
-
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) { return alert("Isi kolom PLAT nomor terlebih dahulu!"); }
-            
-            const btnCek = document.getElementById("btn_cek");
-            btnCek.innerText = "..";
-            btnCek.disabled = true;
-
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(1);
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const lastData = data[0];
-                    document.getElementById("entry_start").value = lastData.km_akhir;
-                    document.getElementById("entry_akhir").value = "";
-                    
-                    const rem = lastData.remark || "-";
-                    document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
-                    document.getElementById("entry_akhir").focus();
-                } else {
-                    alert(`Plat nomor ${plat} belum ada di cloud. Silakan isi manual.`);
-                    document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
-                }
-            } catch (err) {
-                alert("Gagal terhubung ke database online:\n" + err.message);
-            } finally {
-                btnCek.innerText = "CEK";
-                btnCek.disabled = false;
-            }
+        if (id_log_sedang_diedit !== null) {
+            data_siap_simpan["id"] = id_log_sedang_diedit;
         }
 
-        function hitungRasio() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            const km_start = parseFloat(document.getElementById("entry_start").value);
-            const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
-            const liter = parseFloat(document.getElementById("entry_liter").value);
+        document.getElementById("btn_save").style.backgroundColor = "#0a84ff";
+    }
 
-            if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
-                return alert("Semua kolom angka harus diisi dengan benar!");
-            }
-            if (km_akhir < km_start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
-            if (liter <= 0) { return alert("BBM harus lebih dari 0!"); }
+    async function simpanKeCloud() {
+        if (!data_siap_simpan) { return alert("Hitung rasio terlebih dahulu!"); }
+        
+        const btnSave = document.getElementById("btn_save");
+        const remark_text = document.getElementById("entry_remark").value.trim();
+        data_siap_simpan["remark"] = remark_text ? remark_text : null;
+        
+        btnSave.disabled = true;
+        btnSave.innerText = "...";
 
-            const jarak = km_akhir - km_start;
-            const rasio = jarak / liter;
-
-            document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
-            document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
-
-            let kesimpulan, bgWarna;
-            if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
-            else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
-            else { kesimpulan = "JOSJIS"; bgWarna = "#34c759"; }
-
-            const lblStatus = document.getElementById("label_status");
-            lblStatus.innerText = kesimpulan;
-            lblStatus.style.backgroundColor = bgWarna;
-
-            document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
-
-            data_siap_simpan = { 
-                plat_nomor: plat, 
-                km_start: km_start, 
-                km_akhir: km_akhir, 
-                jarak: jarak, 
-                liter: liter, 
-                rasio: parseFloat(rasio.toFixed(2)), 
-                status: kesimpulan 
-            };
-            document.getElementById("btn_save").style.backgroundColor = "#0a84ff";
-        }
-
-        async function simpanKeCloud() {
-            if (!data_siap_simpan) { return alert("Hitung rasio terlebih dahulu!"); }
-            
-            const btnSave = document.getElementById("btn_save");
-            const remark_text = document.getElementById("entry_remark").value.trim();
-            data_siap_simpan["remark"] = remark_text ? remark_text : null;
-            
-            btnSave.disabled = true;
-            const originalText = btnSave.innerText;
-            btnSave.innerText = "...";
-
-            try {
-                if (id_log_sedang_diedit !== null) {
-                    // MODE UPDATE: Mengubah riwayat data lama
-                    const { error } = await _supabase
-                        .from('log_bbm')
-                        .update(data_siap_simpan)
-                        .eq('id', id_log_sedang_diedit);
-
-                    if (error) throw error;
-                    alert(`Sukses! Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) berhasil diperbarui!`);
-                } else {
-                    // MODE INSERT: Membuat baris baru
-                    const { error } = await _supabase
-                        .from('log_bbm')
-                        .insert([data_siap_simpan]);
-
-                    if (error) throw error;
-                    alert(`Sukses! Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
-                }
-                
-                resetForm();
-            } catch (err) {
-                alert("Gagal memproses data ke Cloud:\n" + err.message);
-            } finally {
-                btnSave.disabled = false;
-                btnSave.innerText = "SAVE";
-            }
-        }
-
-        async function lihatHistori() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) { return alert("Isi plat nomor dulu!"); }
-
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(10);
-
-                if (error) throw error;
-                if (!data || data.length === 0) { return alert("Tidak ada riwayat untuk plat ini."); }
-
-                document.getElementById("histori_title").innerText = `Histori ${plat}`;
-                document.getElementById("sub_header_modal").innerText = `--- 10 Riwayat Terakhir ${plat} (Cloud) ---`;
-                
-                const container = document.getElementById("histori_container");
-                container.innerHTML = ""; 
-
-                data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
-                    const rmkText = r.remark ? r.remark : "-";
-                    const jarakFormat = r.jarak ? `${r.jarak}k` : `${r.km_akhir - r.km_start}k`;
-
-                    const barisTeks = `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
-
-                    const lineContainer = document.createElement("div");
-                    lineContainer.className = "flex items-center justify-between border-b border-gray-900 py-1.5 hover:bg-gray-800/40 px-1 rounded transition-all";
-                    
-                    // Gunakan data attribute base64 / safe parsing untuk meminimalisir error kutip teks JSON objek
-                    const dataString = btoa(JSON.stringify(r));
-
-                    lineContainer.innerHTML = `
-                        <div class="flex-1 whitespace-pre-wrap break-all leading-relaxed pr-4 select-all">
-                            ${barisTeks}
-                        </div>
-                        
-                        <div class="flex items-center space-x-3 flex-shrink-0 select-none">
-                            <button onclick="lemparKeForm('${dataString}')" title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px] active:scale-95 transition-all">✏️ EDIT</button>
-                            <button onclick="deleteLog(${r.id})" id="text_del_${r.id}" title="Hapus dari Cloud" class="text-red-400 hover:text-red-300 font-bold px-1 py-0.5 border border-red-500/20 bg-red-500/10 rounded text-[10px] active:scale-95 transition-all">🗑️ HAPUS</button>
-                        </div>
-                    `;
-                    container.appendChild(lineContainer);
-                });
-
-                document.getElementById("modal_histori").style.display = "flex";
-            } catch (err) {
-                alert("Gagal mengambil data riwayat:\n" + err.message);
-            }
-        }
-
-        function lemparKeForm(encodedData) {
-            // Decode string data objek log
-            const dataObj = JSON.parse(atob(encodedData));
-            
-            // Set ID Log Global yang menandakan mode saat ini adalah UPDATE
-            id_log_sedang_diedit = dataObj.id;
-
-            document.getElementById("entry_plat").value = dataObj.plat_nomor;
-            document.getElementById("entry_start").value = dataObj.km_start;
-            document.getElementById("entry_akhir").value = dataObj.km_akhir;
-            document.getElementById("entry_liter").value = dataObj.liter;
-            document.getElementById("entry_remark").value = dataObj.remark || "";
-            
-            // Ubah text tombol save menjadi UPDATE agar user paham statusnya
-            document.getElementById("btn_save").innerText = "UPDATE";
-
-            tutupHistori();
-            hitungRasio();
-        }
-
-        async function deleteLog(id) {
-            const konfirmasi = confirm(`HAPUS PERMANEN data log ID #${id} dari cloud?`);
-            if (!konfirmasi) return;
-
-            const btnDel = document.getElementById(`text_del_${id}`);
-            btnDel.innerText = "..";
-            btnDel.disabled = true;
-
-            try {
+        try {
+            if (id_log_sedang_diedit !== null) {
+                // Jalankan UPDATE ke baris ID yang sesuai, bukan insert baru
                 const { error } = await _supabase
                     .from('log_bbm')
-                    .delete()
-                    .eq('id', id);
+                    .update(data_siap_simpan)
+                    .eq('id', id_log_sedang_diedit);
 
                 if (error) throw error;
+                alert(`Sukses! Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) berhasil di-update!`);
+            } else {
+                // Jalankan INSERT jika data baru
+                const { error } = await _supabase
+                    .from('log_bbm')
+                    .insert([data_siap_simpan]);
 
-                alert(`Sukses! Data ID #${id} berhasil terhapus.`);
-                
-                // Jika data yang dihapus kebetulan sedang aktif diedit di depan, reset statusnya
-                if (id_log_sedang_diedit === id) {
-                    id_log_sedang_diedit = null;
-                    document.getElementById("btn_save").innerText = "SAVE";
-                }
-
-                lihatHistori(); 
-            } catch (err) {
-                alert("Gagal hapus data:\n" + err.message);
-                btnDel.innerText = "🗑️ HAPUS";
-                btnDel.disabled = false;
+                if (error) throw error;
+                alert(`Sukses! Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
             }
-        }
-
-        function tutupHistori() { document.getElementById("modal_histori").style.display = "none"; }
-
-        function copasTeks(id, btn) {
-            const text = document.getElementById(id).innerText;
-            if(text.includes("...")) return alert("Hitung dulu!");
-            navigator.clipboard.writeText(text).then(() => {
-                btn.innerText = "Sukses Disalin!";
-                setTimeout(() => btn.innerText = "Copas Teks Rekues", 1000);
-            });
-        }
-
-        function copasPilihan(btn) {
-            const val = document.getElementById("menu_var").value;
-            if(!val) return alert("Pilih teks dulu!");
-            navigator.clipboard.writeText(val).then(() => {
-                btn.innerText = "Sukses!";
-                setTimeout(() => btn.innerText = "Copas Pilihan", 1000);
-            });
-        }
-
-        function resetForm() {
-            data_siap_simpan = null;
-            id_log_sedang_diedit = null;
-            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
-            document.getElementById("label_jarak").innerText = "Jarak: -";
-            document.getElementById("label_hasil").innerText = "- KM/L";
-            document.getElementById("label_status").innerText = "-";
-            document.getElementById("label_status").style.backgroundColor = "transparent";
-            document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
             
-            const btnSave = document.getElementById("btn_save");
-            btnSave.style.backgroundColor = "#3a3f4d";
+            resetForm();
+        } catch (err) {
+            alert("Gagal memproses data ke Cloud:\n" + err.message);
+        } finally {
+            btnSave.disabled = false;
             btnSave.innerText = "SAVE";
         }
-    </script>
-</body>
-</html>
+    }
+
+    async function lihatHistori() {
+        const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+        if (!plat) { return alert("Isi plat nomor dulu!"); }
+
+        try {
+            const { data, error } = await _supabase
+                .from('log_bbm')
+                .select('*')
+                .eq('plat_nomor', plat)
+                .order('id', { ascending: false })
+                .limit(10);
+
+            if (error) throw error;
+            if (!data || data.length === 0) { return alert("Tidak ada riwayat untuk plat ini."); }
+
+            document.getElementById("histori_title").innerText = `Histori ${plat}`;
+            document.getElementById("sub_header_modal").innerText = `--- 10 Riwayat Terakhir ${plat} (Cloud) ---`;
+            
+            const container = document.getElementById("histori_container");
+            container.innerHTML = ""; 
+
+            data.forEach((r) => {
+                const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
+                const rmkText = r.remark ? r.remark : "-";
+                const jarakFormat = r.jarak ? `${r.jarak}k` : `${r.km_akhir - r.km_start}k`;
+
+                const barisTeks = `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
+
+                const lineContainer = document.createElement("div");
+                lineContainer.className = "flex items-center justify-between border-b border-gray-900 py-1.5 hover:bg-gray-800/40 px-1 rounded transition-all";
+                
+                const dataString = btoa(JSON.stringify(r));
+
+                lineContainer.innerHTML = `
+                    <div class="flex-1 whitespace-pre-wrap break-all leading-relaxed pr-4 select-all">
+                        ${barisTeks}
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 flex-shrink-0 select-none">
+                        <button onclick="lemparKeForm('${dataString}')" title="Edit di Form Utama" class="text-blue-400 hover:text-blue-300 font-bold px-1 py-0.5 border border-blue-500/20 bg-blue-500/10 rounded text-[10px] active:scale-95 transition-all">✏️ EDIT</button>
+                        <button onclick="deleteLog(${r.id})" id="text_del_${r.id}" title="Hapus dari Cloud" class="text-red-400 hover:text-red-300 font-bold px-1 py-0.5 border border-red-500/20 bg-red-500/10 rounded text-[10px] active:scale-95 transition-all">🗑️ HAPUS</button>
+                    </div>
+                `;
+                container.appendChild(lineContainer);
+            });
+
+            document.getElementById("modal_histori").style.display = "flex";
+        } catch (err) {
+            alert("Gagal mengambil data riwayat:\n" + err.message);
+        }
+    }
+
+    function lemparKeForm(encodedData) {
+        const dataObj = JSON.parse(atob(encodedData));
+        id_log_sedang_diedit = dataObj.id; // Kunci utama biar tetap mengenali baris database asal
+
+        document.getElementById("entry_plat").value = dataObj.plat_nomor;
+        document.getElementById("entry_start").value = dataObj.km_start;
+        document.getElementById("entry_akhir").value = dataObj.km_akhir;
+        document.getElementById("entry_liter").value = dataObj.liter;
+        document.getElementById("entry_remark").value = dataObj.remark || "";
+        
+        document.getElementById("btn_save").innerText = "UPDATE";
+
+        tutupHistori();
+        hitungRasio();
+    }
+
+    async function deleteLog(id) {
+        const konfirmasi = confirm(`HAPUS PERMANEN data log ID #${id} dari cloud?`);
+        if (!konfirmasi) return;
+
+        const btnDel = document.getElementById(`text_del_${id}`);
+        btnDel.innerText = "..";
+        btnDel.disabled = true;
+
+        try {
+            const { error } = await _supabase
+                .from('log_bbm')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            alert(`Sukses! Data ID #${id} berhasil terhapus.`);
+            
+            if (id_log_sedang_diedit === id) {
+                id_log_sedang_diedit = null;
+                document.getElementById("btn_save").innerText = "SAVE";
+            }
+
+            lihatHistori(); 
+        } catch (err) {
+            alert("Gagal hapus data:\n" + err.message);
+            btnDel.innerText = "🗑️ HAPUS";
+            btnDel.disabled = false;
+        }
+    }
+
+    function tutupHistori() { document.getElementById("modal_histori").style.display = "none"; }
+
+    function copasTeks(id, btn) {
+        const text = document.getElementById(id).innerText;
+        if(text.includes("...")) return alert("Hitung dulu!");
+        navigator.clipboard.writeText(text).then(() => {
+            btn.innerText = "Sukses Disalin!";
+            setTimeout(() => btn.innerText = "Copas Teks Rekues", 1000);
+        });
+    }
+
+    function copasPilihan(btn) {
+        const val = document.getElementById("menu_var").value;
+        if(!val) return alert("Pilih teks dulu!");
+        navigator.clipboard.writeText(val).then(() => {
+            btn.innerText = "Sukses!";
+            setTimeout(() => btn.innerText = "Copas Pilihan", 1000);
+        });
+    }
+
+    function resetForm() {
+        data_siap_simpan = null;
+        id_log_sedang_diedit = null;
+        ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
+        document.getElementById("label_jarak").innerText = "Jarak: -";
+        document.getElementById("label_hasil").innerText = "- KM/L";
+        document.getElementById("label_status").innerText = "-";
+        document.getElementById("label_status").style.backgroundColor = "transparent";
+        document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
+        
+        const btnSave = document.getElementById("btn_save");
+        btnSave.style.backgroundColor = "#3a3f4d";
+        btnSave.innerText = "SAVE";
+    }
+</script>
