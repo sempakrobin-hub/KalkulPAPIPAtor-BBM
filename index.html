@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Delete Feature</title>
+    <title>Kalkulator BBM Cloud Pro - Delete Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -90,7 +90,7 @@
                     <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
                     <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
                     <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" atau "Delivery Material Badan".</option>
+                    <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" ("Travel") / "Delivery Material Badan" ("PT").</option>
                     <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
                 </select>
                 <button onclick="copasPilihan(this)" class="w-full bg-[#3a3f4d] text-white text-xs font-bold py-1.5 rounded hover:opacity-80 transition-colors">
@@ -275,12 +275,12 @@
                             <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" class="w-full bg-[#1e222b] px-2 py-1 text-white rounded outline-none border border-gray-600" placeholder="-">
                         </div>
                         
-                        <div class="grid grid-cols-3 gap-2 pt-1">
-                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="col-span-2 bg-[#0a84ff] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-80 transition-colors">
-                                SIMPAN PERUBAHAN
+                        <div class="flex space-x-2 pt-1 w-full">
+                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="flex-1 bg-[#0a84ff] text-white py-2 rounded text-[11px] font-bold hover:opacity-90 transition-colors uppercase">
+                                Simpan
                             </button>
-                            <button onclick="deleteLog(${r.id})" id="btn_delete_${r.id}" class="bg-[#ff3b30] text-white py-1.5 rounded text-[11px] font-bold hover:opacity-80 transition-colors">
-                                HAPUS
+                            <button onclick="deleteLog(${r.id})" id="btn_delete_${r.id}" class="bg-[#ff3b30] text-white px-4 py-2 rounded text-[11px] font-bold hover:opacity-90 transition-colors uppercase">
+                                Hapus
                             </button>
                         </div>
                     `;
@@ -314,7 +314,7 @@
 
             const btnUpdate = document.getElementById(`btn_update_${id}`);
             const textLama = btnUpdate.innerText;
-            btnUpdate.innerText = "Memproses...";
+            btnUpdate.innerText = "Saving...";
             btnUpdate.disabled = true;
 
             try {
@@ -349,7 +349,6 @@
             }
         }
 
-        // FUNGSI UNTUK MENGHAPUS LOG DARI SUPABASE
         async function deleteLog(id) {
             const konfirmasi = confirm(`Apakah Anda yakin ingin MENGHAPUS data log dengan ID #${id} secara permanen? Data tidak dapat dikembalikan.`);
             if (!konfirmasi) return;
@@ -367,7 +366,7 @@
                 if (error) throw error;
 
                 alert(`Sukses! Log ID #${id} telah dihapus dari cloud.`);
-                lihatHistori(); // Refresh isi modal log
+                lihatHistori(); 
             } catch (err) {
                 alert("Gagal menghapus data dari Cloud!\n\nAlasan Eror:\n" + err.message);
                 btnDelete.innerText = "HAPUS";
