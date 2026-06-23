@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Connected</title>
+    <title>Kalkulator BBM Cloud Pro - Editable Log</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -102,22 +102,22 @@
     </div>
 
     <div id="modal_histori" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-sm rounded-lg shadow-2xl p-4 flex flex-col">
+        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-lg rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
-                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Riwayat</h3>
+                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Riwayat & Edit Log</h3>
                 <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400">&times;</button>
             </div>
-            <pre id="histori_content" class="bg-[#2d323f] text-white font-mono text-[10px] p-2 rounded overflow-x-auto h-64 whitespace-pre-wrap"></pre>
+            
+            <div id="histori_container" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+                </div>
         </div>
     </div>
 
     <script>
-        // KONEKSI UTAMA SUPABASE (Menggunakan kredensial asli Anda)
         const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let data_siap_simpan = null;
 
         async function cekPlat() {
@@ -129,7 +129,6 @@
             btnCek.disabled = true;
 
             try {
-                // Query mengambil data terakhir berdasarkan plat nomor
                 const { data, error } = await _supabase
                     .from('log_bbm')
                     .select('*')
@@ -217,7 +216,7 @@
 
                 if (error) throw error;
 
-                alert(`Sukses: Data ${data_siap_simpan.plat_nomor} berhasil di-lock ke Cloud!`);
+                alert(`Sukses: Data ${data_siap_simpan.plat_nomor} berhasil disimpan!`);
                 data_siap_simpan = null;
                 btnSave.style.backgroundColor = "#3a3f4d";
             } catch (err) {
@@ -228,6 +227,7 @@
             }
         }
 
+        // MENAMPILKAN LOG DALAM BENTUK ELEMENT INPUT YANG BISA DIEDIT
         async function lihatHistori() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) { return alert("Isi plat nomor dulu!"); }
@@ -243,19 +243,102 @@
                 if (error) throw error;
                 if (!data || data.length === 0) { return alert("Tidak ada riwayat untuk plat ini."); }
 
-                let txt = `--- 10 Riwayat Terakhir ${plat} (Cloud) ---\n\n`;
-                data.forEach(r => {
-                    // Penanganan kolom waktu bawaan Supabase jika ada
+                document.getElementById("histori_title").innerText = `Histori & Edit Log: ${plat}`;
+                const container = document.getElementById("histori_container");
+                container.innerHTML = ""; // Bersihkan log lama
+
+                data.forEach((r, index) => {
                     const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
-                    const rem = r.remark || "-";
-                    txt += `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${r.jarak}k) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rem}\n`;
+                    
+                    // Card Item Log bertingkat
+                    const logCard = document.createElement("div");
+                    logCard.className = "bg-[#2d323f] p-3 rounded border border-gray-700 flex flex-col space-y-2";
+                    logCard.innerHTML = `
+                        <div class="flex justify-between text-[10px] text-gray-400 font-bold border-b border-gray-600 pb-1 mb-1">
+                            <span>#ID: ${r.id} (${tgl})</span>
+                            <span class="text-[#34c759] font-black">${r.rasio} KM/L (${r.status})</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-[9px] text-gray-400 block font-bold">START</label>
+                                <input type="number" id="edit_start_${r.id}" value="${r.km_start}" class="w-full bg-[#1e222b] px-1 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-400 block font-bold">AKHIR</label>
+                                <input type="number" id="edit_akhir_${r.id}" value="${r.km_akhir}" class="w-full bg-[#1e222b] px-1 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-400 block font-bold">LITER</label>
+                                <input type="number" id="edit_liter_${r.id}" value="${r.liter}" class="w-full bg-[#1e222b] px-1 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-gray-400 block font-bold">REMARK</label>
+                            <input type="text" id="edit_remark_${r.id}" value="${r.remark || ''}" class="w-full bg-[#1e222b] px-2 py-0.5 text-white rounded outline-none border border-transparent focus:border-gray-600" placeholder="-">
+                        </div>
+                        <div class="flex justify-end pt-1">
+                            <button onclick="updateLog(${r.id})" id="btn_update_${r.id}" class="bg-[#0a84ff] text-white px-3 py-1 rounded text-[10px] font-bold hover:opacity-80">
+                                UPDATE DATA #${r.id}
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(logCard);
                 });
 
-                document.getElementById("histori_title").innerText = `Histori ${plat}`;
-                document.getElementById("histori_content").innerText = txt;
                 document.getElementById("modal_histori").style.display = "flex";
             } catch (err) {
                 alert("Gagal mengambil data riwayat:\n" + err.message);
+            }
+        }
+
+        // FUNGSI UNTUK MENGEKSEKUSI PERUBAHAN DATA KE SUPABASE
+        async function updateLog(id) {
+            const start = parseFloat(document.getElementById(`edit_start_${id}`).value);
+            const akhir = parseFloat(document.getElementById(`edit_akhir_${id}`).value);
+            const liter = parseFloat(document.getElementById(`edit_liter_${id}`).value);
+            const remark = document.getElementById(`edit_remark_${id}`).value.trim();
+
+            if (isNaN(start) || isNaN(akhir) || isNaN(liter)) {
+                return alert("Kolom data angka tidak boleh kosong!");
+            }
+            if (akhir < start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
+            if (liter <= 0) { return alert("Liter harus lebih besar dari 0!"); }
+
+            // Hitung ulang kalkulasi rasio & status baru secara otomatis saat diedit
+            const jarak = akhir - start;
+            const rasio = parseFloat((jarak / liter).toFixed(2));
+            let status;
+            if (rasio < 11.0) status = "KURANG";
+            else if (rasio <= 12.0) status = "CUKUP";
+            else status = "JOSJIS";
+
+            const btnUpdate = document.getElementById(`btn_update_${id}`);
+            btnUpdate.innerText = "Memperbarui...";
+            btnUpdate.disabled = true;
+
+            try {
+                const { error } = await _supabase
+                    .from('log_bbm')
+                    .update({ 
+                        km_start: start, 
+                        km_akhir: akhir, 
+                        liter: liter, 
+                        jarak: jarak,
+                        rasio: rasio,
+                        status: status,
+                        remark: remark ? remark : null 
+                    })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                alert(`Data Log ID #${id} Berhasil Diperbarui di Cloud!`);
+                lihatHistori(); // Refresh list data log di dalam modal
+            } catch (err) {
+                alert("Gagal memperbarui data:\n" + err.message);
+            } finally {
+                btnUpdate.innerText = `UPDATE DATA #${id}`;
+                btnUpdate.disabled = false;
             }
         }
 
