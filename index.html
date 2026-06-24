@@ -30,17 +30,24 @@
                     <span class="w-12 flex-shrink-0">PLAT</span>
                     <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="B 1234 X" oncontextmenu="handleRightClick(event)">
                 </div>
+                <button onclick="pasteToInput('entry_plat')" class="bg-[#3a3f4d] text-white px-2.5 py-2 rounded text-[10px] font-bold hover:opacity-80 transition-all">PASTE</button>
                 <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-4 py-2 rounded text-[11px] font-bold hover:opacity-80 w-16">CEK</button>
             </div>
 
-            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                <span class="w-12 flex-shrink-0">START</span>
-                <input type="number" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+            <div class="flex items-center gap-2">
+                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">START</span>
+                    <input type="number" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+                </div>
+                <button onclick="pasteToInput('entry_start')" class="bg-[#3a3f4d] text-white px-2.5 py-2 rounded text-[10px] font-bold hover:opacity-80 transition-all">PASTE</button>
             </div>
 
-            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                <span class="w-12 flex-shrink-0">AKHIR</span>
-                <input type="number" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+            <div class="flex items-center gap-2">
+                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">AKHIR</span>
+                    <input type="number" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+                </div>
+                <button onclick="pasteToInput('entry_akhir')" class="bg-[#3a3f4d] text-white px-2.5 py-2 rounded text-[10px] font-bold hover:opacity-80 transition-all">PASTE</button>
             </div>
 
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
@@ -123,6 +130,22 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
+
+        // Fungsi baru untuk menghandle klik tombol paste
+        async function pasteToInput(targetId) {
+            try {
+                const text = await navigator.clipboard.readText();
+                const inputElement = document.getElementById(targetId);
+                inputElement.value = text;
+                
+                // Jika paste ke plat, otomatis ubah ke uppercase
+                if (targetId === 'entry_plat') {
+                    inputElement.value = text.toUpperCase();
+                }
+            } catch (err) {
+                alert("Gagal membaca clipboard. Pastikan izin akses clipboard aktif.");
+            }
+        }
 
         async function handleRightClick(event) {
             event.preventDefault(); 
@@ -256,8 +279,6 @@
                     alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
                 }
                 
-                // REVISI: resetForm() dihapus dari sini agar form tidak ter-clear setelah save sukses
-                // Mengembalikan warna tombol SAVE/UPDATE ke default setelah berhasil menyimpan data terbaru
                 btnSave.style.backgroundColor = "#3a3f4d";
                 btnSave.innerText = "SAVE";
                 
