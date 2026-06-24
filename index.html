@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Auto Paste</title>
+    <title>Kalkulator BBM Cloud Pro - Mafia Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -12,14 +12,26 @@
             color: #ffffff;
             font-family: 'Arial', sans-serif;
         }
+        /* Animasi Transisi untuk Switch */
+        .dot {
+            transition: all 0.3s ease-in-out;
+        }
+        input:checked ~ .dot {
+            transform: translateX(100%);
+            background-color: #ffffff;
+        }
+        input:checked ~ .block {
+            background-color: #ff3b30;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="w-full max-w-md bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col">
+    <div id="main_card" class="w-full max-w-md bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300">
         
         <div class="p-4 flex flex-col space-y-3.5">
             
+            <!-- BARIS PLAT NOMOR -->
             <div class="flex items-center gap-1.5 w-full">
                 <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                     <span class="w-12 flex-shrink-0">PLAT</span>
@@ -28,24 +40,46 @@
                 <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
             </div>
 
+            <!-- BARIS START -->
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                 <span class="w-12 flex-shrink-0">START</span>
                 <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
             </div>
 
+            <!-- BARIS AKHIR -->
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                 <span class="w-12 flex-shrink-0">AKHIR</span>
                 <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
             </div>
 
+            <!-- LITER -->
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                 <span class="w-12 flex-shrink-0">LITER</span>
                 <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Isi jumlah liter">
             </div>
 
+            <!-- REMARK -->
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                 <span class="w-12 flex-shrink-0">RMK</span>
                 <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
+            </div>
+
+            <!-- TOGGLE SLIDE MAFIA MODE -->
+            <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-300">
+                <div class="flex flex-col flex-1 overflow-hidden">
+                    <span class="text-[11px] font-bold text-[#a0a5b5]" id="title_mafia">STATUS KENDARAAN</span>
+                    <!-- Efek Wordcloud Marquee Running Text untuk tanda bahaya -->
+                    <div id="marquee_mafia" class="hidden text-[10px] font-black tracking-widest text-white uppercase overflow-hidden whitespace-nowrap pt-0.5">
+                        <marquee scrollamount="4">⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA</marquee>
+                    </div>
+                </div>
+                <label for="toggle_mafia" class="flex items-center cursor-pointer select-none">
+                    <div class="relative">
+                        <input type="checkbox" id="toggle_mafia" class="sr-only" onchange="toggleMafiaMode(this.checked)">
+                        <div class="block bg-gray-600 w-10 h-6 rounded-full transition-colors"></div>
+                        <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
+                    </div>
+                </label>
             </div>
 
             <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold pt-1">
@@ -96,6 +130,7 @@
         </div>
     </div>
 
+    <!-- MODAL HISTORI -->
     <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
@@ -119,27 +154,39 @@
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
 
-        // LOGIKA AUTO PASTE KETIKA KOLOM DIKLIK/DIFOKUS
-        async function autoPaste(inputElement, hanyaAngka) {
-            // Hanya jalankan auto-paste jika kolom tersebut masih kosong
-            if (inputElement.value.trim() !== "") return;
+        // INTERFAS MAFIA VISUAL SLIDER CHANGES
+        function toggleMafiaMode(isTrue) {
+            const mainCard = document.getElementById("main_card");
+            const boxMafia = document.getElementById("box_mafia");
+            const titleMafia = document.getElementById("title_mafia");
+            const marquee = document.getElementById("marquee_mafia");
 
+            if(isTrue) {
+                boxMafia.style.backgroundColor = "#7f1d1d"; // Red-900 border box
+                titleMafia.style.color = "#fca5a5"; 
+                marquee.classList.remove("hidden");
+                // Modifikasi border pembungkus luar agar merah menyala
+                mainCard.style.borderColor = "#ef4444";
+            } else {
+                boxMafia.style.backgroundColor = "#2d323f";
+                titleMafia.style.color = "#a0a5b5";
+                marquee.classList.add("hidden");
+                mainCard.style.borderColor = "#374151";
+            }
+        }
+
+        async function autoPaste(inputElement, hanyaAngka) {
+            if (inputElement.value.trim() !== "") return;
             try {
                 let text = await navigator.clipboard.readText();
                 text = text.trim();
-
                 if (hanyaAngka) {
-                    // Bersihkan karakter non-angka (hapus spasi, titik, huruf, dll)
                     let angkaMurni = text.replace(/[^0-9]/g, '');
-                    if (angkaMurni) {
-                        inputElement.value = angkaMurni;
-                    }
+                    if (angkaMurni) inputElement.value = angkaMurni;
                 } else {
                     inputElement.value = text.toUpperCase();
                 }
-            } catch (err) {
-                console.log("Akses clipboard ditolak atau belum diizinkan.");
-            }
+            } catch (err) { console.log("Akses clipboard ditolak"); }
         }
 
         async function cekPlat() {
@@ -169,6 +216,11 @@
                     document.getElementById("entry_start").value = lastData.km_akhir;
                     document.getElementById("entry_akhir").value = "";
                     
+                    // OTOMATIS LOAD STATUS MAFIA DARI LOG TERBARU
+                    const statusMafiaLalu = lastData.is_mafia === true;
+                    document.getElementById("toggle_mafia").checked = statusMafiaLalu;
+                    toggleMafiaMode(statusMafiaLalu);
+
                     const rem = lastData.remark || "-";
                     document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
                     document.getElementById("entry_akhir").focus();
@@ -176,6 +228,8 @@
                     alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
                     document.getElementById("entry_start").value = "";
                     document.getElementById("entry_akhir").value = "";
+                    document.getElementById("toggle_mafia").checked = false;
+                    toggleMafiaMode(false);
                     document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
                 }
             } catch (err) {
@@ -190,13 +244,12 @@
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             const km_start = parseFloat(document.getElementById("entry_start").value);
             const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
-            
-            // Ubah koma jadi titik agar kalkulasi desimal tidak rusak
             let literRaw = document.getElementById("entry_liter").value.replace(',', '.');
             const liter = parseFloat(literRaw);
+            const isMafiaActive = document.getElementById("toggle_mafia").checked;
 
             if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
-                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi angka valid!");
+                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
             }
             if (km_akhir < km_start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
             if (liter <= 0) { return alert("BBM harus lebih dari 0!"); }
@@ -225,7 +278,8 @@
                 jarak: jarak, 
                 liter: liter, 
                 rasio: parseFloat(rasio.toFixed(2)), 
-                status: kesimpulan 
+                status: kesimpulan,
+                is_mafia: isMafiaActive // Record Boolean ke Database
             };
 
             const btnSave = document.getElementById("btn_save");
@@ -303,8 +357,9 @@
                     const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
                     const rmkText = r.remark ? r.remark : "-";
                     const jarakFormat = r.jarak ? `${r.jarak}k` : `${r.km_akhir - r.km_start}k`;
+                    const mafiaTag = r.is_mafia ? " 🔥[MAFIA] " : " ";
 
-                    const barisTeks = `[${tgl}] KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
+                    const barisTeks = `[${tgl}]${mafiaTag}KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
 
                     const lineContainer = document.createElement("div");
                     lineContainer.className = "flex items-center justify-between border-b border-gray-900 py-1.5 hover:bg-gray-800/40 px-1 rounded transition-all";
@@ -312,7 +367,7 @@
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
 
                     lineContainer.innerHTML = `
-                        <div class="flex-1 whitespace-pre-wrap break-all leading-relaxed pr-4 select-all">
+                        <div class="flex-1 whitespace-pre-wrap break-all leading-relaxed pr-4 select-all ${r.is_mafia ? 'text-red-400 font-bold' : ''}">
                             ${barisTeks}
                         </div>
                         <div class="flex items-center space-x-3 flex-shrink-0 select-none">
@@ -324,9 +379,7 @@
                 });
 
                 document.getElementById("modal_histori").style.display = "flex";
-            } catch (err) {
-                alert("Gagal mengambil data online:\n" + err.message);
-            }
+            } catch (err) { alert("Gagal mengambil data online:\n" + err.message); }
         }
 
         function lemparKeForm(encodedData) {
@@ -339,6 +392,10 @@
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
             
+            const mafiaStatus = dataObj.is_mafia === true;
+            document.getElementById("toggle_mafia").checked = mafiaStatus;
+            toggleMafiaMode(mafiaStatus);
+            
             tutupHistori();
             hitungRasio(); 
         }
@@ -348,18 +405,12 @@
             if (!konfirmasi) return;
 
             const btnDel = document.getElementById(`text_del_${id}`);
-            btnDel.innerText = "..";
-            btnDel.disabled = true;
+            btnDel.innerText = ".."; btnDel.disabled = true;
 
             try {
-                const { error } = await _supabase
-                    .from('log_bbm')
-                    .delete()
-                    .eq('id', id);
-
+                const { error } = await _supabase.from('log_bbm').delete().eq('id', id);
                 if (error) throw error;
                 alert(`Log ID #${id} berhasil terhapus.`);
-                
                 if (id_log_sedang_diedit === id) {
                     id_log_sedang_diedit = null;
                     document.getElementById("btn_save").innerText = "SAVE";
@@ -368,8 +419,7 @@
                 lihatHistori(); 
             } catch (err) {
                 alert("Gagal menghapus data:\n" + err.message);
-                btnDel.innerText = "🗑️ HAPUS";
-                btnDel.disabled = false;
+                btnDel.innerText = "🗑️ HAPUS"; btnDel.disabled = false;
             }
         }
 
@@ -379,12 +429,8 @@
             const text = document.getElementById("label_rekues").innerText;
             if(text.includes("...")) return alert("Hitung rasio terlebih dahulu!");
             navigator.clipboard.writeText(text).then(() => {
-                btn.innerText = "Suks!";
-                btn.style.backgroundColor = "#34c759";
-                setTimeout(() => {
-                    btn.innerText = "Copas";
-                    btn.style.backgroundColor = "#3a3f4d";
-                }, 1000);
+                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
             });
         }
 
@@ -392,12 +438,8 @@
             const val = document.getElementById("menu_var").value;
             if(!val || val === "-- Pilih Teks Tambahan --") return alert("Silakan pilih teks terlebih dahulu!");
             navigator.clipboard.writeText(val).then(() => {
-                btn.innerText = "Suks!";
-                btn.style.backgroundColor = "#34c759";
-                setTimeout(() => {
-                    btn.innerText = "Copas Pilihan";
-                    btn.style.backgroundColor = "#3a3f4d";
-                }, 1000);
+                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
             });
         }
 
@@ -412,6 +454,9 @@
             document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
             document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
             
+            document.getElementById("toggle_mafia").checked = false;
+            toggleMafiaMode(false);
+
             const btnSave = document.getElementById("btn_save");
             btnSave.style.backgroundColor = "#3a3f4d";
             btnSave.innerText = "SAVE";
