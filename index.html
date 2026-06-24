@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro</title>
+    <title>Kalkulator BBM Cloud Pro - Auto Paste</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -11,11 +11,6 @@
             background-color: #14161d;
             color: #ffffff;
             font-family: 'Arial', sans-serif;
-        }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
         }
     </style>
 </head>
@@ -25,47 +20,32 @@
         
         <div class="p-4 flex flex-col space-y-3.5">
             
-            <!-- BARIS PLAT NOMOR -->
             <div class="flex items-center gap-1.5 w-full">
                 <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                     <span class="w-12 flex-shrink-0">PLAT</span>
-                    <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="B 1234 X" oncontextmenu="handleRightClick(event)">
+                    <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, false)">
                 </div>
-                <!-- Tombol Paste Spesifik Plat -->
-                <button onclick="pasteToInput('entry_plat')" class="bg-[#4f46e5] text-white px-2.5 py-2 rounded text-[10px] font-black hover:opacity-80 transition-all flex-shrink-0">PASTE</button>
                 <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
             </div>
 
-            <!-- BARIS START (KM AWAL) -->
-            <div class="flex items-center gap-1.5 w-full">
-                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">START</span>
-                    <input type="number" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
-                </div>
-                <!-- Tombol Paste Spesifik Start -->
-                <button onclick="pasteToInput('entry_start')" class="bg-[#4f46e5] text-white px-2.5 py-2 rounded text-[10px] font-black hover:opacity-80 transition-all flex-shrink-0">PASTE</button>
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12 flex-shrink-0">START</span>
+                <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
             </div>
 
-            <!-- BARIS AKHIR (KM AKHIR) -->
-            <div class="flex items-center gap-1.5 w-full">
-                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">AKHIR</span>
-                    <input type="number" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
-                </div>
-                <!-- Tombol Paste Spesifik Akhir -->
-                <button onclick="pasteToInput('entry_akhir')" class="bg-[#4f46e5] text-white px-2.5 py-2 rounded text-[10px] font-black hover:opacity-80 transition-all flex-shrink-0">PASTE</button>
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12 flex-shrink-0">AKHIR</span>
+                <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
             </div>
 
-            <!-- LITER -->
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                 <span class="w-12 flex-shrink-0">LITER</span>
-                <input type="number" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" oncontextmenu="handleRightClick(event)">
+                <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Isi jumlah liter">
             </div>
 
-            <!-- REMARK -->
             <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                 <span class="w-12 flex-shrink-0">RMK</span>
-                <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-" oncontextmenu="handleRightClick(event)">
+                <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
             </div>
 
             <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold pt-1">
@@ -116,7 +96,6 @@
         </div>
     </div>
 
-    <!-- MODAL HISTORI -->
     <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
@@ -140,28 +119,26 @@
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
 
-        // JALUR PASTE VIA TOMBOL INDIGO
-        async function pasteToInput(targetId) {
+        // LOGIKA AUTO PASTE KETIKA KOLOM DIKLIK/DIFOKUS
+        async function autoPaste(inputElement, hanyaAngka) {
+            // Hanya jalankan auto-paste jika kolom tersebut masih kosong
+            if (inputElement.value.trim() !== "") return;
+
             try {
-                const text = await navigator.clipboard.readText();
-                const inputElement = document.getElementById(targetId);
-                inputElement.value = text;
-                
-                if (targetId === 'entry_plat') {
+                let text = await navigator.clipboard.readText();
+                text = text.trim();
+
+                if (hanyaAngka) {
+                    // Bersihkan karakter non-angka (hapus spasi, titik, huruf, dll)
+                    let angkaMurni = text.replace(/[^0-9]/g, '');
+                    if (angkaMurni) {
+                        inputElement.value = angkaMurni;
+                    }
+                } else {
                     inputElement.value = text.toUpperCase();
                 }
             } catch (err) {
-                alert("Gagal membaca clipboard. Pastikan izin clipboard diizinkan browser Anda.");
-            }
-        }
-
-        async function handleRightClick(event) {
-            event.preventDefault(); 
-            try {
-                const text = await navigator.clipboard.readText();
-                event.target.value = text;
-            } catch (err) {
-                console.log("Clipboard error");
+                console.log("Akses clipboard ditolak atau belum diizinkan.");
             }
         }
 
@@ -213,10 +190,13 @@
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             const km_start = parseFloat(document.getElementById("entry_start").value);
             const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
-            const liter = parseFloat(document.getElementById("entry_liter").value);
+            
+            // Ubah koma jadi titik agar kalkulasi desimal tidak rusak
+            let literRaw = document.getElementById("entry_liter").value.replace(',', '.');
+            const liter = parseFloat(literRaw);
 
             if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
-                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
+                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi angka valid!");
             }
             if (km_akhir < km_start) { return alert("KM Akhir tidak boleh lebih kecil dari KM Start!"); }
             if (liter <= 0) { return alert("BBM harus lebih dari 0!"); }
