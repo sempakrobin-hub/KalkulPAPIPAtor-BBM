@@ -208,11 +208,11 @@
 
                 if (data && data.length > 0) {
                     const lastData = data[0];
-                    // Mengisi KM Start dengan KM Akhir data sebelumnya
+                    // KM Start diisi KM Akhir sebelumnya
                     document.getElementById("entry_start").value = lastData.km_akhir;
                     document.getElementById("entry_akhir").value = "";
                     
-                    // PENINGKATAN: Otomatis mengisi input field LITER dan REMARK dengan data sebelumnya
+                    // Otomatis isi kolom LITER dan REMARK (RMK) dari data terakhir
                     document.getElementById("entry_liter").value = lastData.liter || "";
                     document.getElementById("entry_remark").value = lastData.remark || "";
                     
