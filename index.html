@@ -165,7 +165,6 @@
                 mainCard.style.borderColor = "#374151";
             }
 
-            // PERBAIKAN UTAMA: Jika data object sudah terbentuk, status is_mafia langsung sinkron diubah
             if (data_siap_simpan !== null) {
                 data_siap_simpan.is_mafia = isTrue;
             }
@@ -182,7 +181,7 @@
                 } else {
                     inputElement.value = text.toUpperCase();
                 }
-            } catch (err) { console.log("Akses clipboard ditanfani browser"); }
+            } catch (err) { console.log("Akses clipboard ditangani browser"); }
         }
 
         async function cekPlat() {
@@ -209,8 +208,13 @@
 
                 if (data && data.length > 0) {
                     const lastData = data[0];
+                    // Mengisi KM Start dengan KM Akhir data sebelumnya
                     document.getElementById("entry_start").value = lastData.km_akhir;
                     document.getElementById("entry_akhir").value = "";
+                    
+                    // PENINGKATAN: Otomatis mengisi input field LITER dan REMARK dengan data sebelumnya
+                    document.getElementById("entry_liter").value = lastData.liter || "";
+                    document.getElementById("entry_remark").value = lastData.remark || "";
                     
                     const statusMafiaLalu = lastData.is_mafia === true;
                     document.getElementById("toggle_mafia").checked = statusMafiaLalu;
@@ -223,6 +227,8 @@
                     alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
                     document.getElementById("entry_start").value = "";
                     document.getElementById("entry_akhir").value = "";
+                    document.getElementById("entry_liter").value = "";
+                    document.getElementById("entry_remark").value = "";
                     document.getElementById("toggle_mafia").checked = false;
                     toggleMafiaMode(false);
                     document.getElementById("label_rekues").innerText = "Data baru. Silakan masukkan data awal secara lengkap.";
@@ -387,10 +393,8 @@
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
             
-            // Trigger load data awal histori
             hitungRasio(); 
 
-            // Atur status sakelar setelah data hitung terinisiasi, agar event onchange slider mengambil alih
             const mafiaStatus = dataObj.is_mafia === true;
             document.getElementById("toggle_mafia").checked = mafiaStatus;
             toggleMafiaMode(mafiaStatus);
@@ -423,7 +427,6 @@
 
         function tutupHistori() { document.getElementById("modal_histori").style.display = "none"; }
 
-        // Fungsi Copas Output Atas
         function copasTeks(btn) {
             const text = document.getElementById("label_rekues").innerText;
             if(text.includes("...")) return alert("Hitung rasio terlebih dahulu!");
@@ -433,7 +436,6 @@
             });
         }
 
-        // Fungsi Copas Dropdown Pilihan
         function copasPilihan(btn) {
             const val = document.getElementById("menu_var").value;
             if(!val || val === "-- Pilih Teks Tambahan --") return alert("Silakan pilih teks terlebih dahulu!");
