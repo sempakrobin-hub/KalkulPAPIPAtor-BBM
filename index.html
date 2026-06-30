@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Dual Pane Map Preview</title>
+    <title>Kalkulator BBM Cloud Pro - GPS Copas Feature</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -82,12 +82,18 @@
                     </label>
                 </div>
 
-                <!-- STATUS GPS -->
-                <div id="box_gps" class="flex items-center justify-between bg-[#dc2626] rounded px-3 py-2 transition-all duration-300">
+                <!-- STATUS GPS + TOMBOL TRANSMIT / COPAS DI TENGAH -->
+                <div id="box_gps" class="flex items-center justify-between bg-[#dc2626] rounded px-3 py-2 transition-all duration-300 gap-2">
                     <div class="flex flex-col flex-1 overflow-hidden">
                         <span class="text-[11px] font-bold text-white" id="title_gps">STATUS GPS: MATI</span>
                     </div>
-                    <label for="toggle_gps" class="flex items-center cursor-pointer select-none">
+                    
+                    <!-- TOMBOL COPAS GPS DI TENGAH -->
+                    <button onclick="copasGpsMati(this)" id="btn_copas_gps" class="bg-black/30 hover:bg-black/50 text-white p-1.5 rounded transition flex items-center justify-center text-[10px] font-bold gap-1 px-2 select-none border border-white/10 flex-shrink-0">
+                        📋 <span>Copas</span>
+                    </button>
+
+                    <label for="toggle_gps" class="flex items-center cursor-pointer select-none flex-shrink-0">
                         <div class="relative">
                             <input type="checkbox" id="toggle_gps" class="sr-only" onchange="toggleGpsMode(this.checked)">
                             <div class="block bg-gray-600 w-10 h-6 rounded-full transition-colors"></div>
@@ -144,48 +150,47 @@
             </div>
         </div>
 
-        <!-- PANEL KANAN: PREVIEW MAP & UPLOAD (MAKS 3 FOTO) -->
-        <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col justify-between">
-            <div>
-                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
-                    <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Visual & Preview Map Tracker</h3>
-                    <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
-                </div>
+        <!-- PANEL KANAN: PREVIEW MAP MENURUN -->
+        <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-4">
+            
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Visual & Preview Map Tracker</h3>
+                <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
+            </div>
 
-                <!-- SLOT CONTAINER FOTO PREVIEW -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                    <!-- Slot 1 -->
-                    <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg aspect-video sm:aspect-square flex flex-col items-center justify-center overflow-hidden">
-                        <img id="prev_img_1" class="hidden w-full h-full object-cover">
-                        <div id="placeholder_1" class="text-center p-2 text-gray-500">
-                            <span class="text-xl">📸</span>
-                            <p class="text-[9px] mt-1">Map Utama</p>
-                        </div>
-                        <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-1 right-1 bg-black/70 text-red-500 hover:text-red-400 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">&times;</button>
+            <!-- SLOT CONTAINER FOTO PREVIEW (MENURUN KE BAWAH) -->
+            <div class="flex flex-col space-y-3 flex-1 overflow-y-auto max-h-[600px] pr-1">
+                <!-- Slot 1 -->
+                <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-44 flex flex-col items-center justify-center overflow-hidden flex-shrink-0">
+                    <img id="prev_img_1" class="hidden w-full h-full object-cover">
+                    <div id="placeholder_1" class="text-center p-2 text-gray-500">
+                        <span class="text-xl">📸</span>
+                        <p class="text-[9px] mt-1">Map Utama</p>
                     </div>
-                    <!-- Slot 2 -->
-                    <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg aspect-video sm:aspect-square flex flex-col items-center justify-center overflow-hidden">
-                        <img id="prev_img_2" class="hidden w-full h-full object-cover">
-                        <div id="placeholder_2" class="text-center p-2 text-gray-500">
-                            <span class="text-xl">📸</span>
-                            <p class="text-[9px] mt-1">Detail rute</p>
-                        </div>
-                        <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-1 right-1 bg-black/70 text-red-500 hover:text-red-400 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">&times;</button>
+                    <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-2 right-2 bg-black/70 text-red-500 hover:text-red-400 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs z-10">&times;</button>
+                </div>
+                <!-- Slot 2 -->
+                <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-44 flex flex-col items-center justify-center overflow-hidden flex-shrink-0">
+                    <img id="prev_img_2" class="hidden w-full h-full object-cover">
+                    <div id="placeholder_2" class="text-center p-2 text-gray-500">
+                        <span class="text-xl">📸</span>
+                        <p class="text-[9px] mt-1">Detail rute</p>
                     </div>
-                    <!-- Slot 3 -->
-                    <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg aspect-video sm:aspect-square flex flex-col items-center justify-center overflow-hidden">
-                        <img id="prev_img_3" class="hidden w-full h-full object-cover">
-                        <div id="placeholder_3" class="text-center p-2 text-gray-500">
-                            <span class="text-xl">📸</span>
-                            <p class="text-[9px] mt-1">Lampiran SPBU</p>
-                        </div>
-                        <button onclick="hapusFoto(3)" id="btn_del_3" class="hidden absolute top-1 right-1 bg-black/70 text-red-500 hover:text-red-400 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">&times;</button>
+                    <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-2 right-2 bg-black/70 text-red-500 hover:text-red-400 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs z-10">&times;</button>
+                </div>
+                <!-- Slot 3 -->
+                <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-44 flex flex-col items-center justify-center overflow-hidden flex-shrink-0">
+                    <img id="prev_img_3" class="hidden w-full h-full object-cover">
+                    <div id="placeholder_3" class="text-center p-2 text-gray-500">
+                        <span class="text-xl">📸</span>
+                        <p class="text-[9px] mt-1">Lampiran SPBU</p>
                     </div>
+                    <button onclick="hapusFoto(3)" id="btn_del_3" class="hidden absolute top-2 right-2 bg-black/70 text-red-500 hover:text-red-400 rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs z-10">&times;</button>
                 </div>
             </div>
 
             <!-- TOMBOL AKSI ATTACHMENT -->
-            <div class="bg-[#13161c] p-3 rounded-lg border border-gray-800">
+            <div class="bg-[#13161c] p-3 rounded-lg border border-gray-800 flex-shrink-0">
                 <p class="text-[10px] text-gray-400 mb-2 font-semibold">Lampirkan Screenshot Bukti Map Baru:</p>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <input type="file" id="file_uploader" accept="image/*" multiple class="hidden" onchange="handleFileSelect(this)">
@@ -196,7 +201,6 @@
                         Reset Foto
                     </button>
                 </div>
-                <p class="text-[9px] text-gray-500 mt-1.5 italic">*Mendukung input URL gambar otomatis atau upload via database/storage.</p>
             </div>
         </div>
 
@@ -227,10 +231,8 @@
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
 
-        // State untuk menampung data URL / Base64 gambar (Maksimal 3)
         let array_foto_base64 = [null, null, null];
 
-        // LIVE UPDATE VISUAL MAFIA MODE
         function toggleMafiaMode(isTrue) {
             const mainCard = document.getElementById("main_card");
             const boxMafia = document.getElementById("box_mafia");
@@ -251,19 +253,36 @@
             if (data_siap_simpan !== null) data_siap_simpan.is_mafia = isTrue;
         }
 
-        // LIVE UPDATE VISUAL GPS MODE
+        // PERUBAHAN LOGIKA VISUAL GPS & TOMBOL COPAS
         function toggleGpsMode(isTrue) {
             const boxGps = document.getElementById("box_gps");
             const titleGps = document.getElementById("title_gps");
+            const btnCopasGps = document.getElementById("btn_copas_gps");
 
             if(isTrue) {
                 boxGps.style.backgroundColor = "#16a34a";
                 titleGps.innerText = "STATUS GPS: AKTIF";
+                btnCopasGps.classList.add("hidden"); // Sembunyikan tombol saat GPS aktif
             } else {
                 boxGps.style.backgroundColor = "#dc2626";
                 titleGps.innerText = "STATUS GPS: MATI";
+                btnCopasGps.classList.remove("hidden"); // Tampilkan tombol saat GPS mati
             }
             if (data_siap_simpan !== null) data_siap_simpan.is_gps = isTrue;
+        }
+
+        // FUNGSI KHUSUS COPAS TEXT KETIKA GPS MATI
+        function copasGpsMati(btn) {
+            const pesan = "Gps tidak aktif, Mohon hubungi koordinator mobil untuk aktivasi gps";
+            navigator.clipboard.writeText(pesan).then(() => {
+                const innerSpan = btn.querySelector("span");
+                innerSpan.innerText = "Disalin!";
+                btn.style.backgroundColor = "#16a34a";
+                setTimeout(() => {
+                    innerSpan.innerText = "Copas";
+                    btn.style.backgroundColor = "rgba(0, 0, 0, 0.3)";
+                }, 1200);
+            }).catch(err => alert("Gagal menyalin teks otomatis."));
         }
 
         async function autoPaste(inputElement, hanyaAngka) {
@@ -280,14 +299,11 @@
             } catch (err) { console.log("Akses clipboard ditangani browser"); }
         }
 
-        // AMBIL FILE GAMBAR LOCAL DAN JADIKAN DATA URI PREVIEW
         function handleFileSelect(input) {
             const files = input.files;
             if (!files) return;
 
-            let countLoaded = 0;
             for (let i = 0; i < files.length; i++) {
-                // Temukan slot kosong
                 let slotKosong = array_foto_base64.indexOf(null);
                 if (slotKosong === -1) {
                     alert("Maksimal hanya bisa menampung 3 Foto Map!");
@@ -300,7 +316,7 @@
                 };
                 reader.readAsDataURL(files[i]);
             }
-            input.value = ""; // reset input selector
+            input.value = "";
         }
 
         function renderFotoSlot(indexSlot, srcData) {
@@ -374,7 +390,6 @@
                     toggleGpsMode(lastData.is_gps === true);
                     document.getElementById("toggle_gps").checked = lastData.is_gps === true;
 
-                    // Mengisi file lampiran foto lama dari DB jika ada (disimpan dalam bentuk array kolom teks atau sejenisnya)
                     if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
                         lastData.foto_urls.forEach((url, index) => {
                             if (index < 3) renderFotoSlot(index + 1, url);
@@ -427,7 +442,6 @@
 
             document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
 
-            // Menyusun objek data yang akan dilempar ke tabel Supabase
             data_siap_simpan = { 
                 plat_nomor: plat, 
                 km_start: km_start, 
@@ -438,7 +452,7 @@
                 status: kesimpulan,
                 is_mafia: isMafiaActive,
                 is_gps: isGpsActive,
-                foto_urls: array_foto_base64.filter(x => x !== null) // Filter foto terisi saja
+                foto_urls: array_foto_base64.filter(x => x !== null)
             };
 
             const btnSave = document.getElementById("btn_save");
