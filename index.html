@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Map Preview Zoom</title>
+    <title>Kalkulator BBM Cloud Pro - Map Preview Extra Zoom</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -149,7 +149,7 @@
             </div>
         </div>
 
-        <!-- PANEL KANAN: PREVIEW MAP COMPACT WITH INTERACTIVE HOVER ZOOM -->
+        <!-- PANEL KANAN: PREVIEW MAP COMPACT WITH INTERACTIVE HOVER EXTRA ZOOM -->
         <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
             
             <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
@@ -157,11 +157,11 @@
                 <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
             </div>
 
-            <!-- SLOT CONTAINER FOTO PREVIEW WITH ZOOM EFFECT -->
+            <!-- SLOT CONTAINER FOTO PREVIEW WITH EXTRA ZOOM EFFECT -->
             <div class="grid grid-cols-3 gap-2 w-full">
                 <!-- Slot 1 -->
                 <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-transform duration-300 ease-in-out hover:scale-[2.5] hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
@@ -170,7 +170,7 @@
                 </div>
                 <!-- Slot 2 -->
                 <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-transform duration-300 ease-in-out hover:scale-[2.5] hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
@@ -179,7 +179,7 @@
                 </div>
                 <!-- Slot 3 -->
                 <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-transform duration-300 ease-in-out hover:scale-[2.5] hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
