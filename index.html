@@ -341,7 +341,6 @@
             } catch (err) { console.log("Akses clipboard terbatas"); }
         }
 
-        // FUNGSI BARU: Mengompres Gambar secara Otomatis ke format WebP ringan
         function compressImage(file, maxWidth = 800, quality = 0.7) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -364,7 +363,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Output berupa Base64 format WebP dengan kualitas terkompresi
                         const compressedBase64 = canvas.toDataURL('image/webp', quality);
                         resolve(compressedBase64);
                     };
@@ -384,7 +382,6 @@
 
                 btnLabel.innerText = "⏳ Mengompres...";
                 try {
-                    // Kompres file sebelum diproses
                     const compressedSrc = await compressImage(files[i], 800, 0.7);
                     const currentTimestamp = Date.now() + i; 
                     const targetSlot = slotKosong + 1;
@@ -545,7 +542,6 @@
                     document.getElementById("toggle_approval").checked = false;
                     handleApprovalChange(false);
 
-                    // Tampilkan kembali foto-foto jika tersimpan di log terakhir
                     if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
                         lastData.foto_urls.forEach((src, idx) => {
                             if (src && idx < 3) {
@@ -652,7 +648,6 @@
                 handleApprovalChange(dataObj.is_approved === true);
             }
 
-            // Ambil foto dari item terpilih secara penuh dari Cloud
             clearAllPhotos();
             try {
                 const { data, error } = await _supabase.from('log_bbm').select('foto_urls').eq('id', dataObj.id).single();
