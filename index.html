@@ -288,6 +288,7 @@
             }
         }
 
+        // MODIFIKASI: Hanya mengubah tampilan UI & object lokal, bukan simpan ke localStorage langsung
         function handleApprovalChange(isTrue) {
             const textIndicator = document.getElementById("text_approval_slide");
             if (isTrue) {
@@ -295,16 +296,14 @@
                 textIndicator.style.color = "#ffffff";
                 textIndicator.style.right = "auto";
                 textIndicator.style.left = "0.5rem";
-                
-                const sekarang = new Date();
-                const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
-                localStorage.setItem('last_bbm_approval_time', waktuString);
-                updateApprovalLabel();
             } else {
                 textIndicator.innerText = "NO";
                 textIndicator.style.color = "#a0a5b5";
                 textIndicator.style.left = "auto";
                 textIndicator.style.right = "0.5rem";
+            }
+            if (data_siap_simpan !== null) {
+                data_siap_simpan.is_approved = isTrue;
             }
         }
 
@@ -474,7 +473,7 @@
                                 <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
                             </div>
                             <div class="text-gray-300 mt-0.5">
-                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : ''}
+                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : ''} ${r.is_approved ? '✅[A]' : ''}
                             </div>
                         </div>
                         <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
@@ -552,6 +551,7 @@
             }
         }
 
+        // MODIFIKASI: Memasukkan status toggle approval saat menekan tombol HITUNG
         function hitungRasio() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             const km_start = parseFloat(document.getElementById("entry_start").value);
@@ -560,6 +560,7 @@
             const liter = parseFloat(literRaw);
             const isMafiaActive = document.getElementById("toggle_mafia").checked;
             const isGpsActive = document.getElementById("toggle_gps").checked;
+            const isApprovalActive = document.getElementById("toggle_approval").checked;
 
             if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
                 return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
@@ -602,6 +603,7 @@
                 status: kesimpulan,
                 is_mafia: isMafiaActive,
                 is_gps: isGpsActive,
+                is_approved: isApprovalActive, // dimasukkan ke payload lokal
                 foto_urls: array_foto_base64.filter(x => x !== null)
             };
 
@@ -613,6 +615,7 @@
             }
         }
 
+        // MODIFIKASI: Mengunci pencatatan Last Approved timestamp lokal hanya ketika data sukses masuk Cloud
         async function simpanKeCloud() {
             if (!data_siap_simpan) return alert("Hitung rasio terlebih dahulu sebelum menekan SAVE/UPDATE!");
             
@@ -640,8 +643,16 @@
                     if (error) throw error;
                     alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
                 }
+
+                // Efek timestamp Last Approved hanya dieksekusi jika user memilih YES dan sukses masuk cloud
+                if (data_siap_simpan.is_approved) {
+                    const sekarang = new Date();
+                    const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+                    localStorage.setItem('last_bbm_approval_time', waktuString);
+                    updateApprovalLabel();
+                }
+
                 btnSave.style.backgroundColor = "#3a3f4d"; btnSave.innerText = "SAVE";
-                
                 loadMiniLog(data_siap_simpan.plat_nomor);
             } catch (err) {
                 alert("Gagal memproses data ke Cloud:\n" + err.message);
@@ -680,6 +691,7 @@
                     let badges = "";
                     if(r.is_mafia) badges += " 🔥[MAFIA]";
                     if(r.is_gps) badges += " 📍[GPS-ON]";
+                    if(r.is_approved) badges += " ✅[APPROVED]";
                     if(r.foto_urls && r.foto_urls.length > 0) badges += ` 🖼️[${r.foto_urls.length} MAP]`;
 
                     const barisTeks = `[${tgl}]${badges} KM: ${r.km_start}->${r.km_akhir} (${jarakFormat}) | ${r.liter}L | ${r.rasio} KM/L (${r.status}) | Rem: ${rmkText}`;
@@ -705,6 +717,7 @@
             } catch (err) { alert("Gagal mengambil data online:\n" + err.message); }
         }
 
+        // MODIFIKASI: Menambahkan sinkronisasi status is_approved saat lempar data lama ke form edit
         function lemparKeForm(encodedData) {
             const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
             id_log_sedang_diedit = dataObj.id; 
@@ -722,6 +735,13 @@
 
             document.getElementById("toggle_gps").checked = dataObj.is_gps === true;
             toggleGpsMode(dataObj.is_gps === true);
+
+            // Munculkan & set toggle approval jika data lama statusnya kurang
+            if (dataObj.status === "KURANG") {
+                document.getElementById("box_approval").classList.remove("hidden");
+                document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
+                handleApprovalChange(dataObj.is_approved === true);
+            }
             
             clearAllPhotos();
             if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
