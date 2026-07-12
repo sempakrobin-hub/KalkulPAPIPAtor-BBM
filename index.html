@@ -122,7 +122,7 @@
                     </div>
                 </div>
 
-                <!-- TOMBOL AKSI (LOG DIHAPUS, SISA 3 TOMBOL) -->
+                <!-- TOMBOL AKSI -->
                 <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold pt-1">
                     <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
                     <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded hover:opacity-80 uppercase">SAVE</button>
@@ -232,7 +232,7 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (SUPER RINGAN & OPTIMIZED) -->
+            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-64">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
@@ -411,7 +411,7 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // OPTIMIZED: Ambil data esensial saja tanpa memanggil field foto_urls (Penyebab utama lemot)
+        // OPTIMIZED: Ambil data tanpa memanggil field foto_urls (Aman dari Error & Ringan)
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -419,12 +419,16 @@
             try {
                 const { data, error } = await _supabase
                     .from('log_bbm')
-                    .select('id, tanggal, created_at, km_start, km_akhir, liter, rasio, status, is_mafia, is_gps, is_approved, remark')
+                    .select('id, created_at, km_start, km_akhir, liter, rasio, status, is_mafia, is_gps, is_approved, remark')
                     .eq('plat_nomor', plat)
                     .order('id', { ascending: false })
                     .limit(5);
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase Error Details:", error);
+                    throw error;
+                }
+                
                 if (!data || data.length === 0) {
                     container.innerHTML = `<div class="text-center text-gray-600 py-6 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
                     return;
@@ -432,7 +436,9 @@
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
+                    const tglRaw = r.tanggal || r.created_at || "-";
+                    const tgl = tglRaw.split("T")[0];
+                    
                     let colorClass = r.status === "JOSJIS" ? "text-[#34c759]" : (r.status === "CUKUP" ? "text-[#ff9f0a]" : "text-[#ff3b30]");
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
                     
@@ -455,7 +461,9 @@
                     `;
                     container.appendChild(row);
                 });
-            } catch(e) { container.innerHTML = `<div class="text-center text-red-400 py-4 italic">Gagal memuat 5 log terakhir.</div>`; }
+            } catch(e) { 
+                container.innerHTML = `<div class="text-center text-red-400 py-4 text-[9px] italic">Gagal muat log. Error: ${e.message || 'Cek Console F12'}</div>`; 
+            }
         }
 
         // OPTIMIZED: Cek plat instan tanpa menarik file binary base64 lama
@@ -525,7 +533,7 @@
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
             let kesimpulan = rasio < 11.0 ? "KURANG" : (rasio <= 12.0 ? "CUKUP" : "JOSJIS");
-            let bgWarna = kesimpulan === "KURANG" ? "#ff3b30" : (kesimpluan === "CUKUP" ? "#ff9f0a" : "#34c759");
+            let bgWarna = kesimpulan === "KURANG" ? "#ff3b30" : (kesimpulan === "CUKUP" ? "#ff9f0a" : "#34c759");
 
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
