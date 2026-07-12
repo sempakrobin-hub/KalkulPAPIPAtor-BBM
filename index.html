@@ -104,7 +104,7 @@
                     </label>
                 </div>
 
-                <!-- FITUR BARU: PANEL NEED APPROVAL (DIPICU HANYA JIKA BBM RASIONYA KURANG) -->
+                <!-- PANEL NEED APPROVAL -->
                 <div id="box_approval" class="hidden flex-col bg-[#2d323f] border border-orange-500/40 rounded px-3 py-2 transition-all duration-300 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <div class="flex flex-col">
@@ -149,6 +149,7 @@
                 <div class="flex flex-col space-y-1.5 pt-1">
                     <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
                         <option value="-- Pilih Teks Tambahan --">-- Pilih Teks Tambahan --</option>
+                        <option value="Rekues ulang menggunakan item cost &quot;Shopping List Material&quot;">Rekues ulang menggunakan item cost "Shopping List Material"</option>
                         <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
                         <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
                         <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
@@ -170,7 +171,7 @@
             </div>
         </div>
 
-        <!-- PANEL KANAN: PREVIEW MAP & 5 LOG TERAKHIR EDITABLE -->
+        <!-- PANEL KANAN: PREVIEW MAP & HISTORI -->
         <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
             
             <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
@@ -222,8 +223,18 @@
                 </div>
             </div>
 
-            <!-- FITUR BARU: HISTORIS LOG BBM 5 TERAKHIR (EDITABLE) -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col flex-1 min-h-[220px]">
+            <!-- POSISI SEKARANG: DI BAWAH MAP & DI ATAS 5 LOG TERAKHIR -->
+            <div class="bg-[#2d323f] border border-gray-700 rounded-lg p-2.5 flex items-center justify-between gap-3">
+                <p id="label_map_warning" class="text-[11px] font-medium text-gray-300 italic leading-tight select-all">
+                    Mohon gunakan map update setiap kali rekues
+                </p>
+                <button onclick="copasPesanMap(this)" class="bg-[#3a3f4d] hover:bg-gray-600 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition whitespace-nowrap flex-shrink-0">
+                    Copas
+                </button>
+            </div>
+
+            <!-- HISTORIS LOG BBM 5 TERAKHIR (EDITABLE) -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-48">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
                     <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
@@ -263,7 +274,6 @@
 
         let array_foto_base64 = [null, null, null];
 
-        // Memuat riwayat log persetujuan (approval) dari localStorage saat aplikasi berjalan
         window.addEventListener('DOMContentLoaded', () => {
             updateApprovalLabel();
         });
@@ -280,14 +290,12 @@
 
         function handleApprovalChange(isTrue) {
             const textIndicator = document.getElementById("text_approval_slide");
-            const dot = document.querySelector("#box_approval .dot");
             if (isTrue) {
                 textIndicator.innerText = "YES";
                 textIndicator.style.color = "#ffffff";
                 textIndicator.style.right = "auto";
                 textIndicator.style.left = "0.5rem";
                 
-                // Perekaman waktu terremark
                 const sekarang = new Date();
                 const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
                 localStorage.setItem('last_bbm_approval_time', waktuString);
@@ -348,6 +356,14 @@
                     btn.style.backgroundColor = "rgba(0, 0, 0, 0.3)";
                 }, 1200);
             }).catch(err => alert("Gagal menyalin teks otomatis."));
+        }
+
+        function copasPesanMap(btn) {
+            const pesan = document.getElementById("label_map_warning").innerText.trim();
+            navigator.clipboard.writeText(pesan).then(() => {
+                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
         }
 
         async function autoPaste(inputElement, hanyaAngka) {
@@ -420,7 +436,6 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // Memuat dan merender 5 Log terbaru di bawah foto map
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -443,7 +458,6 @@
                 data.forEach((r) => {
                     const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
                     
-                    // Skema pewarnaan teks/indikator log berdasarkan status rasio
                     let colorClass = "text-white";
                     if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
                     else if(r.status === "CUKUP") colorClass = "text-[#ff9f0a]";
@@ -488,7 +502,6 @@
             btnCek.innerText = ".."; btnCek.disabled = true;
 
             try {
-                // Tarik 5 log secara paralel untuk di bawah preview foto
                 loadMiniLog(plat);
 
                 const { data, error } = await _supabase
@@ -522,7 +535,6 @@
                     const rem = lastData.remark || "-";
                     document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
                     
-                    // Reset box approval saat ganti plat/cek data awal
                     document.getElementById("box_approval").classList.add("hidden");
                     document.getElementById("toggle_approval").checked = false;
                     handleApprovalChange(false);
@@ -569,7 +581,6 @@
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
 
-            // LOGIKA DILUAR FORM: Tampilkan/Sembunyikan panel Need Approval berdasarkan kondisi rasio
             const boxApproval = document.getElementById("box_approval");
             if (kesimpulan === "KURANG") {
                 boxApproval.classList.remove("hidden");
@@ -631,7 +642,6 @@
                 }
                 btnSave.style.backgroundColor = "#3a3f4d"; btnSave.innerText = "SAVE";
                 
-                // Refresh mini log setelah perubahan cloud
                 loadMiniLog(data_siap_simpan.plat_nomor);
             } catch (err) {
                 alert("Gagal memproses data ke Cloud:\n" + err.message);
