@@ -179,10 +179,10 @@
                 <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
             </div>
 
-            <!-- SLOT CONTAINER FOTO PREVIEW WITH EXTRA ZOOM EFFECT -->
+            <!-- SLOT CONTAINER FOTO PREVIEW WITH URUTAN BORDER -->
             <div class="grid grid-cols-3 gap-2 w-full">
                 <!-- Slot 1 -->
-                <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
                     <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
@@ -191,7 +191,7 @@
                     <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
                 </div>
                 <!-- Slot 2 -->
-                <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
                     <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
@@ -200,7 +200,7 @@
                     <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
                 </div>
                 <!-- Slot 3 -->
-                <div class="relative group bg-[#13161c] border border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
                     <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
@@ -273,6 +273,8 @@
         let id_log_sedang_diedit = null; 
 
         let array_foto_base64 = [null, null, null];
+        // Menyimpan timestamp urutan kapan slot diisi file baru
+        let array_foto_timestamps = [0, 0, 0];
 
         window.addEventListener('DOMContentLoaded', () => {
             updateApprovalLabel();
@@ -288,7 +290,6 @@
             }
         }
 
-        // MODIFIKASI: Hanya mengubah tampilan UI & object lokal, bukan simpan ke localStorage langsung
         function handleApprovalChange(isTrue) {
             const textIndicator = document.getElementById("text_approval_slide");
             if (isTrue) {
@@ -391,8 +392,13 @@
                 }
 
                 const reader = new FileReader();
+                // Simpan urutan waktu penginputan file ke slot
+                const currentTimestamp = Date.now() + i; 
+                const targetSlot = slotKosong + 1;
+
                 reader.onload = function(e) {
-                    renderFotoSlot(slotKosong + 1, e.target.result);
+                    array_foto_timestamps[targetSlot - 1] = currentTimestamp;
+                    renderFotoSlot(targetSlot, e.target.result);
                 };
                 reader.readAsDataURL(files[i]);
             }
@@ -401,6 +407,9 @@
 
         function renderFotoSlot(indexSlot, srcData) {
             array_foto_base64[indexSlot - 1] = srcData;
+            if (!srcData) {
+                array_foto_timestamps[indexSlot - 1] = 0;
+            }
             
             const img = document.getElementById(`prev_img_${indexSlot}`);
             const placeholder = document.getElementById(`placeholder_${indexSlot}`);
@@ -417,7 +426,47 @@
                 placeholder.classList.remove("hidden");
                 btnDel.classList.add("hidden");
             }
+            
             updateFotoCounter();
+            recalculateBorderColors();
+        }
+
+        // Dinamis kalkulasi ulang border berdasarkan timestamp pengisian slot
+        function recalculateBorderColors() {
+            // Ambil semua data slot aktif yang memiliki timestamp > 0
+            let activeSlots = [];
+            for (let i = 0; i < 3; i++) {
+                if (array_foto_timestamps[i] > 0 && array_foto_base64[i] !== null) {
+                    activeSlots.push({ index: i + 1, ts: array_foto_timestamps[i] });
+                } else {
+                    // Reset ke border dasar jika slot kosong
+                    const el = document.getElementById(`slot_border_${i + 1}`);
+                    el.className = "relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
+                }
+            }
+
+            // Urutkan dari yang paling lama ke paling baru diupload
+            activeSlots.sort((a, b) => a.ts - b.ts);
+
+            activeSlots.forEach((slot, orderIndex) => {
+                const el = document.getElementById(`slot_border_${slot.index}`);
+                // Bersihkan kelas border lama
+                el.className = "relative group bg-[#13161c] border-2 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
+
+                if (activeSlots.length === 1) {
+                    // Jika baru 1 foto, default hijau (terakhir diupload)
+                    el.classList.add("border-green-500", "solid");
+                } else if (activeSlots.length === 2) {
+                    // Jika ada 2 foto
+                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); // Terlama
+                    if (orderIndex === 1) el.classList.add("border-green-500", "solid"); // Terbaru
+                } else if (activeSlots.length === 3) {
+                    // Jika ada 3 foto penuh
+                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); // Terlama
+                    if (orderIndex === 1) el.classList.add("border-yellow-500", "solid"); // Middle
+                    if (orderIndex === 2) el.classList.add("border-green-500", "solid"); // Terbaru
+                }
+            });
         }
 
         function hapusFoto(indexSlot) {
@@ -527,7 +576,11 @@
 
                     if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
                         lastData.foto_urls.forEach((url, index) => {
-                            if (index < 3) renderFotoSlot(index + 1, url);
+                            if (index < 3) {
+                                // Data dari DB diinisialisasi dengan urutan default linear
+                                array_foto_timestamps[index] = Date.now() + index;
+                                renderFotoSlot(index + 1, url);
+                            }
                         });
                     }
 
@@ -551,7 +604,6 @@
             }
         }
 
-        // MODIFIKASI: Memasukkan status toggle approval saat menekan tombol HITUNG
         function hitungRasio() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             const km_start = parseFloat(document.getElementById("entry_start").value);
@@ -603,7 +655,7 @@
                 status: kesimpulan,
                 is_mafia: isMafiaActive,
                 is_gps: isGpsActive,
-                is_approved: isApprovalActive, // dimasukkan ke payload lokal
+                is_approved: isApprovalActive,
                 foto_urls: array_foto_base64.filter(x => x !== null)
             };
 
@@ -615,7 +667,6 @@
             }
         }
 
-        // MODIFIKASI: Mengunci pencatatan Last Approved timestamp lokal hanya ketika data sukses masuk Cloud
         async function simpanKeCloud() {
             if (!data_siap_simpan) return alert("Hitung rasio terlebih dahulu sebelum menekan SAVE/UPDATE!");
             
@@ -644,7 +695,6 @@
                     alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
                 }
 
-                // Efek timestamp Last Approved hanya dieksekusi jika user memilih YES dan sukses masuk cloud
                 if (data_siap_simpan.is_approved) {
                     const sekarang = new Date();
                     const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
@@ -717,7 +767,6 @@
             } catch (err) { alert("Gagal mengambil data online:\n" + err.message); }
         }
 
-        // MODIFIKASI: Menambahkan sinkronisasi status is_approved saat lempar data lama ke form edit
         function lemparKeForm(encodedData) {
             const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
             id_log_sedang_diedit = dataObj.id; 
@@ -736,7 +785,6 @@
             document.getElementById("toggle_gps").checked = dataObj.is_gps === true;
             toggleGpsMode(dataObj.is_gps === true);
 
-            // Munculkan & set toggle approval jika data lama statusnya kurang
             if (dataObj.status === "KURANG") {
                 document.getElementById("box_approval").classList.remove("hidden");
                 document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
@@ -746,7 +794,10 @@
             clearAllPhotos();
             if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
                 dataObj.foto_urls.forEach((url, i) => {
-                    if(i < 3) renderFotoSlot(i + 1, url);
+                    if(i < 3) {
+                        array_foto_timestamps[i] = Date.now() + i;
+                        renderFotoSlot(i + 1, url);
+                    }
                 });
             }
 
@@ -798,6 +849,7 @@
         function resetForm() {
             data_siap_simpan = null;
             id_log_sedang_diedit = null;
+            array_foto_timestamps = [0, 0, 0];
             ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
             document.getElementById("label_jarak").innerText = "Jarak: -";
             document.getElementById("label_hasil").innerText = "- KM/L";
