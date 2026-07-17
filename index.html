@@ -244,6 +244,38 @@
                 </div>
             </div>
 
+            <!-- MODUL BARU: GEMINI SCREENSHOT DETECTOR -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase border-b border-gray-800 pb-1 flex justify-between items-center">
+                    <span>🤖 E-Check Keaslian Foto Odo</span>
+                    <span id="gemini_status_badge" class="text-[9px] bg-[#2d323f] text-gray-400 px-1.5 py-0.5 rounded font-mono">READY</span>
+                </div>
+                
+                <div class="flex gap-2">
+                    <input type="file" id="gemini_image_input" accept="image/*" class="hidden" onchange="previewGeminiImage(event)">
+                    <button onclick="document.getElementById('gemini_image_input').click()" class="bg-[#2d323f] border border-gray-700 text-white font-mono text-[10px] py-1.5 px-2 rounded hover:bg-gray-700 transition flex-1">
+                        📷 Pilih Foto Odo
+                    </button>
+                    <button id="btn_gemini_check" onclick="cekKeaslianGemini()" class="bg-[#0a84ff] text-white font-mono text-[10px] py-1.5 px-3 rounded hover:opacity-90 transition disabled:bg-gray-700 disabled:text-gray-500" disabled>
+                        PERIKSA
+                    </button>
+                </div>
+
+                <!-- Pratinjau Gambar Masukan -->
+                <div class="relative w-full hidden" id="gemini_preview_container">
+                    <img id="gemini_preview_img" class="w-full h-24 object-contain rounded bg-black/40 border border-gray-800 mt-1">
+                </div>
+
+                <!-- Output Box Hasil Deteksi -->
+                <div id="gemini_result_box" class="hidden p-2 rounded border font-mono text-[10px] leading-relaxed transition-all duration-300">
+                    <div class="flex justify-between font-bold mb-1 border-b pb-0.5 border-white/10">
+                        <span>HASIL ANALISIS:</span>
+                        <span>CONFIDENCE: <span id="gemini_pct">-</span>%</span>
+                    </div>
+                    <p id="gemini_desc" class="text-gray-200"></p>
+                </div>
+            </div>
+
         </div>
 
     </div>
@@ -274,6 +306,10 @@
 
         let array_foto_base64 = [null, null, null];
         let array_foto_timestamps = [0, 0, 0];
+
+        // VARIABEL KONFIGURASI MODUL GEMINI API[cite: 1]
+        const GEMINI_API_KEY = 'Masukkan_API_Key_Gemini_Anda_Di_Sini'; 
+        let geminiBase64Str = "";
 
         window.addEventListener('DOMContentLoaded', () => {
             updateApprovalLabel();
@@ -659,7 +695,7 @@
             lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
 
             const boxApproval = document.getElementById("box_approval");
-            if (kesimpulan === "KURANG") {
+            if (kesitemize === "KURANG") {
                 boxApproval.classList.remove("hidden");
             } else {
                 boxApproval.classList.add("hidden");
@@ -823,6 +859,108 @@
             const btnSave = document.getElementById("btn_save");
             btnSave.style.backgroundColor = "#3a3f4d";
             btnSave.innerText = "SAVE";
+
+            // Reset modul pendeteksi Gemini
+            geminiBase64Str = "";
+            document.getElementById("gemini_image_input").value = "";
+            document.getElementById("gemini_preview_container").classList.add("hidden");
+            document.getElementById("gemini_result_box").classList.add("hidden");
+            document.getElementById("btn_gemini_check").disabled = true;
+            document.getElementById("gemini_status_badge").innerText = "READY";
+            document.getElementById("gemini_status_badge").className = "text-[9px] bg-[#2d323f] text-gray-400 px-1.5 py-0.5 rounded font-mono";
+        }
+
+        // ==========================================
+        // FUNGSI LOGIKA BARU JAVASCRIPT KONSOL GEMINI[cite: 1]
+        // ==========================================
+        function previewGeminiImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgContainer = document.getElementById('gemini_preview_container');
+                    const imgTag = document.getElementById('gemini_preview_img');
+                    
+                    imgTag.src = e.target.result;
+                    imgContainer.classList.remove('hidden');
+                    
+                    geminiBase64Str = e.target.result.split(',')[1];
+                    document.getElementById('btn_gemini_check').disabled = false;
+                    document.getElementById('gemini_result_box').classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function cekKeaslianGemini() {
+            if (!geminiBase64Str) return;
+            if (GEMINI_API_KEY === 'Masukkan_API_Key_Gemini_Anda_Di_Sini') {
+                alert("Harap masukkan API Key Gemini valid di baris kode script terlebih dahulu!");
+                return;
+            }
+
+            const badge = document.getElementById("gemini_status_badge");
+            const btn = document.getElementById("btn_gemini_check");
+            const resultBox = document.getElementById("gemini_result_box");
+
+            badge.innerText = "CHECKING...";
+            badge.className = "text-[9px] bg-[#ff9f0a] text-black px-1.5 py-0.5 rounded font-mono font-bold animate-pulse";
+            btn.disabled = true;
+            resultBox.classList.add("hidden");
+
+            const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli yang diambil langsung secara fisik dari dalam mobil atau merupakan foto ilegal hasil jepretan ulang dari gambar yang terpampang di layar monitor/laptop (periksa adanya pola moire, scanning lines, pantulan monitor, blur piksel). Wajib kembalikan output dalam format JSON mentah murni tanpa penanda sintaks ```json dengan struktur string objek seperti ini: {\"pernyataan\": \"Tulis analisis detail argumen fisik Anda di sini secara lugas.\", \"persentase\": 90}";
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: instruksiSistem },
+                        {
+                            inlineData: {
+                                mimeType: "image/jpeg",
+                                data: geminiBase64Str
+                            }
+                        }
+                    ]
+                }]
+            };
+
+            try {
+                const res = await fetch(ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const jsonRes = await res.json();
+                const rawText = jsonRes.candidates[0].content.parts[0].text;
+                
+                // Konversi respon teks string langsung menjadi objek JSON JavaScript
+                const parsedResult = JSON.parse(rawText.trim());
+
+                document.getElementById('gemini_pct').innerText = parsedResult.persentase;
+                document.getElementById('gemini_desc').innerText = parsedResult.pernyataan;
+
+                // Tentukan pewarnaan dinamis box berdasarkan deteksi kata kunci
+                const textLower = parsedResult.pernyataan.toLowerCase();
+                if (textLower.includes("layar") || textLower.includes("monitor") || textLower.includes("foto ulang") || textLower.includes("jepretan ulang")) {
+                    resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-red-950/40 border-red-500/50 text-red-300";
+                    badge.innerText = "WARNING SCREEN";
+                    badge.className = "text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-mono font-bold";
+                } else {
+                    resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-green-950/40 border-green-500/50 text-green-300";
+                    badge.innerText = "VERIFIED REAL";
+                    badge.className = "text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded font-mono font-bold";
+                }
+
+            } catch(err) {
+                console.error(err);
+                alert("Proses e-check gagal. Periksa kembali validitas API Key Gemini Anda atau jaringan.");
+                badge.innerText = "ERROR";
+                badge.className = "text-[9px] bg-gray-700 text-red-400 px-1.5 py-0.5 rounded font-mono";
+            } finally {
+                btn.disabled = false;
+            }
         }
     </script>
 </body>
