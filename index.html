@@ -267,7 +267,8 @@
                         <span>HASIL ANALISIS:</span>
                         <span>CONFIDENCE: <span id="gemini_pct">-</span>%</span>
                     </div>
-                    <p id="gemini_desc" class="text-gray-200"></p>
+                    <!-- WADAH BARU UNTUK INDIKASI POIN-POIN -->
+                    <ul id="gemini_points" class="list-disc pl-4 space-y-1 text-gray-300 mt-1.5"></ul>
                 </div>
             </div>
 
@@ -286,7 +287,7 @@
         let array_foto_base64 = [null, null, null];
         let array_foto_timestamps = [0, 0, 0];
 
-        // API KEY TERTANAM OTOMATIS
+        // API KEY TERTANAM
         const GEMINI_API_KEY = "AIzaSyD" + "S77bN3o8c" + "ZqNleP2Xq" + "6Bicwz" + "R3Lz9Kiwk"; 
         let geminiBase64Str = "";
 
@@ -690,6 +691,7 @@
             document.getElementById("btn_gemini_check").disabled = true;
             document.getElementById("gemini_status_badge").innerText = "READY";
             document.getElementById("gemini_status_badge").className = "text-[9px] bg-[#2d323f] text-gray-400 px-1.5 py-0.5 rounded font-mono";
+            document.getElementById("gemini_points").innerHTML = "";
         }
 
         // ==========================================
@@ -717,14 +719,18 @@
             const badge = document.getElementById("gemini_status_badge");
             const btn = document.getElementById("btn_gemini_check");
             const resultBox = document.getElementById("gemini_result_box");
+            const pointsUl = document.getElementById("gemini_points");
 
             badge.innerText = "CHECKING...";
             badge.className = "text-[9px] bg-[#ff9f0a] text-black px-1.5 py-0.5 rounded font-mono font-bold animate-pulse";
             btn.disabled = true;
             resultBox.classList.add("hidden");
+            pointsUl.innerHTML = "";
 
             const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-            const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli yang diambil langsung secara fisik dari dalam mobil atau merupakan foto ilegal hasil jepretan ulang dari gambar yang terpampang di layar monitor/laptop (periksa adanya pola moire, scanning lines, pantulan monitor, blur piksel). Wajib kembalikan output dalam format JSON mentah murni tanpa penanda sintaks ```json dengan struktur string objek seperti ini: {\"pernyataan\": \"Tulis analisis detail argumen fisik Anda di sini secara lugas.\", \"persentase\": 90}";
+            
+            // PROMPT DINAMIS: MEMAKSA GEMINI MEMBERIKAN ARRAY POIN INDIKASI & PERSENTASE
+            const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli (diambil langsung secara fisik di mobil) ATAU foto ilegal hasil jepretan ulang dari layar monitor/laptop/HP lain (cari pola moire, garis pixel, pantulan cahaya layar, blur digital). Wajib kembalikan output dalam format JSON mentah murni tanpa penanda sintaks ```json dengan struktur string objek seperti ini: {\"indikasi_poin\": [\"Sebutkan poin 1 analisis fisik jika ada\", \"Sebutkan poin 2\", \"Sebutkan poin 3\"], \"persentase_keyakinan_layar\": 90}. Catatan: jika terindikasi kuat foto layar, isi nilai persentase tinggi (di atas 70%). Jika aman/asli, persentase di bawah 30%.";
 
             const payload = {
                 contents: [{
@@ -745,18 +751,34 @@
                 const jsonRes = await res.json();
                 let rawText = jsonRes.candidates[0].content.parts[0].text.trim();
                 
-                // PEMBERSIH STRIP MARKDOWN (Mengatasi error parser jika AI bandel ngasih ```json)
-                if (rawText.startsWith("```")) {
-                    rawText = rawText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+                // SISTEM PENYARING SANITASI STRIP STRING KODE BROWSER (ANTI BUG JSON)
+                rawText = rawText.replace(/^```json/i, "").replace(/```$/, "").trim();
+                
+                // Cari kecocokan kurung kurawal terluar jika masih ada noise text
+                const startIdx = rawText.indexOf('{');
+                const endIdx = rawText.lastIndexOf('}');
+                if(startIdx !== -1 && endIdx !== -1) {
+                    rawText = rawText.substring(startIdx, endIdx + 1);
                 }
 
                 const parsedResult = JSON.parse(rawText);
+                const confidence = parsedResult.persentase_keyakinan_layar;
+                
+                document.getElementById('gemini_pct').innerText = confidence;
 
-                document.getElementById('gemini_pct').innerText = parsedResult.persentase;
-                document.getElementById('gemini_desc').innerText = parsedResult.pernyataan;
+                // Tampilkan poin analisis ke dalam list <ul>
+                if (parsedResult.indikasi_poin && Array.isArray(parsedResult.indikasi_poin)) {
+                    parsedResult.indikasi_poin.forEach(poin => {
+                        const li = document.createElement("li");
+                        li.innerText = poin;
+                        pointsUl.appendChild(li);
+                    });
+                } else {
+                    pointsUl.innerHTML = "<li>Analisis terproses tanpa data poin spesifik.</li>";
+                }
 
-                const textLower = parsedResult.pernyataan.toLowerCase();
-                if (textLower.includes("layar") || textLower.includes("monitor") || textLower.includes("foto ulang") || textLower.includes("jepretan ulang")) {
+                // Klasifikasi Status Berdasarkan Persentase Keyakinan Foto Layar
+                if (confidence >= 60) {
                     resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-red-950/40 border-red-500/50 text-red-300";
                     badge.innerText = "WARNING SCREEN";
                     badge.className = "text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-mono font-bold";
@@ -769,8 +791,8 @@
 
             } catch(err) {
                 console.error(err);
-                alert("Proses e-check gagal memproses data struktur gambar.");
-                badge.innerText = "ERROR";
+                alert("Gagal membaca struktur data respons AI. Silakan klik PERIKSA kembali.");
+                badge.innerText = "ERROR PARSING";
                 badge.className = "text-[9px] bg-gray-700 text-red-400 px-1.5 py-0.5 rounded font-mono";
             } finally {
                 btn.disabled = false;
