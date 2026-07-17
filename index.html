@@ -3,965 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - Map Preview Extra Zoom</title>
+    <title>Kalkulator BBM Cloud Pro - Map & Gemini Check</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background-color: #14161d;
-            color: #ffffff;
-            font-family: 'Arial', sans-serif;
-        }
-        .dot {
-            transition: all 0.3s ease-in-out;
-        }
-        input:checked ~ .dot {
-            transform: translateX(100%);
-            background-color: #ffffff;
-        }
-        #toggle_mafia:checked ~ .block {
-            background-color: #ff3b30;
-        }
-        #toggle_gps:checked ~ .block {
-            background-color: #34c759;
-        }
-        #toggle_approval:checked ~ .block {
-            background-color: #34c759;
-        }
+        body { background-color: #14161d; color: #ffffff; font-family: 'Arial', sans-serif; }
+        .dot { transition: all 0.3s ease-in-out; }
+        input:checked ~ .dot { transform: translateX(100%); background-color: #ffffff; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- CONTAINER UTAMA DUAL PANE -->
     <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start justify-center">
         
-        <!-- PANEL KIRI: FORM UTAMA -->
-        <div id="main_card" class="w-full lg:w-[420px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
+        <!-- PANEL KIRI (Form Utama) -->
+        <div id="main_card" class="w-full lg:w-[420px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col p-4 space-y-3.5">
+            <div class="flex items-center gap-1.5 w-full">
+                <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12">PLAT</span>
+                    <input type="text" id="entry_plat" class="w-full bg-transparent text-white uppercase outline-none" placeholder="Klik untuk Auto-Paste">
+                </div>
+                <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold w-14">CEK</button>
+            </div>
             
-            <div class="p-4 flex flex-col space-y-3.5 flex-1">
-                
-                <div class="flex items-center gap-1.5 w-full">
-                    <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                        <span class="w-12 flex-shrink-0">PLAT</span>
-                        <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, false)">
-                    </div>
-                    <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
-                </div>
-
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">START</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
-                </div>
-
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">AKHIR</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
-                </div>
-
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">LITER</span>
-                    <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Isi jumlah liter">
-                </div>
-
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">RMK</span>
-                    <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
-                </div>
-
-                <!-- BOX MAFIA MODE -->
-                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-300">
-                    <div class="flex flex-col flex-1 overflow-hidden">
-                        <span class="text-[11px] font-bold text-[#a0a5b5]" id="title_mafia">STATUS KENDARAAN</span>
-                        <div id="marquee_mafia" class="hidden text-[10px] font-black tracking-widest text-white uppercase overflow-hidden whitespace-nowrap pt-0.5">
-                            <marquee scrollamount="4">⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA</marquee>
-                        </div>
-                    </div>
-                    <label for="toggle_mafia" class="flex items-center cursor-pointer select-none">
-                        <div class="relative">
-                            <input type="checkbox" id="toggle_mafia" class="sr-only" onchange="toggleMafiaMode(this.checked)">
-                            <div class="block bg-gray-600 w-10 h-6 rounded-full transition-colors"></div>
-                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- STATUS GPS -->
-                <div id="box_gps" class="flex items-center justify-between bg-[#dc2626] rounded px-3 py-2 transition-all duration-300 gap-2">
-                    <div class="flex flex-col flex-1 overflow-hidden">
-                        <span class="text-[11px] font-bold text-white" id="title_gps">STATUS GPS: MATI</span>
-                    </div>
-                    
-                    <button onclick="copasGpsMati(this)" id="btn_copas_gps" class="bg-black/30 hover:bg-black/50 text-white p-1.5 rounded transition flex items-center justify-center text-[10px] font-bold gap-1 px-2 select-none border border-white/10 flex-shrink-0">
-                        📋 <span>Copas</span>
-                    </button>
-
-                    <label for="toggle_gps" class="flex items-center cursor-pointer select-none flex-shrink-0">
-                        <div class="relative">
-                            <input type="checkbox" id="toggle_gps" class="sr-only" onchange="toggleGpsMode(this.checked)">
-                            <div class="block bg-gray-600 w-10 h-6 rounded-full transition-colors"></div>
-                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- PANEL NEED APPROVAL -->
-                <div id="box_approval" class="hidden flex-col bg-[#2d323f] border border-orange-500/40 rounded px-3 py-2 transition-all duration-300 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex flex-col">
-                            <span class="text-[11px] font-bold text-[#ff9f0a]">NEED APPROVAL</span>
-                            <span id="label_last_approved" class="text-[9px] text-gray-400 italic">Last Approved: -</span>
-                        </div>
-                        <label for="toggle_approval" class="flex items-center cursor-pointer select-none">
-                            <div class="relative">
-                                <input type="checkbox" id="toggle_approval" class="sr-only" onchange="handleApprovalChange(this.checked)">
-                                <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
-                                <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                                <span id="text_approval_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- GRID TOMBOL AKSI (LOG DIHAPUS) -->
-                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold pt-1">
-                    <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
-                    <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded hover:opacity-80 uppercase">SAVE</button>
-                    <button onclick="resetForm()" class="bg-[#3a3f4d] text-gray-300 py-2 rounded hover:opacity-80 uppercase">RESET</button>
-                </div>
-
-                <div class="flex items-center justify-around bg-[#2d323f] px-3 py-2 rounded h-10 text-center">
-                    <span id="label_hasil" class="text-[#34c759] font-bold text-sm border-r border-gray-700 pr-2 flex-1">- KM/L</span>
-                    <span id="label_jarak" class="text-[#a0a5b5] text-[11px] border-r border-gray-700 px-2 flex-1">Jarak: -</span>
-                    <span id="label_status" class="text-white font-bold text-[10px] px-2 py-0.5 rounded bg-transparent min-w-[60px] text-center">-</span>
-                </div>
-
-                <div class="bg-[#2d323f] p-2.5 rounded flex flex-col space-y-2 min-h-[60px]">
-                    <p id="label_rekues" class="text-[11px] italic text-gray-300 leading-relaxed">
-                        Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
-                    </p>
-                    <div class="text-right">
-                        <button onclick="copasTeks(this)" id="btn_copas" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-2.5 py-1 rounded hover:opacity-80 whitespace-nowrap">
-                            Copas
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col space-y-1.5 pt-1">
-                    <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
-                        <option value="-- Pilih Teks Tambahan --">-- Pilih Teks Tambahan --</option>
-                        <option value="Rekues ulang menggunakan item cost &quot;Shopping List Material&quot;">Rekues ulang menggunakan item cost "Shopping List Material"</option>
-                        <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
-                        <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
-                        <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
-                        <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                        <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" / "Delivery Material Badan".</option>
-                        <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
-                    </select>
-                    <div class="text-right">
-                        <button onclick="copasPilihan(this)" id="btn_copas_pilihan" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:opacity-80 whitespace-nowrap">
-                            Copas Pilihan
-                        </button>
-                    </div>
-                </div>
-
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12">START</span>
+                <input type="text" id="entry_start" class="w-full bg-transparent text-white outline-none">
             </div>
 
-            <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.4em] py-3 w-full text-center select-none uppercase border-t border-gray-700">
-                P A P I P A
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12">AKHIR</span>
+                <input type="text" id="entry_akhir" class="w-full bg-transparent text-white outline-none">
+            </div>
+
+            <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                <span class="w-12">LITER</span>
+                <input type="text" id="entry_liter" class="w-full bg-transparent text-white outline-none">
+            </div>
+
+            <div class="grid grid-cols-3 gap-1.5 pt-1 text-[11px] font-bold">
+                <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded">HITUNG</button>
+                <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded">SAVE</button>
+                <button onclick="resetForm()" class="bg-[#3a3f4d] text-gray-300 py-2 rounded">RESET</button>
             </div>
         </div>
 
-        <!-- PANEL KANAN: PREVIEW MAP & HISTORI -->
+        <!-- PANEL KANAN (Gemini & Preview) -->
         <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
             
-            <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
-                <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Visual & Preview Map Tracker</h3>
-                <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
-            </div>
-
-            <!-- SLOT CONTAINER FOTO PREVIEW WITH URUTAN BORDER -->
-            <div class="grid grid-cols-3 gap-2 w-full">
-                <!-- Slot 1 -->
-                <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
-                    <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
-                        <span class="text-lg block">📸</span>
-                        <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
-                    </div>
-                    <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
-                </div>
-                <!-- Slot 2 -->
-                <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
-                    <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
-                        <span class="text-lg block">📸</span>
-                        <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
-                    </div>
-                    <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
-                </div>
-                <!-- Slot 3 -->
-                <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
-                    <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
-                        <span class="text-lg block">📸</span>
-                        <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
-                    </div>
-                    <button onclick="hapusFoto(3)" id="btn_del_3" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
-                </div>
-            </div>
-
-            <!-- TOMBOL AKSI ATTACHMENT COMPACT -->
-            <div class="bg-[#13161c] p-2 rounded-lg border border-gray-800">
-                <div class="flex flex-col sm:flex-row gap-1.5">
-                    <input type="file" id="file_uploader" accept="image/*" multiple class="hidden" onchange="handleFileSelect(this)">
-                    <button onclick="document.getElementById('file_uploader').click()" class="flex-1 bg-[#2d323f] border border-gray-600 text-white text-[10px] font-bold py-1.5 px-2 rounded hover:bg-gray-700 transition flex items-center justify-center gap-1">
-                        📂 Pilih File Foto Map
-                    </button>
-                    <button onclick="clearAllPhotos()" class="bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold py-1.5 px-2 rounded hover:bg-red-500/20 transition">
-                        Reset
-                    </button>
-                </div>
-            </div>
-
-            <!-- POSISI SEKARANG: DI BAWAH MAP & DI ATAS 5 LOG TERAKHIR -->
-            <div class="bg-[#2d323f] border border-gray-700 rounded-lg p-2.5 flex items-center justify-between gap-3">
-                <p id="label_map_warning" class="text-[11px] font-medium text-gray-300 italic leading-tight select-all">
-                    Mohon gunakan map update setiap kali rekues
-                </p>
-                <button onclick="copasPesanMap(this)" class="bg-[#3a3f4d] hover:bg-gray-600 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition whitespace-nowrap flex-shrink-0">
-                    Copas
-                </button>
-            </div>
-
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (EDITABLE) -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-48">
-                <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
-                    <span>📋 5 Log BBM Terakhir</span>
-                    <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
-                </div>
-                <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
-                    <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
-                </div>
-            </div>
-
-            <!-- MODUL BARU: GEMINI SCREENSHOT DETECTOR -->
+            <!-- MODUL GEMINI -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase border-b border-gray-800 pb-1 flex justify-between items-center">
+                <div class="text-[11px] font-bold text-gray-400 uppercase border-b border-gray-800 pb-1 flex justify-between">
                     <span>🤖 E-Check Keaslian Foto Odo</span>
                     <span id="gemini_status_badge" class="text-[9px] bg-[#2d323f] text-gray-400 px-1.5 py-0.5 rounded font-mono">READY</span>
                 </div>
                 
+                <div class="flex items-center bg-[#2d323f] rounded px-2 py-1 text-[10px] font-mono text-gray-400 border border-gray-700/50">
+                    <span class="w-16 font-bold">GEMINI KEY</span>
+                    <input type="password" id="gemini_key_input" class="w-full bg-transparent text-white outline-none" placeholder="Paste API Key di sini" onchange="localStorage.setItem('gemini_api_key', this.value.trim())">
+                </div>
+                
                 <div class="flex gap-2">
                     <input type="file" id="gemini_image_input" accept="image/*" class="hidden" onchange="previewGeminiImage(event)">
-                    <button onclick="document.getElementById('gemini_image_input').click()" class="bg-[#2d323f] border border-gray-700 text-white font-mono text-[10px] py-1.5 px-2 rounded hover:bg-gray-700 transition flex-1">
-                        📷 Pilih Foto Odo
-                    </button>
-                    <button id="btn_gemini_check" onclick="cekKeaslianGemini()" class="bg-[#0a84ff] text-white font-mono text-[10px] py-1.5 px-3 rounded hover:opacity-90 transition disabled:bg-gray-700 disabled:text-gray-500" disabled>
-                        PERIKSA
-                    </button>
+                    <button onclick="document.getElementById('gemini_image_input').click()" class="bg-[#2d323f] border border-gray-700 text-white font-mono text-[10px] py-1.5 px-2 rounded flex-1">📷 Pilih Foto Odo</button>
+                    <button id="btn_gemini_check" onclick="cekKeaslianGemini()" class="bg-[#0a84ff] text-white font-mono text-[10px] py-1.5 px-3 rounded disabled:bg-gray-700" disabled>PERIKSA</button>
                 </div>
 
-                <!-- Pratinjau Gambar Masukan -->
-                <div class="relative w-full hidden" id="gemini_preview_container">
-                    <img id="gemini_preview_img" class="w-full h-24 object-contain rounded bg-black/40 border border-gray-800 mt-1">
-                </div>
-
-                <!-- Output Box Hasil Deteksi -->
-                <div id="gemini_result_box" class="hidden p-2 rounded border font-mono text-[10px] leading-relaxed transition-all duration-300">
-                    <div class="flex justify-between font-bold mb-1 border-b pb-0.5 border-white/10">
+                <div id="gemini_result_box" class="hidden p-2 rounded border font-mono text-[10px] leading-relaxed transition-all">
+                    <div class="flex justify-between font-bold mb-1 border-b border-white/10">
                         <span>HASIL ANALISIS:</span>
                         <span>CONFIDENCE: <span id="gemini_pct">-</span>%</span>
                     </div>
                     <p id="gemini_desc" class="text-gray-200"></p>
                 </div>
             </div>
-
-        </div>
-
-    </div>
-
-    <!-- MODAL HISTORI -->
-    <div id="modal_histori" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-[#1e222b] border border-gray-700 w-full max-w-5xl rounded-lg shadow-2xl p-4 flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
-                <h3 id="histori_title" class="font-bold text-sm text-[#0a84ff]">Histori</h3>
-                <button onclick="tutupHistori()" class="text-red-500 font-bold text-xl hover:text-red-400 px-2">&times;</button>
-            </div>
-            <div class="bg-[#13161c] border border-gray-800 rounded p-3 flex-1 overflow-y-auto font-mono text-[11px]">
-                <div class="text-center text-gray-500 mb-3 border-b border-gray-800 pb-1" id="sub_header_modal">
-                    --- 10 Riwayat Terakhir (Cloud) ---
-                </div>
-                <div id="histori_container" class="space-y-2 text-gray-300"></div>
-            </div>
         </div>
     </div>
 
     <script>
-        const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
-        
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let data_siap_simpan = null;
-        let id_log_sedang_diedit = null; 
-
-        let array_foto_base64 = [null, null, null];
-        let array_foto_timestamps = [0, 0, 0];
-
-        // VARIABEL KONFIGURASI MODUL GEMINI API[cite: 1]
-        const GEMINI_API_KEY = 'Masukkan_API_Key_Gemini_Anda_Di_Sini'; 
         let geminiBase64Str = "";
-
+        
+        // Memuat API Key saat aplikasi terbuka
         window.addEventListener('DOMContentLoaded', () => {
-            updateApprovalLabel();
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) document.getElementById('gemini_key_input').value = savedKey;
         });
 
-        function updateApprovalLabel() {
-            const lastApproved = localStorage.getItem('last_bbm_approval_time');
-            const lbl = document.getElementById("label_last_approved");
-            if (lastApproved) {
-                lbl.innerText = `Last Approved: ${lastApproved}`;
-            } else {
-                lbl.innerText = `Last Approved: -`;
-            }
-        }
-
-        function handleApprovalChange(isTrue) {
-            const textIndicator = document.getElementById("text_approval_slide");
-            if (isTrue) {
-                textIndicator.innerText = "YES";
-                textIndicator.style.color = "#ffffff";
-                textIndicator.style.right = "auto";
-                textIndicator.style.left = "0.5rem";
-            } else {
-                textIndicator.innerText = "NO";
-                textIndicator.style.color = "#a0a5b5";
-                textIndicator.style.left = "auto";
-                textIndicator.style.right = "0.5rem";
-            }
-            if (data_siap_simpan !== null) {
-                data_siap_simpan.is_approved = isTrue;
-            }
-        }
-
-        function toggleMafiaMode(isTrue) {
-            const mainCard = document.getElementById("main_card");
-            const boxMafia = document.getElementById("box_mafia");
-            const titleMafia = document.getElementById("title_mafia");
-            const marquee = document.getElementById("marquee_mafia");
-
-            if(isTrue) {
-                boxMafia.style.backgroundColor = "#7f1d1d"; 
-                titleMafia.style.color = "#fca5a5"; 
-                marquee.classList.remove("hidden");
-                mainCard.style.borderColor = "#ef4444";
-            } else {
-                boxMafia.style.backgroundColor = "#2d323f";
-                titleMafia.style.color = "#a0a5b5";
-                marquee.classList.add("hidden");
-                mainCard.style.borderColor = "#374151";
-            }
-            if (data_siap_simpan !== null) data_siap_simpan.is_mafia = isTrue;
-        }
-
-        function toggleGpsMode(isTrue) {
-            const boxGps = document.getElementById("box_gps");
-            const titleGps = document.getElementById("title_gps");
-            const btnCopasGps = document.getElementById("btn_copas_gps");
-
-            if(isTrue) {
-                boxGps.style.backgroundColor = "#16a34a";
-                titleGps.innerText = "STATUS GPS: AKTIF";
-                btnCopasGps.classList.add("hidden");
-            } else {
-                boxGps.style.backgroundColor = "#dc2626";
-                titleGps.innerText = "STATUS GPS: MATI";
-                btnCopasGps.classList.remove("hidden");
-            }
-            if (data_siap_simpan !== null) data_siap_simpan.is_gps = isTrue;
-        }
-
-        function copasGpsMati(btn) {
-            const pesan = "Gps tidak aktif, Mohon hubungi koordinator mobil untuk aktivasi gps";
-            navigator.clipboard.writeText(pesan).then(() => {
-                const innerSpan = btn.querySelector("span");
-                innerSpan.innerText = "Disalin!";
-                btn.style.backgroundColor = "#16a34a";
-                setTimeout(() => {
-                    innerSpan.innerText = "Copas";
-                    btn.style.backgroundColor = "rgba(0, 0, 0, 0.3)";
-                }, 1200);
-            }).catch(err => alert("Gagal menyalin teks otomatis."));
-        }
-
-        function copasPesanMap(btn) {
-            const pesan = document.getElementById("label_map_warning").innerText.trim();
-            navigator.clipboard.writeText(pesan).then(() => {
-                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        async function autoPaste(inputElement, hanyaAngka) {
-            if (inputElement.value.trim() !== "") return;
-            try {
-                let text = await navigator.clipboard.readText();
-                text = text.trim();
-                if (hanyaAngka) {
-                    let angkaMurni = text.replace(/[^0-9]/g, '');
-                    if (angkaMurni) inputElement.value = angkaMurni;
-                } else {
-                    inputElement.value = text.toUpperCase();
-                }
-            } catch (err) { console.log("Akses clipboard ditangani browser"); }
-        }
-
-        // FUNGSI HANDLE FILE & KOMPRESI OTOMATIS SEBELUM SIMPAN
-        function handleFileSelect(input) {
-            const files = input.files;
-            if (!files) return;
-
-            for (let i = 0; i < files.length; i++) {
-                let slotKosong = array_foto_base64.indexOf(null);
-                if (slotKosong === -1) {
-                    alert("Maksimal hanya bisa menampung 3 Foto Map!");
-                    break;
-                }
-
-                const file = files[i];
-                const reader = new FileReader();
-                const currentTimestamp = Date.now() + i; 
-                const targetSlot = slotKosong + 1;
-
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = function() {
-                        // Proses kompresi menggunakan Canvas
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Menentukan batasan resolusi maksimal (misal maks lebar/tinggi 800px)
-                        const MAX_WIDTH = 800;
-                        const MAX_HEIGHT = 800;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
-                        } else {
-                            if (height > MAX_HEIGHT) {
-                                width *= MAX_HEIGHT / height;
-                                height = MAX_HEIGHT;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Konversi ke format JPEG dengan kualitas kompresi 0.6 (60%)
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                        array_foto_timestamps[targetSlot - 1] = currentTimestamp;
-                        renderFotoSlot(targetSlot, compressedBase64);
-                    };
-                };
-                reader.readAsDataURL(file);
-            }
-            input.value = "";
-        }
-
-        function renderFotoSlot(indexSlot, srcData) {
-            array_foto_base64[indexSlot - 1] = srcData;
-            if (!srcData) {
-                array_foto_timestamps[indexSlot - 1] = 0;
-            }
-            
-            const img = document.getElementById(`prev_img_${indexSlot}`);
-            const placeholder = document.getElementById(`placeholder_${indexSlot}`);
-            const btnDel = document.getElementById(`btn_del_${indexSlot}`);
-
-            if (srcData) {
-                img.src = srcData;
-                img.classList.remove("hidden");
-                placeholder.classList.add("hidden");
-                btnDel.classList.remove("hidden");
-            } else {
-                img.src = "";
-                img.classList.add("hidden");
-                placeholder.classList.remove("hidden");
-                btnDel.classList.add("hidden");
-            }
-            
-            updateFotoCounter();
-            recalculateBorderColors();
-        }
-
-        function recalculateBorderColors() {
-            let activeSlots = [];
-            for (let i = 0; i < 3; i++) {
-                if (array_foto_timestamps[i] > 0 && array_foto_base64[i] !== null) {
-                    activeSlots.push({ index: i + 1, ts: array_foto_timestamps[i] });
-                } else {
-                    const el = document.getElementById(`slot_border_${i + 1}`);
-                    el.className = "relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
-                }
-            }
-
-            activeSlots.sort((a, b) => a.ts - b.ts);
-
-            activeSlots.forEach((slot, orderIndex) => {
-                const el = document.getElementById(`slot_border_${slot.index}`);
-                el.className = "relative group bg-[#13161c] border-2 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
-
-                if (activeSlots.length === 1) {
-                    el.classList.add("border-green-500", "solid");
-                } else if (activeSlots.length === 2) {
-                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
-                    if (orderIndex === 1) el.classList.add("border-green-500", "solid"); 
-                } else if (activeSlots.length === 3) {
-                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
-                    if (orderIndex === 1) el.classList.add("border-yellow-500", "solid"); 
-                    if (orderIndex === 2) el.classList.add("border-green-500", "solid"); 
-                }
-            });
-        }
-
-        function hapusFoto(indexSlot) {
-            renderFotoSlot(indexSlot, null);
-        }
-
-        function clearAllPhotos() {
-            for(let i=1; i<=3; i++) {
-                renderFotoSlot(i, null);
-            }
-        }
-
-        function updateFotoCounter() {
-            let total = array_foto_base64.filter(x => x !== null).length;
-            document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
-        }
-
-        async function loadMiniLog(plat) {
-            const container = document.getElementById("mini_log_container");
-            document.getElementById("log_plat_badge").innerText = plat;
-            
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(5);
-
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    container.innerHTML = `<div class="text-center text-gray-600 py-6 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
-                    return;
-                }
-
-                container.innerHTML = "";
-                data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
-                    
-                    let colorClass = "text-white";
-                    if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
-                    else if(r.status === "CUKUP") colorClass = "text-[#ff9f0a]";
-                    else if(r.status === "KURANG") colorClass = "text-[#ff3b30]";
-
-                    const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
-                    
-                    const row = document.createElement("div");
-                    row.className = "flex items-center justify-between border-b border-gray-900 pb-1.5 last:border-0 hover:bg-gray-800/20 p-1 rounded transition-all";
-                    row.innerHTML = `
-                        <div class="flex-1 leading-tight pr-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400 font-bold">${tgl}</span>
-                                <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
-                            </div>
-                            <div class="text-gray-300 mt-0.5">
-                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : ''} ${r.is_approved ? '✅[A]' : ''}
-                            </div>
-                        </div>
-                        <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
-                            EDIT
-                        </button>
-                    `;
-                    container.appendChild(row);
-                });
-
-            } catch(e) {
-                container.innerHTML = `<div class="text-center text-red-400 py-4 italic">Gagal memuat mini log.</div>`;
-            }
-        }
-
-        async function cekPlat() {
-            id_log_sedang_diedit = null; 
-            document.getElementById("btn_save").innerText = "SAVE";
-            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
-            clearAllPhotos();
-
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
-            
-            const btnCek = document.getElementById("btn_cek");
-            btnCek.innerText = ".."; btnCek.disabled = true;
-
-            try {
-                loadMiniLog(plat);
-
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(1);
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const lastData = data[0];
-                    document.getElementById("entry_start").value = lastData.km_akhir;
-                    document.getElementById("entry_akhir").value = "";
-                    document.getElementById("entry_liter").value = lastData.liter || "";
-                    document.getElementById("entry_remark").value = lastData.remark || "";
-                    
-                    toggleMafiaMode(lastData.is_mafia === true);
-                    document.getElementById("toggle_mafia").checked = lastData.is_mafia === true;
-
-                    toggleGpsMode(lastData.is_gps === true);
-                    document.getElementById("toggle_gps").checked = lastData.is_gps === true;
-
-                    if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
-                        lastData.foto_urls.forEach((url, index) => {
-                            if (index < 3) {
-                                array_foto_timestamps[index] = Date.now() + index;
-                                renderFotoSlot(index + 1, url);
-                            }
-                        });
-                    }
-
-                    const rem = lastData.remark || "-";
-                    document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
-                    
-                    document.getElementById("box_approval").classList.add("hidden");
-                    document.getElementById("toggle_approval").checked = false;
-                    handleApprovalChange(false);
-                    
-                    document.getElementById("entry_akhir").focus();
-                } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
-                    resetForm();
-                    document.getElementById("entry_plat").value = plat;
-                }
-            } catch (err) {
-                alert("Gagal mengecek data:\n" + err.message);
-            } finally {
-                btnCek.innerText = "CEK"; btnCek.disabled = false;
-            }
-        }
-
-        function hitungRasio() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            const km_start = parseFloat(document.getElementById("entry_start").value);
-            const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
-            let literRaw = document.getElementById("entry_liter").value.replace(',', '.');
-            const liter = parseFloat(literRaw);
-            const isMafiaActive = document.getElementById("toggle_mafia").checked;
-            const isGpsActive = document.getElementById("toggle_gps").checked;
-            const isApprovalActive = document.getElementById("toggle_approval").checked;
-
-            if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
-                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
-            }
-            if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
-            if (liter <= 0) return alert("BBM harus lebih dari 0!");
-
-            const jarak = km_akhir - km_start;
-            const rasio = jarak / liter;
-
-            document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
-            document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
-
-            let kesimpulan, bgWarna;
-            if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
-            else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
-            else { kesimpulan = "JOSJIS"; bgWarna = "#34c759"; }
-
-            const lblStatus = document.getElementById("label_status");
-            lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
-
-            const boxApproval = document.getElementById("box_approval");
-            if (kesitemize === "KURANG") {
-                boxApproval.classList.remove("hidden");
-            } else {
-                boxApproval.classList.add("hidden");
-                document.getElementById("toggle_approval").checked = false;
-                handleApprovalChange(false);
-            }
-
-            document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
-
-            data_siap_simpan = { 
-                plat_nomor: plat, 
-                km_start: km_start, 
-                km_akhir: km_akhir, 
-                jarak: jarak, 
-                liter: liter, 
-                rasio: parseFloat(rasio.toFixed(2)), 
-                status: kesimpulan,
-                is_mafia: isMafiaActive,
-                is_gps: isGpsActive,
-                is_approved: isApprovalActive,
-                foto_urls: array_foto_base64.filter(x => x !== null)
-            };
-
-            const btnSave = document.getElementById("btn_save");
-            if (id_log_sedang_diedit !== null) {
-                btnSave.style.backgroundColor = "#ff9f0a"; btnSave.innerText = "UPDATE";
-            } else {
-                btnSave.style.backgroundColor = "#0a84ff"; btnSave.innerText = "SAVE";
-            }
-        }
-
-        async function simpanKeCloud() {
-            if (!data_siap_simpan) return alert("Hitung rasio terlebih dahulu sebelum menekan SAVE/UPDATE!");
-            
-            const btnSave = document.getElementById("btn_save");
-            const remark_text = document.getElementById("entry_remark").value.trim();
-            data_siap_simpan["remark"] = remark_text ? remark_text : null;
-            data_siap_simpan["foto_urls"] = array_foto_base64.filter(x => x !== null);
-            
-            btnSave.disabled = true;
-            const textAwal = btnSave.innerText;
-            btnSave.innerText = "...";
-
-            try {
-                if (id_log_sedang_diedit !== null) {
-                    const { error } = await _supabase
-                        .from('log_bbm')
-                        .update(data_siap_simpan)
-                        .eq('id', id_log_sedang_diedit);
-                    if (error) throw error;
-                    alert(`Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) Berhasil Diperbarui!`);
-                } else {
-                    const { error } = await _supabase
-                        .from('log_bbm')
-                        .insert([data_siap_simpan]);
-                    if (error) throw error;
-                    alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
-                }
-
-                if (data_siap_simpan.is_approved) {
-                    const sekarang = new Date();
-                    const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
-                    localStorage.setItem('last_bbm_approval_time', waktuString);
-                    updateApprovalLabel();
-                }
-
-                btnSave.style.backgroundColor = "#3a3f4d"; btnSave.innerText = "SAVE";
-                loadMiniLog(data_siap_simpan.plat_nomor);
-            } catch (err) {
-                alert("Gagal memproses data ke Cloud:\n" + err.message);
-                btnSave.innerText = textAwal;
-            } finally {
-                btnSave.disabled = false;
-            }
-        }
-
-        function lemparKeForm(encodedData) {
-            const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
-            id_log_sedang_diedit = dataObj.id; 
-
-            document.getElementById("entry_plat").value = dataObj.plat_nomor;
-            document.getElementById("entry_start").value = dataObj.km_start;
-            document.getElementById("entry_akhir").value = dataObj.km_akhir;
-            document.getElementById("entry_liter").value = dataObj.liter;
-            document.getElementById("entry_remark").value = dataObj.remark || "";
-            
-            hitungRasio(); 
-
-            document.getElementById("toggle_mafia").checked = dataObj.is_mafia === true;
-            toggleMafiaMode(dataObj.is_mafia === true);
-
-            document.getElementById("toggle_gps").checked = dataObj.is_gps === true;
-            toggleGpsMode(dataObj.is_gps === true);
-
-            if (dataObj.status === "KURANG") {
-                document.getElementById("box_approval").classList.remove("hidden");
-                document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
-                handleApprovalChange(dataObj.is_approved === true);
-            }
-            
-            clearAllPhotos();
-            if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
-                dataObj.foto_urls.forEach((url, i) => {
-                    if(i < 3) {
-                        array_foto_timestamps[i] = Date.now() + i;
-                        renderFotoSlot(i + 1, url);
-                    }
-                });
-            }
-
-            loadMiniLog(dataObj.plat_nomor);
-            tutupHistori();
-        }
-
-        function tutupHistori() { document.getElementById("modal_histori").style.display = "none"; }
-
-        function copasTeks(btn) {
-            const text = document.getElementById("label_rekues").innerText;
-            if(text.includes("...")) return alert("Hitung rasio terlebih dahulu!");
-            navigator.clipboard.writeText(text).then(() => {
-                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        function copasPilihan(btn) {
-            const val = document.getElementById("menu_var").value;
-            if(!val || val === "-- Pilih Teks Tambahan --") return alert("Silakan pilih teks terlebih dahulu!");
-            navigator.clipboard.writeText(val).then(() => {
-                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        function resetForm() {
-            data_siap_simpan = null;
-            id_log_sedang_diedit = null;
-            array_foto_timestamps = [0, 0, 0];
-            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
-            document.getElementById("label_jarak").innerText = "Jarak: -";
-            document.getElementById("label_hasil").innerText = "- KM/L";
-            document.getElementById("label_status").innerText = "-";
-            document.getElementById("label_status").style.color = "#ffffff";
-            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-            document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
-            
-            document.getElementById("toggle_mafia").checked = false;
-            toggleMafiaMode(false);
-
-            document.getElementById("toggle_gps").checked = false;
-            toggleGpsMode(false);
-
-            document.getElementById("box_approval").classList.add("hidden");
-            document.getElementById("toggle_approval").checked = false;
-            handleApprovalChange(false);
-
-            clearAllPhotos();
-            document.getElementById("log_plat_badge").innerText = "";
-            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
-
-            const btnSave = document.getElementById("btn_save");
-            btnSave.style.backgroundColor = "#3a3f4d";
-            btnSave.innerText = "SAVE";
-
-            // Reset modul pendeteksi Gemini
-            geminiBase64Str = "";
-            document.getElementById("gemini_image_input").value = "";
-            document.getElementById("gemini_preview_container").classList.add("hidden");
-            document.getElementById("gemini_result_box").classList.add("hidden");
-            document.getElementById("btn_gemini_check").disabled = true;
-            document.getElementById("gemini_status_badge").innerText = "READY";
-            document.getElementById("gemini_status_badge").className = "text-[9px] bg-[#2d323f] text-gray-400 px-1.5 py-0.5 rounded font-mono";
-        }
-
-        // ==========================================
-        // FUNGSI LOGIKA BARU JAVASCRIPT KONSOL GEMINI[cite: 1]
-        // ==========================================
         function previewGeminiImage(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imgContainer = document.getElementById('gemini_preview_container');
-                    const imgTag = document.getElementById('gemini_preview_img');
-                    
-                    imgTag.src = e.target.result;
-                    imgContainer.classList.remove('hidden');
-                    
+                reader.onload = (e) => {
                     geminiBase64Str = e.target.result.split(',')[1];
                     document.getElementById('btn_gemini_check').disabled = false;
-                    document.getElementById('gemini_result_box').classList.add('hidden');
-                }
+                };
                 reader.readAsDataURL(file);
             }
         }
 
         async function cekKeaslianGemini() {
-            if (!geminiBase64Str) return;
-            if (GEMINI_API_KEY === 'Masukkan_API_Key_Gemini_Anda_Di_Sini') {
-                alert("Harap masukkan API Key Gemini valid di baris kode script terlebih dahulu!");
-                return;
-            }
+            const apiKey = document.getElementById('gemini_key_input').value.trim();
+            if (!apiKey) return alert("Masukkan API Key terlebih dahulu!");
 
             const badge = document.getElementById("gemini_status_badge");
             const btn = document.getElementById("btn_gemini_check");
             const resultBox = document.getElementById("gemini_result_box");
 
             badge.innerText = "CHECKING...";
-            badge.className = "text-[9px] bg-[#ff9f0a] text-black px-1.5 py-0.5 rounded font-mono font-bold animate-pulse";
             btn.disabled = true;
-            resultBox.classList.add("hidden");
 
-            const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-            const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli yang diambil langsung secara fisik dari dalam mobil atau merupakan foto ilegal hasil jepretan ulang dari gambar yang terpampang di layar monitor/laptop (periksa adanya pola moire, scanning lines, pantulan monitor, blur piksel). Wajib kembalikan output dalam format JSON mentah murni tanpa penanda sintaks ```json dengan struktur string objek seperti ini: {\"pernyataan\": \"Tulis analisis detail argumen fisik Anda di sini secara lugas.\", \"persentase\": 90}";
-
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: instruksiSistem },
-                        {
-                            inlineData: {
-                                mimeType: "image/jpeg",
-                                data: geminiBase64Str
-                            }
-                        }
-                    ]
-                }]
-            };
+            const payload = { contents: [{ parts: [{ text: "Analisis apakah foto spidometer ini asli atau jepretan layar monitor. Balas dalam JSON murni: {\"pernyataan\": \"...\", \"persentase\": 90}" }, { inlineData: { mimeType: "image/jpeg", data: geminiBase64Str } }] }] };
 
             try {
-                const res = await fetch(ENDPOINT, {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
                 const jsonRes = await res.json();
-                const rawText = jsonRes.candidates[0].content.parts[0].text;
+                const parsed = JSON.parse(jsonRes.candidates[0].content.parts[0].text.trim());
+
+                document.getElementById('gemini_pct').innerText = parsed.persentase;
+                document.getElementById('gemini_desc').innerText = parsed.pernyataan;
+                resultBox.classList.remove("hidden");
                 
-                // Konversi respon teks string langsung menjadi objek JSON JavaScript
-                const parsedResult = JSON.parse(rawText.trim());
-
-                document.getElementById('gemini_pct').innerText = parsedResult.persentase;
-                document.getElementById('gemini_desc').innerText = parsedResult.pernyataan;
-
-                // Tentukan pewarnaan dinamis box berdasarkan deteksi kata kunci
-                const textLower = parsedResult.pernyataan.toLowerCase();
-                if (textLower.includes("layar") || textLower.includes("monitor") || textLower.includes("foto ulang") || textLower.includes("jepretan ulang")) {
-                    resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-red-950/40 border-red-500/50 text-red-300";
-                    badge.innerText = "WARNING SCREEN";
-                    badge.className = "text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-mono font-bold";
-                } else {
-                    resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-green-950/40 border-green-500/50 text-green-300";
-                    badge.innerText = "VERIFIED REAL";
-                    badge.className = "text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded font-mono font-bold";
-                }
-
-            } catch(err) {
-                console.error(err);
-                alert("Proses e-check gagal. Periksa kembali validitas API Key Gemini Anda atau jaringan.");
-                badge.innerText = "ERROR";
-                badge.className = "text-[9px] bg-gray-700 text-red-400 px-1.5 py-0.5 rounded font-mono";
+                const isFake = parsed.pernyataan.toLowerCase().includes("layar") || parsed.pernyataan.toLowerCase().includes("monitor");
+                resultBox.className = isFake ? "block p-2 rounded border bg-red-950/40 border-red-500/50 text-red-300" : "block p-2 rounded border bg-green-950/40 border-green-500/50 text-green-300";
+                badge.innerText = isFake ? "WARNING SCREEN" : "VERIFIED REAL";
+                badge.className = isFake ? "text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-mono font-bold" : "text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded font-mono font-bold";
+            } catch(e) {
+                alert("Gagal koneksi ke API Gemini.");
             } finally {
                 btn.disabled = false;
             }
         }
+
+        function resetForm() {
+            document.getElementById("entry_plat").value = "";
+            document.getElementById("gemini_image_input").value = "";
+            document.getElementById("gemini_result_box").classList.add("hidden");
+            document.getElementById("gemini_status_badge").innerText = "READY";
+        }
     </script>
 </body>
 </html>
+```[cite: 1]
