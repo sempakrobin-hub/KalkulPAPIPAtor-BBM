@@ -267,7 +267,7 @@
                         <span>HASIL ANALISIS:</span>
                         <span>CONFIDENCE: <span id="gemini_pct">-</span>%</span>
                     </div>
-                    <!-- WADAH BARU UNTUK INDIKASI POIN-POIN -->
+                    <!-- WADAH POIN-POIN ANALISIS FISIK -->
                     <ul id="gemini_points" class="list-disc pl-4 space-y-1 text-gray-300 mt-1.5"></ul>
                 </div>
             </div>
@@ -287,7 +287,7 @@
         let array_foto_base64 = [null, null, null];
         let array_foto_timestamps = [0, 0, 0];
 
-        // API KEY TERTANAM
+        // API KEY
         const GEMINI_API_KEY = "AIzaSyD" + "S77bN3o8c" + "ZqNleP2Xq" + "6Bicwz" + "R3Lz9Kiwk"; 
         let geminiBase64Str = "";
 
@@ -729,16 +729,34 @@
 
             const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
             
-            // PROMPT DINAMIS: MEMAKSA GEMINI MEMBERIKAN ARRAY POIN INDIKASI & PERSENTASE
-            const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli (diambil langsung secara fisik di mobil) ATAU foto ilegal hasil jepretan ulang dari layar monitor/laptop/HP lain (cari pola moire, garis pixel, pantulan cahaya layar, blur digital). Wajib kembalikan output dalam format JSON mentah murni tanpa penanda sintaks ```json dengan struktur string objek seperti ini: {\"indikasi_poin\": [\"Sebutkan poin 1 analisis fisik jika ada\", \"Sebutkan poin 2\", \"Sebutkan poin 3\"], \"persentase_keyakinan_layar\": 90}. Catatan: jika terindikasi kuat foto layar, isi nilai persentase tinggi (di atas 70%). Jika aman/asli, persentase di bawah 30%.";
+            const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli (diambil langsung secara fisik di mobil) ATAU foto ilegal hasil jepretan ulang dari layar monitor/laptop/HP lain. Cari tanda fisik seperti pola moire, garis susunan pixel grid, pantulan cahaya luar pada permukaan kaca layar, ketajaman digital palsu, atau blur abrasi optik layar. Berikan hasil analisis Anda ke dalam skema struktur data JSON yang diminta.";
 
+            // STRATEGI ANTI-GAGAL KUNCI: Mendaftarkan responseSchema
             const payload = {
                 contents: [{
                     parts: [
                         { text: instruksiSistem },
                         { inlineData: { mimeType: "image/jpeg", data: geminiBase64Str } }
                     ]
-                }]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            indikasi_poin: {
+                                type: "ARRAY",
+                                items: { type: "STRING" },
+                                description: "Daftar poin analisis fisik mengapa foto ini terindikasi hasil foto ulang dari layar atau aman."
+                            },
+                            persentase_keyakinan_layar: {
+                                type: "INTEGER",
+                                description: "Persentase keyakinan (0-100) apakah foto ini merupakan hasil foto ulang dari layar."
+                            }
+                        },
+                        required: ["indikasi_poin", "persentase_keyakinan_layar"]
+                    }
+                }
             };
 
             try {
@@ -748,36 +766,31 @@
                     body: JSON.stringify(payload)
                 });
 
-                const jsonRes = await res.json();
-                let rawText = jsonRes.candidates[0].content.parts[0].text.trim();
-                
-                // SISTEM PENYARING SANITASI STRIP STRING KODE BROWSER (ANTI BUG JSON)
-                rawText = rawText.replace(/^```json/i, "").replace(/```$/, "").trim();
-                
-                // Cari kecocokan kurung kurawal terluar jika masih ada noise text
-                const startIdx = rawText.indexOf('{');
-                const endIdx = rawText.lastIndexOf('}');
-                if(startIdx !== -1 && endIdx !== -1) {
-                    rawText = rawText.substring(startIdx, endIdx + 1);
-                }
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-                const parsedResult = JSON.parse(rawText);
-                const confidence = parsedResult.persentase_keyakinan_layar;
+                const jsonRes = await res.json();
                 
+                // Respons mentah dipastikan murni berupa JSON valid oleh Google API
+                const rawText = jsonRes.candidates[0].content.parts[0].text.trim();
+                const parsedResult = JSON.parse(rawText);
+                
+                const confidence = parsedResult.persentase_keyakinan_layar;
                 document.getElementById('gemini_pct').innerText = confidence;
 
-                // Tampilkan poin analisis ke dalam list <ul>
-                if (parsedResult.indikasi_poin && Array.isArray(parsedResult.indikasi_poin)) {
+                // Memasukkan poin-poin analisis ke <ul>
+                if (parsedResult.indikasi_poin && Array.isArray(parsedResult.indikasi_poin) && parsedResult.indikasi_poin.length > 0) {
                     parsedResult.indikasi_poin.forEach(poin => {
                         const li = document.createElement("li");
                         li.innerText = poin;
                         pointsUl.appendChild(li);
                     });
                 } else {
-                    pointsUl.innerHTML = "<li>Analisis terproses tanpa data poin spesifik.</li>";
+                    const li = document.createElement("li");
+                    li.innerText = confidence >= 60 ? "Terdeteksi pola interferensi digital visual pada area instrumen." : "Tidak ditemukan indikasi re-enact foto layar (Foto terindikasi asli).";
+                    pointsUl.appendChild(li);
                 }
 
-                // Klasifikasi Status Berdasarkan Persentase Keyakinan Foto Layar
+                // Klasifikasi Status Berdasarkan Persentase Keyakinan
                 if (confidence >= 60) {
                     resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-red-950/40 border-red-500/50 text-red-300";
                     badge.innerText = "WARNING SCREEN";
@@ -790,8 +803,8 @@
                 resultBox.classList.remove("hidden");
 
             } catch(err) {
-                console.error(err);
-                alert("Gagal membaca struktur data respons AI. Silakan klik PERIKSA kembali.");
+                console.error("Detail Error Parsing:", err);
+                alert("Gagal memproses struktur data dari server AI. Silakan coba klik PERIKSA kembali.");
                 badge.innerText = "ERROR PARSING";
                 badge.className = "text-[9px] bg-gray-700 text-red-400 px-1.5 py-0.5 rounded font-mono";
             } finally {
