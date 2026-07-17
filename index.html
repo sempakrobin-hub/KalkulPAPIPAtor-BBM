@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator BBM Cloud Pro - Map Preview Extra Zoom</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)"></script>
     <style>
         body {
             background-color: #14161d;
@@ -277,7 +277,7 @@
     </div>
 
     <script>
-        const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
+        const SUPABASE_URL = "[https://dvxnpgctebencxsqaoxo.supabase.co](https://dvxnpgctebencxsqaoxo.supabase.co)";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -727,11 +727,11 @@
             resultBox.classList.add("hidden");
             pointsUl.innerHTML = "";
 
-            const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            // ENDPOINT WAJIB MENGGUNAKAN v1beta AGAR GENERATIONCONFIG.RESPONSESCHEMA BERFUNGSI SEMPURNA
+            const ENDPOINT = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$){GEMINI_API_KEY}`;
             
             const instruksiSistem = "Analisis secara kritis apakah foto spidometer panel instrumen ini merupakan foto asli (diambil langsung secara fisik di mobil) ATAU foto ilegal hasil jepretan ulang dari layar monitor/laptop/HP lain. Cari tanda fisik seperti pola moire, garis susunan pixel grid, pantulan cahaya luar pada permukaan kaca layar, ketajaman digital palsu, atau blur abrasi optik layar. Berikan hasil analisis Anda ke dalam skema struktur data JSON yang diminta.";
 
-            // STRATEGI ANTI-GAGAL KUNCI: Mendaftarkan responseSchema
             const payload = {
                 contents: [{
                     parts: [
@@ -769,15 +769,24 @@
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
                 const jsonRes = await res.json();
+                let rawText = jsonRes.candidates[0].content.parts[0].text.trim();
                 
-                // Respons mentah dipastikan murni berupa JSON valid oleh Google API
-                const rawText = jsonRes.candidates[0].content.parts[0].text.trim();
+                // ==========================================
+                // SHIELD PERTAHANAN KEDUA (ROBUST JSON SANITIZER)
+                // Jika AI tidak mematuhi aturan dan menyertakan markdown ```json, 
+                // blok kode ini akan memotong paksa string dan hanya mengambil isi kurung kurawal.
+                // ==========================================
+                const firstBrace = rawText.indexOf('{');
+                const lastBrace = rawText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    rawText = rawText.substring(firstBrace, lastBrace + 1);
+                }
+
                 const parsedResult = JSON.parse(rawText);
-                
                 const confidence = parsedResult.persentase_keyakinan_layar;
                 document.getElementById('gemini_pct').innerText = confidence;
 
-                // Memasukkan poin-poin analisis ke <ul>
+                // Memasukkan poin-poin analisis ke list <ul>
                 if (parsedResult.indikasi_poin && Array.isArray(parsedResult.indikasi_poin) && parsedResult.indikasi_poin.length > 0) {
                     parsedResult.indikasi_poin.forEach(poin => {
                         const li = document.createElement("li");
@@ -790,7 +799,7 @@
                     pointsUl.appendChild(li);
                 }
 
-                // Klasifikasi Status Berdasarkan Persentase Keyakinan
+                // Klasifikasi Status Berdasarkan Persentase Keyakinan Foto Layar
                 if (confidence >= 60) {
                     resultBox.className = "p-2 rounded border font-mono text-[10px] leading-relaxed block bg-red-950/40 border-red-500/50 text-red-300";
                     badge.innerText = "WARNING SCREEN";
