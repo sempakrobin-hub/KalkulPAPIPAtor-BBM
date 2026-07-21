@@ -293,8 +293,8 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        // DAFtAR KOLOM TEXT PENTING (Mengecualikan foto_urls untuk mencegah Timeout)
-        const SELECT_COLUMNS_LIGHT = "id, created_at, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, is_approved, remark";
+        // MENYESUAIKAN KOLOM SIFAT RINGAN (Sesuai skema database Anda & Bebas Foto/created_at)
+        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, is_approved, remark";
 
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
@@ -545,7 +545,7 @@
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal.split("T")[0] : (r.created_at ? r.created_at.split("T")[0] : "-");
+                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
                     
                     let colorClass = "text-white";
                     if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
@@ -842,13 +842,13 @@
         }
 
         // =========================================================
-        // HELPER EXPORT EXCEL & PAGING DATABASE (CEPAT & ANTI-TIMEOUT)
+        // HELPER EXPORT EXCEL & PAGING DATABASE (AMBIL DATA BERTAHAP)
         // =========================================================
 
         function formatDataForExcel(rawData) {
             return rawData.map(item => ({
                 "ID": item.id,
-                "Tanggal": item.created_at ? item.created_at.replace("T", " ").substring(0, 19) : "-",
+                "Tanggal": item.tanggal ? item.tanggal : "-",
                 "Plat Nomor": item.plat_nomor || "-",
                 "KM Start": item.km_start || 0,
                 "KM Akhir": item.km_akhir || 0,
@@ -871,7 +871,7 @@
             XLSX.writeFile(workbook, fileName);
         }
 
-        // Fungsi penarik data secara bertahap (Chunking) untuk mencegah Timeout
+        // Penarik data bertahap (Chunking 1.000 row/batch agar anti-timeout)
         async function fetchAllDataChunked(filterField = null, filterValue = null, progressCallback = null) {
             let allRows = [];
             let pageSize = 1000;
