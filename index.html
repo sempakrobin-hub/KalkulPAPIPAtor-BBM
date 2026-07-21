@@ -181,7 +181,7 @@
                 <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
             </div>
 
-            <!-- SLOT CONTAINER FOTO PREVIEW WITH URUTAN BORDER -->
+            <!-- SLOT CONTAINER FOTO PREVIEW -->
             <div class="grid grid-cols-3 gap-2 w-full">
                 <!-- Slot 1 -->
                 <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
@@ -235,7 +235,7 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (EDITABLE) -->
+            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-44">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
@@ -246,22 +246,22 @@
                 </div>
             </div>
 
-            <!-- FITUR BARU: PANEL DOWNLOAD DATA EXCEL -->
+            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
                     <span>📊 Tarik Data Log (Excel)</span>
                 </div>
                 <div class="grid grid-cols-1 gap-2 text-[10px] font-bold">
                     <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
-                        <span>1. Download All Log</span>
+                        <span id="txt_btn_1">1. Download All Log</span>
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
-                        <span>2. Download Plat Mafia</span>
+                        <span id="txt_btn_2">2. Download Plat Mafia</span>
                         <span class="text-xs">🚨</span>
                     </button>
                     <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
-                        <span>3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
+                        <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
                     </button>
                 </div>
@@ -292,6 +292,10 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // DAFtAR KOLOM TEXT PENTING (Mengecualikan foto_urls untuk mencegah Timeout)
+        const SELECT_COLUMNS_LIGHT = "id, created_at, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, is_approved, remark";
+
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
 
@@ -402,7 +406,6 @@
             } catch (err) { console.log("Akses clipboard ditangani browser"); }
         }
 
-        // FUNGSI HANDLE FILE & KOMPRESI OTOMATIS SEBELUM SIMPAN
         function handleFileSelect(input) {
             const files = input.files;
             if (!files) return;
@@ -514,15 +517,8 @@
             });
         }
 
-        function hapusFoto(indexSlot) {
-            renderFotoSlot(indexSlot, null);
-        }
-
-        function clearAllPhotos() {
-            for(let i=1; i<=3; i++) {
-                renderFotoSlot(i, null);
-            }
-        }
+        function hapusFoto(indexSlot) { renderFotoSlot(indexSlot, null); }
+        function clearAllPhotos() { for(let i=1; i<=3; i++) renderFotoSlot(i, null); }
 
         function updateFotoCounter() {
             let total = array_foto_base64.filter(x => x !== null).length;
@@ -845,11 +841,10 @@
             btnSave.innerText = "SAVE";
         }
 
-        // ==========================================
-        // FUNGSI EXPORT DATA EXCEL (3 FITUR BARU)
-        // ==========================================
+        // =========================================================
+        // HELPER EXPORT EXCEL & PAGING DATABASE (CEPAT & ANTI-TIMEOUT)
+        // =========================================================
 
-        // Helper untuk membersihkan & format data sebelum dimasukkan ke Excel
         function formatDataForExcel(rawData) {
             return rawData.map(item => ({
                 "ID": item.id,
@@ -868,7 +863,6 @@
             }));
         }
 
-        // Helper untuk mengunduh workbook Excel
         function exportToExcelFile(dataArray, fileName) {
             const formatted = formatDataForExcel(dataArray);
             const worksheet = XLSX.utils.json_to_sheet(formatted);
@@ -877,74 +871,106 @@
             XLSX.writeFile(workbook, fileName);
         }
 
+        // Fungsi penarik data secara bertahap (Chunking) untuk mencegah Timeout
+        async function fetchAllDataChunked(filterField = null, filterValue = null, progressCallback = null) {
+            let allRows = [];
+            let pageSize = 1000;
+            let page = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                let from = page * pageSize;
+                let to = from + pageSize - 1;
+
+                let query = _supabase
+                    .from('log_bbm')
+                    .select(SELECT_COLUMNS_LIGHT)
+                    .order('id', { ascending: false })
+                    .range(from, to);
+
+                if (filterField !== null) {
+                    query = query.eq(filterField, filterValue);
+                }
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allRows = allRows.concat(data);
+                    if (progressCallback) progressCallback(allRows.length);
+                    if (data.length < pageSize) hasMore = false;
+                    else page++;
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            return allRows;
+        }
+
         // 1. Download ALL Log
         async function downloadAllLog(btn) {
-            const originalText = btn.innerHTML;
+            const txtEl = document.getElementById("txt_btn_1");
             btn.disabled = true;
-            btn.innerHTML = `<span>Mengunduh...</span><span class="animate-spin">⏳</span>`;
 
             try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .order('id', { ascending: false });
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked(null, null, (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
 
-                if (error) throw error;
                 if (!data || data.length === 0) {
                     alert("Tidak ada data log di Cloud.");
                     return;
                 }
 
+                txtEl.innerText = "Membuat Excel...";
                 exportToExcelFile(data, `Log_BBM_All_${new Date().toISOString().slice(0,10)}.xlsx`);
             } catch (err) {
                 alert("Gagal mengunduh All Log:\n" + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = originalText;
+                txtEl.innerText = "1. Download All Log";
             }
         }
 
         // 2. Download Plat Mafia
         async function downloadMafiaLog(btn) {
-            const originalText = btn.innerHTML;
+            const txtEl = document.getElementById("txt_btn_2");
             btn.disabled = true;
-            btn.innerHTML = `<span>Mengunduh...</span><span class="animate-spin">⏳</span>`;
 
             try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('is_mafia', true)
-                    .order('id', { ascending: false });
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked('is_mafia', true, (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
 
-                if (error) throw error;
                 if (!data || data.length === 0) {
                     alert("Tidak ditemukan data kendaraan dengan status Mafia.");
                     return;
                 }
 
+                txtEl.innerText = "Membuat Excel...";
                 exportToExcelFile(data, `Log_BBM_Mafia_${new Date().toISOString().slice(0,10)}.xlsx`);
             } catch (err) {
                 alert("Gagal mengunduh Log Mafia:\n" + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = originalText;
+                txtEl.innerText = "2. Download Plat Mafia";
             }
         }
 
         // 3. Download Semua Data Plat yang 5 Rekues Terakhir Memiliki 3+ Status "KURANG"
         async function downloadKurang3of5Log(btn) {
-            const originalText = btn.innerHTML;
+            const txtEl = document.getElementById("txt_btn_3");
             btn.disabled = true;
-            btn.innerHTML = `<span>Menganalisis & Mengunduh...</span><span class="animate-spin">⏳</span>`;
 
             try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .order('id', { ascending: false });
+                txtEl.innerText = "Menganalisis & Mengambil data...";
+                const data = await fetchAllDataChunked(null, null, (total) => {
+                    txtEl.innerText = `Menganalisis... (${total} data)`;
+                });
 
-                if (error) throw error;
                 if (!data || data.length === 0) {
                     alert("Tidak ada data log di Cloud.");
                     return;
@@ -958,11 +984,11 @@
                     groupedByPlat[plat].push(row);
                 });
 
-                // Cek plat mana saja yang dalam 5 rekues terakhir memiliki >= 3 status KURANG
                 const targetPlats = new Set();
 
+                // Analisis 5 transaksi terakhir dari setiap plat
                 Object.keys(groupedByPlat).forEach(plat => {
-                    const logs = groupedByPlat[plat]; // Sudah terurut id descending (terbaru di atas)
+                    const logs = groupedByPlat[plat];
                     const last5 = logs.slice(0, 5);
                     const kurangCount = last5.filter(r => r.status === "KURANG").length;
 
@@ -976,15 +1002,16 @@
                     return;
                 }
 
-                // Ambil semua data log dari plat-plat yang lolos kriteria
+                // Ambil semua riwayat log dari plat yang terdeteksi
                 const filteredData = data.filter(row => row.plat_nomor && targetPlats.has(row.plat_nomor.trim().toUpperCase()));
 
+                txtEl.innerText = "Membuat Excel...";
                 exportToExcelFile(filteredData, `Log_BBM_Indikasi_Kurang_3_dari_5_${new Date().toISOString().slice(0,10)}.xlsx`);
             } catch (err) {
                 alert("Gagal memproses data:\n" + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = originalText;
+                txtEl.innerText = "3. Data Plat (3+ status KURANG di 5 rekues terakhir)";
             }
         }
     </script>
