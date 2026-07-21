@@ -6,6 +6,8 @@
     <title>Kalkulator BBM Cloud Pro - Map Preview Extra Zoom</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Library SheetJS untuk Export Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
             background-color: #14161d;
@@ -122,7 +124,7 @@
                     </div>
                 </div>
 
-                <!-- GRID TOMBOL AKSI (LOG DIHAPUS) -->
+                <!-- GRID TOMBOL AKSI -->
                 <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold pt-1">
                     <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
                     <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded hover:opacity-80 uppercase">SAVE</button>
@@ -171,7 +173,7 @@
             </div>
         </div>
 
-        <!-- PANEL KANAN: PREVIEW MAP & HISTORI -->
+        <!-- PANEL KANAN: PREVIEW MAP, HISTORI & EXPORT -->
         <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
             
             <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
@@ -234,13 +236,34 @@
             </div>
 
             <!-- HISTORIS LOG BBM 5 TERAKHIR (EDITABLE) -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-48">
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-44">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
                     <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
                 </div>
                 <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
                     <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
+                </div>
+            </div>
+
+            <!-- FITUR BARU: PANEL DOWNLOAD DATA EXCEL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
+                    <span>📊 Tarik Data Log (Excel)</span>
+                </div>
+                <div class="grid grid-cols-1 gap-2 text-[10px] font-bold">
+                    <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
+                        <span>1. Download All Log</span>
+                        <span class="text-xs">📥</span>
+                    </button>
+                    <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
+                        <span>2. Download Plat Mafia</span>
+                        <span class="text-xs">🚨</span>
+                    </button>
+                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span>3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
+                        <span class="text-xs">⚠️</span>
+                    </button>
                 </div>
             </div>
 
@@ -400,11 +423,9 @@
                     const img = new Image();
                     img.src = e.target.result;
                     img.onload = function() {
-                        // Proses kompresi menggunakan Canvas
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // Menentukan batasan resolusi maksimal (misal maks lebar/tinggi 800px)
                         const MAX_WIDTH = 800;
                         const MAX_HEIGHT = 800;
                         let width = img.width;
@@ -426,7 +447,6 @@
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Konversi ke format JPEG dengan kualitas kompresi 0.6 (60%)
                         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
                         array_foto_timestamps[targetSlot - 1] = currentTimestamp;
@@ -823,6 +843,149 @@
             const btnSave = document.getElementById("btn_save");
             btnSave.style.backgroundColor = "#3a3f4d";
             btnSave.innerText = "SAVE";
+        }
+
+        // ==========================================
+        // FUNGSI EXPORT DATA EXCEL (3 FITUR BARU)
+        // ==========================================
+
+        // Helper untuk membersihkan & format data sebelum dimasukkan ke Excel
+        function formatDataForExcel(rawData) {
+            return rawData.map(item => ({
+                "ID": item.id,
+                "Tanggal": item.created_at ? item.created_at.replace("T", " ").substring(0, 19) : "-",
+                "Plat Nomor": item.plat_nomor || "-",
+                "KM Start": item.km_start || 0,
+                "KM Akhir": item.km_akhir || 0,
+                "Jarak (KM)": item.jarak || 0,
+                "Liter": item.liter || 0,
+                "Rasio (KM/L)": item.rasio || 0,
+                "Status": item.status || "-",
+                "Mafia": item.is_mafia ? "YA" : "TIDAK",
+                "GPS Aktif": item.is_gps ? "YA" : "TIDAK",
+                "Approved": item.is_approved ? "YA" : "TIDAK",
+                "Remark": item.remark || "-"
+            }));
+        }
+
+        // Helper untuk mengunduh workbook Excel
+        function exportToExcelFile(dataArray, fileName) {
+            const formatted = formatDataForExcel(dataArray);
+            const worksheet = XLSX.utils.json_to_sheet(formatted);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Log BBM");
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        // 1. Download ALL Log
+        async function downloadAllLog(btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span>Mengunduh...</span><span class="animate-spin">⏳</span>`;
+
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    alert("Tidak ada data log di Cloud.");
+                    return;
+                }
+
+                exportToExcelFile(data, `Log_BBM_All_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh All Log:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // 2. Download Plat Mafia
+        async function downloadMafiaLog(btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span>Mengunduh...</span><span class="animate-spin">⏳</span>`;
+
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .eq('is_mafia', true)
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    alert("Tidak ditemukan data kendaraan dengan status Mafia.");
+                    return;
+                }
+
+                exportToExcelFile(data, `Log_BBM_Mafia_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh Log Mafia:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // 3. Download Semua Data Plat yang 5 Rekues Terakhir Memiliki 3+ Status "KURANG"
+        async function downloadKurang3of5Log(btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span>Menganalisis & Mengunduh...</span><span class="animate-spin">⏳</span>`;
+
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    alert("Tidak ada data log di Cloud.");
+                    return;
+                }
+
+                // Pengelompokan log berdasarkan plat nomor
+                const groupedByPlat = {};
+                data.forEach(row => {
+                    const plat = row.plat_nomor ? row.plat_nomor.trim().toUpperCase() : 'UNKNOWN';
+                    if (!groupedByPlat[plat]) groupedByPlat[plat] = [];
+                    groupedByPlat[plat].push(row);
+                });
+
+                // Cek plat mana saja yang dalam 5 rekues terakhir memiliki >= 3 status KURANG
+                const targetPlats = new Set();
+
+                Object.keys(groupedByPlat).forEach(plat => {
+                    const logs = groupedByPlat[plat]; // Sudah terurut id descending (terbaru di atas)
+                    const last5 = logs.slice(0, 5);
+                    const kurangCount = last5.filter(r => r.status === "KURANG").length;
+
+                    if (kurangCount >= 3) {
+                        targetPlats.add(plat);
+                    }
+                });
+
+                if (targetPlats.size === 0) {
+                    alert("Tidak ada plat kendaraan yang memenuhi kriteria (memiliki 3 atau lebih status KURANG dalam 5 transaksi terakhir).");
+                    return;
+                }
+
+                // Ambil semua data log dari plat-plat yang lolos kriteria
+                const filteredData = data.filter(row => row.plat_nomor && targetPlats.has(row.plat_nomor.trim().toUpperCase()));
+
+                exportToExcelFile(filteredData, `Log_BBM_Indikasi_Kurang_3_dari_5_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal memproses data:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
     </script>
 </body>
