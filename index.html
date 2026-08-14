@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - GPS & Map Tracker</title>
+    <title>Kalkulator BBM Cloud Pro - GPS 3 Status & Requestor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Library SheetJS untuk Export & Import Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- CSS Leaflet.js -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
             background-color: #14161d;
@@ -28,13 +26,6 @@
         }
         #toggle_approval:checked ~ .block {
             background-color: #34c759;
-        }
-        /* Mengatur ukuran kontainer peta */
-        #map {
-            width: 100%;
-            height: 200px;
-            border-radius: 6px;
-            z-index: 1;
         }
     </style>
 </head>
@@ -183,16 +174,57 @@
             </div>
         </div>
 
-        <!-- PANEL KANAN: MAP INTERAKTIF (LEAFLET) & FITUR LAINNYA -->
+        <!-- PANEL KANAN: PREVIEW MAP, HISTORI & EXPORT -->
         <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
             
             <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
-                <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Interactive Map Tracker</h3>
-                <span class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">Scroll Zoom & Auto-Center</span>
+                <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Visual & Preview Map Tracker</h3>
+                <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
             </div>
 
-            <!-- ELEMEN PETA INTERAKTIF -->
-            <div id="map"></div>
+            <!-- SLOT CONTAINER FOTO PREVIEW -->
+            <div class="grid grid-cols-3 gap-2 w-full">
+                <!-- Slot 1 -->
+                <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
+                        <span class="text-lg block">📸</span>
+                        <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
+                    </div>
+                    <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
+                </div>
+                <!-- Slot 2 -->
+                <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
+                        <span class="text-lg block">📸</span>
+                        <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
+                    </div>
+                    <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
+                </div>
+                <!-- Slot 3 -->
+                <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
+                        <span class="text-lg block">📸</span>
+                        <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
+                    </div>
+                    <button onclick="hapusFoto(3)" id="btn_del_3" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
+                </div>
+            </div>
+
+            <!-- TOMBOL AKSI ATTACHMENT COMPACT -->
+            <div class="bg-[#13161c] p-2 rounded-lg border border-gray-800">
+                <div class="flex flex-col sm:flex-row gap-1.5">
+                    <input type="file" id="file_uploader" accept="image/*" multiple class="hidden" onchange="handleFileSelect(this)">
+                    <button onclick="document.getElementById('file_uploader').click()" class="flex-1 bg-[#2d323f] border border-gray-600 text-white text-[10px] font-bold py-1.5 px-2 rounded hover:bg-gray-700 transition flex items-center justify-center gap-1">
+                        📂 Pilih File Foto Map
+                    </button>
+                    <button onclick="clearAllPhotos()" class="bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold py-1.5 px-2 rounded hover:bg-red-500/20 transition">
+                        Reset
+                    </button>
+                </div>
+            </div>
 
             <!-- POSISI SEKARANG: DI BAWAH MAP & DI ATAS 5 LOG TERAKHIR -->
             <div class="bg-[#2d323f] border border-gray-700 rounded-lg p-2.5 flex items-center justify-between gap-3">
@@ -255,9 +287,6 @@
 
     </div>
 
-    <!-- JavaScript Leaflet.js -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <script>
         const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
@@ -270,53 +299,13 @@
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI"; // Pilihan default GPS ('AKTIF', 'MATI', 'NOTFOUNDAROB')
 
-        // Variabel global untuk Peta Leaflet
-        let map, routeMarkers = [];
+        let array_foto_base64 = [null, null, null];
+        let array_foto_timestamps = [0, 0, 0];
 
         window.addEventListener('DOMContentLoaded', () => {
             updateApprovalLabel();
             setGpsStatus("MATI");
-            initMap();
         });
-
-        // Inisialisasi Peta Leaflet dengan Scroll Zoom Aktif
-        function initMap() {
-            map = L.map('map', {
-                scrollWheelZoom: true
-            }).setView([-6.200000, 106.816666], 13);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
-
-            updateMapRoute([
-                [-6.200000, 106.816666],
-                [-6.220000, 106.830000]
-            ]);
-        }
-
-        // Fungsi memperbarui titik rute, marker, serta melakukan Auto-Center (Fit Bounds)
-        function updateMapRoute(pointsArray) {
-            if (!map) return;
-
-            // Hapus marker lama
-            routeMarkers.forEach(m => map.removeLayer(m));
-            routeMarkers = [];
-
-            if (!pointsArray || pointsArray.length === 0) return;
-
-            pointsArray.forEach((coord, idx) => {
-                let marker = L.marker(coord).addTo(map)
-                    .bindPopup(idx === 0 ? "START" : "Titik Rute " + idx);
-                routeMarkers.push(marker);
-            });
-
-            // Auto-Center & Fit Bounds agar seluruh titik berada pas di tengah layar
-            var group = L.featureGroup(routeMarkers);
-            map.fitBounds(group.getBounds().pad(0.2));
-            setTimeout(() => { map.invalidateSize(); }, 200);
-        }
 
         function updateApprovalLabel() {
             const lastApproved = localStorage.getItem('last_bbm_approval_time');
@@ -377,22 +366,23 @@
             const btnMati = document.getElementById("btn_gps_mati");
             const btnNotfound = document.getElementById("btn_gps_notfound");
 
+            // Reset style tombol
             [btnAktif, btnMati, btnNotfound].forEach(b => {
                 b.className = "py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition";
             });
 
             if (status === 'AKTIF') {
-                boxGps.style.backgroundColor = "#16a34a";
+                boxGps.style.backgroundColor = "#16a34a"; // Hijau
                 titleGps.innerText = "STATUS GPS: AKTIF";
                 btnCopasGps.classList.add("hidden");
                 btnAktif.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
             } else if (status === 'MATI') {
-                boxGps.style.backgroundColor = "#dc2626";
+                boxGps.style.backgroundColor = "#dc2626"; // Merah
                 titleGps.innerText = "STATUS GPS: MATI";
                 btnCopasGps.classList.remove("hidden");
                 btnMati.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
             } else if (status === 'NOTFOUNDAROB') {
-                boxGps.style.backgroundColor = "#7c3aed";
+                boxGps.style.backgroundColor = "#7c3aed"; // Ungu
                 titleGps.innerText = "STATUS GPS: NOTFOUNDAROB";
                 btnCopasGps.classList.remove("hidden");
                 btnNotfound.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
@@ -400,7 +390,7 @@
 
             if (data_siap_simpan !== null) {
                 data_siap_simpan.is_gps = (status === 'AKTIF');
-                data_siap_simpan.gps_detail = status;
+                data_siap_simpan.gps_detail = status; // Menyimpan status detail jika diperlukan
             }
         }
 
@@ -438,6 +428,125 @@
                     inputElement.value = text.toUpperCase();
                 }
             } catch (err) { console.log("Akses clipboard ditangani browser"); }
+        }
+
+        function handleFileSelect(input) {
+            const files = input.files;
+            if (!files) return;
+
+            for (let i = 0; i < files.length; i++) {
+                let slotKosong = array_foto_base64.indexOf(null);
+                if (slotKosong === -1) {
+                    alert("Maksimal hanya bisa menampung 3 Foto Map!");
+                    break;
+                }
+
+                const file = files[i];
+                const reader = new FileReader();
+                const currentTimestamp = Date.now() + i; 
+                const targetSlot = slotKosong + 1;
+
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                        array_foto_timestamps[targetSlot - 1] = currentTimestamp;
+                        renderFotoSlot(targetSlot, compressedBase64);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+            input.value = "";
+        }
+
+        function renderFotoSlot(indexSlot, srcData) {
+            array_foto_base64[indexSlot - 1] = srcData;
+            if (!srcData) {
+                array_foto_timestamps[indexSlot - 1] = 0;
+            }
+            
+            const img = document.getElementById(`prev_img_${indexSlot}`);
+            const placeholder = document.getElementById(`placeholder_${indexSlot}`);
+            const btnDel = document.getElementById(`btn_del_${indexSlot}`);
+
+            if (srcData) {
+                img.src = srcData;
+                img.classList.remove("hidden");
+                placeholder.classList.add("hidden");
+                btnDel.classList.remove("hidden");
+            } else {
+                img.src = "";
+                img.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+                btnDel.classList.add("hidden");
+            }
+            
+            updateFotoCounter();
+            recalculateBorderColors();
+        }
+
+        function recalculateBorderColors() {
+            let activeSlots = [];
+            for (let i = 0; i < 3; i++) {
+                if (array_foto_timestamps[i] > 0 && array_foto_base64[i] !== null) {
+                    activeSlots.push({ index: i + 1, ts: array_foto_timestamps[i] });
+                } else {
+                    const el = document.getElementById(`slot_border_${i + 1}`);
+                    el.className = "relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
+                }
+            }
+
+            activeSlots.sort((a, b) => a.ts - b.ts);
+
+            activeSlots.forEach((slot, orderIndex) => {
+                const el = document.getElementById(`slot_border_${slot.index}`);
+                el.className = "relative group bg-[#13161c] border-2 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
+
+                if (activeSlots.length === 1) {
+                    el.classList.add("border-green-500", "solid");
+                } else if (activeSlots.length === 2) {
+                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
+                    if (orderIndex === 1) el.classList.add("border-green-500", "solid"); 
+                } else if (activeSlots.length === 3) {
+                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
+                    if (orderIndex === 1) el.classList.add("border-yellow-500", "solid"); 
+                    if (orderIndex === 2) el.classList.add("border-green-500", "solid"); 
+                }
+            });
+        }
+
+        function hapusFoto(indexSlot) { renderFotoSlot(indexSlot, null); }
+        function clearAllPhotos() { for(let i=1; i<=3; i++) renderFotoSlot(i, null); }
+
+        function updateFotoCounter() {
+            let total = array_foto_base64.filter(x => x !== null).length;
+            document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
         async function loadMiniLog(plat) {
@@ -497,6 +606,7 @@
             id_log_sedang_diedit = null; 
             document.getElementById("btn_save").innerText = "SAVE";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+            clearAllPhotos();
 
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
@@ -527,8 +637,18 @@
                     toggleMafiaMode(lastData.is_mafia === true);
                     document.getElementById("toggle_mafia").checked = lastData.is_mafia === true;
 
+                    // Set GPS Status berdasarkan data terakhir
                     let gpsVal = lastData.gps_detail ? lastData.gps_detail : (lastData.is_gps ? 'AKTIF' : 'MATI');
                     setGpsStatus(gpsVal);
+
+                    if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
+                        lastData.foto_urls.forEach((url, index) => {
+                            if (index < 3) {
+                                array_foto_timestamps[index] = Date.now() + index;
+                                renderFotoSlot(index + 1, url);
+                            }
+                        });
+                    }
 
                     const rem = lastData.remark || "-";
                     document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
@@ -627,7 +747,8 @@
                 is_mafia: isMafiaActive,
                 is_gps: (currentGpsStatusValue === 'AKTIF'),
                 gps_detail: currentGpsStatusValue,
-                is_approved: isApprovalActive
+                is_approved: isApprovalActive,
+                foto_urls: array_foto_base64.filter(x => x !== null)
             };
 
             const btnSave = document.getElementById("btn_save");
@@ -644,6 +765,7 @@
             const btnSave = document.getElementById("btn_save");
             const remark_text = document.getElementById("entry_remark").value.trim();
             data_siap_simpan["remark"] = remark_text ? remark_text : null;
+            data_siap_simpan["foto_urls"] = array_foto_base64.filter(x => x !== null);
             
             btnSave.disabled = true;
             const textAwal = btnSave.innerText;
@@ -705,6 +827,16 @@
                 document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
                 handleApprovalChange(dataObj.is_approved === true);
             }
+            
+            clearAllPhotos();
+            if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
+                dataObj.foto_urls.forEach((url, i) => {
+                    if(i < 3) {
+                        array_foto_timestamps[i] = Date.now() + i;
+                        renderFotoSlot(i + 1, url);
+                    }
+                });
+            }
 
             loadMiniLog(dataObj.plat_nomor);
             cekRequestor(dataObj.plat_nomor);
@@ -731,6 +863,7 @@
         function resetForm() {
             data_siap_simpan = null;
             id_log_sedang_diedit = null;
+            array_foto_timestamps = [0, 0, 0];
             ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
             document.getElementById("label_jarak").innerText = "Jarak: -";
             document.getElementById("label_hasil").innerText = "- KM/L";
@@ -749,6 +882,7 @@
             document.getElementById("toggle_approval").checked = false;
             handleApprovalChange(false);
 
+            clearAllPhotos();
             document.getElementById("log_plat_badge").innerText = "";
             document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
 
@@ -756,6 +890,10 @@
             btnSave.style.backgroundColor = "#3a3f4d";
             btnSave.innerText = "SAVE";
         }
+
+        // =========================================================
+        // FITUR: GENERATE & UPDATE GPS & REQUESTOR MASSAL VIA EXCEL
+        // =========================================================
 
         function downloadTemplateGps() {
             const templateData = [
@@ -802,6 +940,7 @@
                         if (platKey) {
                             let plat = String(row[platKey]).trim().toUpperCase();
 
+                            // 1. Update/Insert Requestor jika kolomnya ada di Excel
                             if (reqKey && row[reqKey]) {
                                 let namaReq = String(row[reqKey]).trim();
                                 await _supabase
@@ -810,8 +949,10 @@
                                 updatedReqCount++;
                             }
 
+                            // 2. Update Status GPS pada log_bbm jika kolomnya ada di Excel
                             if (gpsKey) {
                                 let gpsVal = String(row[gpsKey]).trim().toUpperCase();
+                                // Validasi 3 pilihan
                                 if (!['AKTIF', 'MATI', 'NOTFOUNDAROB'].includes(gpsVal)) {
                                     gpsVal = 'MATI';
                                 }
@@ -837,6 +978,10 @@
             };
             reader.readAsArrayBuffer(file);
         }
+
+        // =========================================================
+        // HELPER EXPORT EXCEL & PAGING DATABASE
+        // =========================================================
 
         function formatDataForExcel(rawData) {
             return rawData.map(item => ({
