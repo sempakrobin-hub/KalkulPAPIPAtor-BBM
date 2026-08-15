@@ -397,7 +397,7 @@
         function copasGpsMati(btn) {
             let pesan = "Gps tidak aktif, Mohon hubungi koordinator mobil untuk aktivasi gps";
             if (currentGpsStatusValue === 'NOTFOUNDAROB') {
-                pesan = "Gps Not Found Arob, Mohon dicek kembali unit kendaraannya";
+                pesan = "Gps Belum terpasang, Mohon segera hubungi koordinator mobil untuk aktivasi gps";
             }
             navigator.clipboard.writeText(pesan).then(() => {
                 const innerSpan = btn.querySelector("span");
