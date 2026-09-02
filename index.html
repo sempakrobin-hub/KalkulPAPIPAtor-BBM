@@ -3,6 +3,1325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator BBM Cloud Pro - GPS Tracker System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Library SheetJS untuk Export & Import Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            background-color: #14161d;
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
+        }
+        .dot {
+            transition: all 0.3s ease-in-out;
+        }
+        input:checked ~ .dot {
+            transform: translateX(100%);
+            background-color: #ffffff;
+        }
+        #toggle_mafia:checked ~ .block {
+            background-color: #ff3b30;
+        }
+        #toggle_approval:checked ~ .block {
+            background-color: #34c759;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- CONTAINER UTAMA DUAL PANE -->
+    <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start justify-center">
+        
+        <!-- PANEL KIRI: FORM UTAMA -->
+        <div id="main_card" class="w-full lg:w-[420px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
+            
+            <div class="p-4 flex flex-col space-y-3.5 flex-1">
+                
+                <!-- INPUT PLAT DENGAN INFO REQUESTOR & SN BERLETAK BERTUMPUK -->
+                <div class="flex items-center gap-1.5 w-full">
+                    <!-- KOTAK REQUESTOR & SN (2 BARIS) -->
+                    <div id="box_requestor_info" class="bg-[#13161c] border border-gray-700 rounded px-2 py-1 text-[10px] font-bold text-[#ff9f0a] flex flex-col items-center justify-center min-w-[90px] max-w-[120px] truncate leading-tight" title="Requestor & SN">
+                        <span id="txt_nama_req" class="truncate w-full text-center">- Requestor -</span>
+                        <span id="txt_sn_gps" class="text-[9px] text-gray-400 font-mono truncate w-full text-center">SN: -</span>
+                    </div>
+                    
+                    <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                        <span class="w-10 flex-shrink-0">PLAT</span>
+                        <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, false)">
+                    </div>
+                    <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
+                </div>
+
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">START</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
+                </div>
+
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">AKHIR</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
+                </div>
+
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">LITER</span>
+                    <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Isi jumlah liter">
+                </div>
+
+                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                    <span class="w-12 flex-shrink-0">RMK</span>
+                    <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
+                </div>
+
+                <!-- BOX MAFIA MODE -->
+                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-300">
+                    <div class="flex flex-col flex-1 overflow-hidden">
+                        <span class="text-[11px] font-bold text-[#a0a5b5]" id="title_mafia">STATUS KENDARAAN</span>
+                        <div id="marquee_mafia" class="hidden text-[10px] font-black tracking-widest text-white uppercase overflow-hidden whitespace-nowrap pt-0.5">
+                            <marquee scrollamount="4">⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA</marquee>
+                        </div>
+                    </div>
+                    <label for="toggle_mafia" class="flex items-center cursor-pointer select-none">
+                        <div class="relative">
+                            <input type="checkbox" id="toggle_mafia" class="sr-only" onchange="toggleMafiaMode(this.checked)">
+                            <div class="block bg-gray-600 w-10 h-6 rounded-full transition-colors"></div>
+                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- STATUS GPS (3 PILIHAN + TANGGAL AKTIF TERAKHIR) -->
+                <div id="box_gps" class="flex flex-col bg-[#dc2626] rounded p-2.5 transition-all duration-300 space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[11px] font-bold text-white uppercase" id="title_gps">STATUS GPS: MATI</span>
+                        <span id="label_aktif_terakhir" class="text-[9px] font-mono text-white/90 bg-black/30 px-1.5 py-0.5 rounded hidden truncate" title="Tanggal Aktif Terakhir">
+                            Aktif: -
+                        </span>
+                    </div>
+                    <!-- Tombol Pilihan 3 Status -->
+                    <div class="grid grid-cols-3 gap-1 bg-black/25 p-1 rounded-lg">
+                        <button type="button" onclick="setGpsStatus('AKTIF')" id="btn_gps_aktif" class="py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition">ON</button>
+                        <button type="button" onclick="setGpsStatus('MATI')" id="btn_gps_mati" class="py-1 rounded text-[10px] font-bold bg-black/40 text-white transition">OFF</button>
+                        <button type="button" onclick="setGpsStatus('NOTFOUNDAROB')" id="btn_gps_notfound" class="py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition">NOTFOUND</button>
+                    </div>
+                    <!-- Tombol Copas khusus jika GPS Mati -->
+                    <button onclick="copasGpsMati(this)" id="btn_copas_gps" class="bg-black/30 hover:bg-black/50 text-white py-1 rounded transition flex items-center justify-center text-[10px] font-bold gap-1 select-none border border-white/10 w-full">
+                        📋 <span>Copas Pesan Kendala GPS</span>
+                    </button>
+                </div>
+
+                <!-- PANEL NEED APPROVAL -->
+                <div id="box_approval" class="hidden flex-col bg-[#2d323f] border border-orange-500/40 rounded px-3 py-2 transition-all duration-300 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold text-[#ff9f0a]">NEED APPROVAL</span>
+                            <span id="label_last_approved" class="text-[9px] text-gray-400 italic">Last Approved: -</span>
+                        </div>
+                        <label for="toggle_approval" class="flex items-center cursor-pointer select-none">
+                            <div class="relative">
+                                <input type="checkbox" id="toggle_approval" class="sr-only" onchange="handleApprovalChange(this.checked)">
+                                <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
+                                <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
+                                <span id="text_approval_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- GRID TOMBOL AKSI -->
+                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold pt-1">
+                    <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
+                    <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded hover:opacity-80 uppercase">SAVE</button>
+                    <button onclick="resetForm()" class="bg-[#3a3f4d] text-gray-300 py-2 rounded hover:opacity-80 uppercase">RESET</button>
+                </div>
+
+                <div class="flex items-center justify-around bg-[#2d323f] px-3 py-2 rounded h-10 text-center">
+                    <span id="label_hasil" class="text-[#34c759] font-bold text-sm border-r border-gray-700 pr-2 flex-1">- KM/L</span>
+                    <span id="label_jarak" class="text-[#a0a5b5] text-[11px] border-r border-gray-700 px-2 flex-1">Jarak: -</span>
+                    <span id="label_status" class="text-white font-bold text-[10px] px-2 py-0.5 rounded bg-transparent min-w-[60px] text-center">-</span>
+                </div>
+
+                <div class="bg-[#2d323f] p-2.5 rounded flex flex-col space-y-2 min-h-[60px]">
+                    <p id="label_rekues" class="text-[11px] italic text-gray-300 leading-relaxed">
+                        Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
+                    </p>
+                    <div class="text-right">
+                        <button onclick="copasTeks(this)" id="btn_copas" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-2.5 py-1 rounded hover:opacity-80 whitespace-nowrap">
+                            Copas
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col space-y-1.5 pt-1">
+                    <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
+                        <option value="-- Pilih Teks Tambahan --">-- Pilih Teks Tambahan --</option>
+                        <option value="Rekues ulang menggunakan item cost &quot;Shopping List Material&quot;">Rekues ulang menggunakan item cost "Shopping List Material"</option>
+                        <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
+                        <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
+                        <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
+                        <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
+                        <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" / "Delivery Material Badan".</option>
+                        <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
+                    </select>
+                    <div class="text-right">
+                        <button onclick="copasPilihan(this)" id="btn_copas_pilihan" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:opacity-80 whitespace-nowrap">
+                            Copas Pilihan
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.4em] py-3 w-full text-center select-none uppercase border-t border-gray-700">
+                P A P I P A
+            </div>
+        </div>
+
+        <!-- PANEL KANAN: PREVIEW MAP, HISTORI & EXPORT -->
+        <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
+            
+            <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
+                <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Visual & Preview Map Tracker</h3>
+                <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
+            </div>
+
+            <!-- SLOT CONTAINER FOTO PREVIEW -->
+            <div class="grid grid-cols-3 gap-2 w-full">
+                <!-- Slot 1 -->
+                <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
+                        <span class="text-lg block">📸</span>
+                        <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
+                    </div>
+                    <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
+                </div>
+                <!-- Slot 2 -->
+                <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
+                        <span class="text-lg block">📸</span>
+                        <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
+                    </div>
+                    <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
+                </div>
+                <!-- Slot 3 -->
+                <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
+                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
+                        <span class="text-lg block">📸</span>
+                        <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
+                    </div>
+                    <button onclick="hapusFoto(3)" id="btn_del_3" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
+                </div>
+            </div>
+
+            <!-- TOMBOL AKSI ATTACHMENT COMPACT -->
+            <div class="bg-[#13161c] p-2 rounded-lg border border-gray-800">
+                <div class="flex flex-col sm:flex-row gap-1.5">
+                    <input type="file" id="file_uploader" accept="image/*" multiple class="hidden" onchange="handleFileSelect(this)">
+                    <button onclick="document.getElementById('file_uploader').click()" class="flex-1 bg-[#2d323f] border border-gray-600 text-white text-[10px] font-bold py-1.5 px-2 rounded hover:bg-gray-700 transition flex items-center justify-center gap-1">
+                        📂 Pilih File Foto Map
+                    </button>
+                    <button onclick="clearAllPhotos()" class="bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold py-1.5 px-2 rounded hover:bg-red-500/20 transition">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- POSISI SEKARANG: DI BAWAH MAP & DI ATAS 5 LOG TERAKHIR -->
+            <div class="bg-[#2d323f] border border-gray-700 rounded-lg p-2.5 flex items-center justify-between gap-3">
+                <p id="label_map_warning" class="text-[11px] font-medium text-gray-300 italic leading-tight select-all">
+                    Mohon gunakan map update setiap kali rekues
+                </p>
+                <button onclick="copasPesanMap(this)" class="bg-[#3a3f4d] hover:bg-gray-600 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition whitespace-nowrap flex-shrink-0">
+                    Copas
+                </button>
+            </div>
+
+            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-44">
+                <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
+                    <span>📋 5 Log BBM Terakhir</span>
+                    <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
+                </div>
+                <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
+                    <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
+                </div>
+            </div>
+
+            <!-- FITUR: PANEL GENERATE & UPDATE GPS MASSAL AROBS -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#ff9f0a] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
+                    <span>⚡ Generate Update GPS (AROBS)</span>
+                    <button onclick="downloadTemplateGps()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
+                </div>
+                <div class="flex flex-col gap-1.5 text-[10px]">
+                    <input type="file" id="excel_gps_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelGpsUpload(this)">
+                    <button onclick="document.getElementById('excel_gps_uploader').click()" class="bg-[#34c759]/20 hover:bg-[#34c759]/30 border border-green-500/50 text-green-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
+                        <span id="txt_btn_gen_gps">📂 Pilih File Excel AROBS & Generate Update</span>
+                        <span class="text-xs">⚡</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
+                    <span>📊 Tarik Data Log (Excel)</span>
+                </div>
+                <div class="grid grid-cols-1 gap-2 text-[10px] font-bold">
+                    <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
+                        <span id="txt_btn_1">1. Download All Log</span>
+                        <span class="text-xs">📥</span>
+                    </button>
+                    <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
+                        <span id="txt_btn_2">2. Download Plat Mafia</span>
+                        <span class="text-xs">🚨</span>
+                    </button>
+                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
+                        <span class="text-xs">⚠️</span>
+                    </button>
+                    <button onclick="downloadGpsMatiLog(this)" class="bg-red-950/40 hover:bg-red-900/60 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span id="txt_btn_4">4. Download GPS Tidak Aktif / Mati</span>
+                        <span class="text-xs">📍</span>
+                    </button>
+                    <button onclick="downloadGpsNotFoundLog(this)" class="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/50 text-purple-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span id="txt_btn_5">5. Download GPS NOTFOUNDAROB</span>
+                        <span class="text-xs">❓</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
+        
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark";
+
+        let data_siap_simpan = null;
+        let id_log_sedang_diedit = null; 
+        let currentGpsStatusValue = "MATI";
+
+        let array_foto_base64 = [null, null, null];
+        let array_foto_timestamps = [0, 0, 0];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateApprovalLabel();
+            setGpsStatus("MATI");
+        });
+
+        function updateApprovalLabel() {
+            const lastApproved = localStorage.getItem('last_bbm_approval_time');
+            const lbl = document.getElementById("label_last_approved");
+            if (lastApproved) {
+                lbl.innerText = `Last Approved: ${lastApproved}`;
+            } else {
+                lbl.innerText = `Last Approved: -`;
+            }
+        }
+
+        function handleApprovalChange(isTrue) {
+            const textIndicator = document.getElementById("text_approval_slide");
+            if (isTrue) {
+                textIndicator.innerText = "YES";
+                textIndicator.style.color = "#ffffff";
+                textIndicator.style.right = "auto";
+                textIndicator.style.left = "0.5rem";
+            } else {
+                textIndicator.innerText = "NO";
+                textIndicator.style.color = "#a0a5b5";
+                textIndicator.style.left = "auto";
+                textIndicator.style.right = "0.5rem";
+            }
+            if (data_siap_simpan !== null) {
+                data_siap_simpan.is_approved = isTrue;
+            }
+        }
+
+        function toggleMafiaMode(isTrue) {
+            const mainCard = document.getElementById("main_card");
+            const boxMafia = document.getElementById("box_mafia");
+            const titleMafia = document.getElementById("title_mafia");
+            const marquee = document.getElementById("marquee_mafia");
+
+            if(isTrue) {
+                boxMafia.style.backgroundColor = "#7f1d1d"; 
+                titleMafia.style.color = "#fca5a5"; 
+                marquee.classList.remove("hidden");
+                mainCard.style.borderColor = "#ef4444";
+            } else {
+                boxMafia.style.backgroundColor = "#2d323f";
+                titleMafia.style.color = "#a0a5b5";
+                marquee.classList.add("hidden");
+                mainCard.style.borderColor = "#374151";
+            }
+            if (data_siap_simpan !== null) data_siap_simpan.is_mafia = isTrue;
+        }
+
+        function setGpsStatus(status) {
+            currentGpsStatusValue = status;
+            const boxGps = document.getElementById("box_gps");
+            const titleGps = document.getElementById("title_gps");
+            const btnCopasGps = document.getElementById("btn_copas_gps");
+
+            const btnAktif = document.getElementById("btn_gps_aktif");
+            const btnMati = document.getElementById("btn_gps_mati");
+            const btnNotfound = document.getElementById("btn_gps_notfound");
+
+            [btnAktif, btnMati, btnNotfound].forEach(b => {
+                b.className = "py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition";
+            });
+
+            if (status === 'AKTIF') {
+                boxGps.style.backgroundColor = "#16a34a";
+                titleGps.innerText = "STATUS GPS: AKTIF";
+                btnCopasGps.classList.add("hidden");
+                btnAktif.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
+            } else if (status === 'MATI') {
+                boxGps.style.backgroundColor = "#dc2626";
+                titleGps.innerText = "STATUS GPS: MATI";
+                btnCopasGps.classList.remove("hidden");
+                btnMati.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
+            } else if (status === 'NOTFOUNDAROB') {
+                boxGps.style.backgroundColor = "#7c3aed";
+                titleGps.innerText = "STATUS GPS: NOTFOUNDAROB";
+                btnCopasGps.classList.remove("hidden");
+                btnNotfound.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
+            }
+
+            if (data_siap_simpan !== null) {
+                data_siap_simpan.is_gps = (status === 'AKTIF');
+                data_siap_simpan.gps_detail = status;
+            }
+        }
+
+        function copasGpsMati(btn) {
+            let pesan = "Gps tidak aktif, Mohon hubungi koordinator mobil untuk aktivasi gps";
+            if (currentGpsStatusValue === 'NOTFOUNDAROB') {
+                pesan = "Gps Belum terpasang, Mohon segera hubungi koordinator mobil untuk aktivasi gps";
+            }
+            navigator.clipboard.writeText(pesan).then(() => {
+                const innerSpan = btn.querySelector("span");
+                innerSpan.innerText = "Disalin!";
+                setTimeout(() => {
+                    innerSpan.innerText = "Copas Pesan Kendala GPS";
+                }, 1200);
+            }).catch(err => alert("Gagal menyalin teks otomatis."));
+        }
+
+        function copasPesanMap(btn) {
+            const pesan = document.getElementById("label_map_warning").innerText.trim();
+            navigator.clipboard.writeText(pesan).then(() => {
+                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
+
+        async function autoPaste(inputElement, hanyaAngka) {
+            if (inputElement.value.trim() !== "") return;
+            try {
+                let text = await navigator.clipboard.readText();
+                text = text.trim();
+                if (hanyaAngka) {
+                    let angkaMurni = text.replace(/[^0-9]/g, '');
+                    if (angkaMurni) inputElement.value = angkaMurni;
+                } else {
+                    inputElement.value = text.toUpperCase();
+                }
+            } catch (err) { console.log("Akses clipboard ditangani browser"); }
+        }
+
+        function handleFileSelect(input) {
+            const files = input.files;
+            if (!files) return;
+
+            for (let i = 0; i < files.length; i++) {
+                let slotKosong = array_foto_base64.indexOf(null);
+                if (slotKosong === -1) {
+                    alert("Maksimal hanya bisa menampung 3 Foto Map!");
+                    break;
+                }
+
+                const file = files[i];
+                const reader = new FileReader();
+                const currentTimestamp = Date.now() + i; 
+                const targetSlot = slotKosong + 1;
+
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                        array_foto_timestamps[targetSlot - 1] = currentTimestamp;
+                        renderFotoSlot(targetSlot, compressedBase64);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+            input.value = "";
+        }
+
+        function renderFotoSlot(indexSlot, srcData) {
+            array_foto_base64[indexSlot - 1] = srcData;
+            if (!srcData) {
+                array_foto_timestamps[indexSlot - 1] = 0;
+            }
+            
+            const img = document.getElementById(`prev_img_${indexSlot}`);
+            const placeholder = document.getElementById(`placeholder_${indexSlot}`);
+            const btnDel = document.getElementById(`btn_del_${indexSlot}`);
+
+            if (srcData) {
+                img.src = srcData;
+                img.classList.remove("hidden");
+                placeholder.classList.add("hidden");
+                btnDel.classList.remove("hidden");
+            } else {
+                img.src = "";
+                img.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+                btnDel.classList.add("hidden");
+            }
+            
+            updateFotoCounter();
+            recalculateBorderColors();
+        }
+
+        function recalculateBorderColors() {
+            let activeSlots = [];
+            for (let i = 0; i < 3; i++) {
+                if (array_foto_timestamps[i] > 0 && array_foto_base64[i] !== null) {
+                    activeSlots.push({ index: i + 1, ts: array_foto_timestamps[i] });
+                } else {
+                    const el = document.getElementById(`slot_border_${i + 1}`);
+                    el.className = "relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
+                }
+            }
+
+            activeSlots.sort((a, b) => a.ts - b.ts);
+
+            activeSlots.forEach((slot, orderIndex) => {
+                const el = document.getElementById(`slot_border_${slot.index}`);
+                el.className = "relative group bg-[#13161c] border-2 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
+
+                if (activeSlots.length === 1) {
+                    el.classList.add("border-green-500", "solid");
+                } else if (activeSlots.length === 2) {
+                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
+                    if (orderIndex === 1) el.classList.add("border-green-500", "solid"); 
+                } else if (activeSlots.length === 3) {
+                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
+                    if (orderIndex === 1) el.classList.add("border-yellow-500", "solid"); 
+                    if (orderIndex === 2) el.classList.add("border-green-500", "solid"); 
+                }
+            });
+        }
+
+        function hapusFoto(indexSlot) { renderFotoSlot(indexSlot, null); }
+        function clearAllPhotos() { for(let i=1; i<=3; i++) renderFotoSlot(i, null); }
+
+        function updateFotoCounter() {
+            let total = array_foto_base64.filter(x => x !== null).length;
+            document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
+        }
+
+        async function loadMiniLog(plat) {
+            const container = document.getElementById("mini_log_container");
+            document.getElementById("log_plat_badge").innerText = plat;
+            
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .eq('plat_nomor', plat)
+                    .order('id', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<div class="text-center text-gray-600 py-6 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
+                    return;
+                }
+
+                container.innerHTML = "";
+                data.forEach((r) => {
+                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
+                    
+                    let colorClass = "text-white";
+                    if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
+                    else if(r.status === "CUKUP") colorClass = "text-[#ff9f0a]";
+                    else if(r.status === "KURANG") colorClass = "text-[#ff3b30]";
+
+                    const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
+                    
+                    const row = document.createElement("div");
+                    row.className = "flex items-center justify-between border-b border-gray-900 pb-1.5 last:border-0 hover:bg-gray-800/20 p-1 rounded transition-all";
+                    row.innerHTML = `
+                        <div class="flex-1 leading-tight pr-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 font-bold">${tgl}</span>
+                                <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
+                            </div>
+                            <div class="text-gray-300 mt-0.5">
+                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
+                            </div>
+                        </div>
+                        <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
+                            EDIT
+                        </button>
+                    `;
+                    container.appendChild(row);
+                });
+
+            } catch(e) {
+                container.innerHTML = `<div class="text-center text-red-400 py-4 italic">Gagal memuat mini log.</div>`;
+            }
+        }
+
+        async function cekPlat() {
+            id_log_sedang_diedit = null; 
+            document.getElementById("btn_save").innerText = "SAVE";
+            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+            clearAllPhotos();
+
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
+            
+            const btnCek = document.getElementById("btn_cek");
+            btnCek.innerText = ".."; btnCek.disabled = true;
+
+            try {
+                loadMiniLog(plat);
+                await cekRequestor(plat);
+
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('*')
+                    .eq('plat_nomor', plat)
+                    .order('id', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const lastData = data[0];
+                    document.getElementById("entry_start").value = lastData.km_akhir;
+                    document.getElementById("entry_akhir").value = "";
+                    document.getElementById("entry_liter").value = lastData.liter || "";
+                    document.getElementById("entry_remark").value = lastData.remark || "";
+                    
+                    toggleMafiaMode(lastData.is_mafia === true);
+                    document.getElementById("toggle_mafia").checked = lastData.is_mafia === true;
+
+                    let gpsVal = lastData.gps_detail ? lastData.gps_detail : (lastData.is_gps ? 'AKTIF' : 'MATI');
+                    setGpsStatus(gpsVal);
+
+                    if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
+                        lastData.foto_urls.forEach((url, index) => {
+                            if (index < 3) {
+                                array_foto_timestamps[index] = Date.now() + index;
+                                renderFotoSlot(index + 1, url);
+                            }
+                        });
+                    }
+
+                    const rem = lastData.remark || "-";
+                    document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
+                    
+                    document.getElementById("box_approval").classList.add("hidden");
+                    document.getElementById("toggle_approval").checked = false;
+                    handleApprovalChange(false);
+                    
+                    document.getElementById("entry_akhir").focus();
+                } else {
+                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
+                    resetForm();
+                    document.getElementById("entry_plat").value = plat;
+                    await cekRequestor(plat);
+                }
+            } catch (err) {
+                alert("Gagal mengecek data:\n" + err.message);
+            } finally {
+                btnCek.innerText = "CEK"; btnCek.disabled = false;
+            }
+        }
+
+        async function cekRequestor(plat) {
+            const elNama = document.getElementById("txt_nama_req");
+            const elSn = document.getElementById("txt_sn_gps");
+            const elAktif = document.getElementById("label_aktif_terakhir");
+            
+            elNama.innerText = "Loading...";
+            elSn.innerText = "SN: ...";
+            elAktif.classList.add("hidden");
+
+            try {
+                const [resReq, resGpsStatus] = await Promise.all([
+                    _supabase.from('plat_requestor').select('nama_requestor').eq('plat_nomor', plat).maybeSingle(),
+                    _supabase.from('plat_gps_status').select('*').eq('plat_nomor', plat).maybeSingle()
+                ]);
+
+                if (resReq.data && resReq.data.nama_requestor) {
+                    elNama.innerText = resReq.data.nama_requestor;
+                } else {
+                    elNama.innerText = "No Name";
+                }
+
+                if (resGpsStatus.data) {
+                    const gpsData = resGpsStatus.data;
+                    elSn.innerText = gpsData.sn_gps ? `SN: ${gpsData.sn_gps}` : "SN: -";
+                    
+                    if (gpsData.status_gps) {
+                        setGpsStatus(gpsData.status_gps);
+                    }
+
+                    if (gpsData.aktif_terakhir) {
+                        elAktif.innerText = `Aktif: ${gpsData.aktif_terakhir}`;
+                        elAktif.classList.remove("hidden");
+                    }
+                } else {
+                    elSn.innerText = "SN: -";
+                }
+
+            } catch (err) {
+                console.log("Error fetch requestor/SN:", err.message);
+                elNama.innerText = "Unknown";
+                elSn.innerText = "SN: Error";
+            }
+        }
+
+        function hitungRasio() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            const km_start = parseFloat(document.getElementById("entry_start").value);
+            const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
+            let literRaw = document.getElementById("entry_liter").value.replace(',', '.');
+            const liter = parseFloat(literRaw);
+            const isMafiaActive = document.getElementById("toggle_mafia").checked;
+            const isApprovalActive = document.getElementById("toggle_approval").checked;
+
+            if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
+                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
+            }
+            if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
+            if (liter <= 0) return alert("BBM harus lebih dari 0!");
+
+            const jarak = km_akhir - km_start;
+            const rasio = jarak / liter;
+
+            document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
+            document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
+
+            let kesimpulan, bgWarna;
+            if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
+            else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
+            else { kesimpulan = "JOSJIS"; bgWarna = "#34c759"; }
+
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
+
+            const boxApproval = document.getElementById("box_approval");
+            if (kesimpulan === "KURANG") {
+                boxApproval.classList.remove("hidden");
+            } else {
+                boxApproval.classList.add("hidden");
+                document.getElementById("toggle_approval").checked = false;
+                handleApprovalChange(false);
+            }
+
+            document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
+
+            data_siap_simpan = { 
+                plat_nomor: plat, 
+                km_start: km_start, 
+                km_akhir: km_akhir, 
+                jarak: jarak, 
+                liter: liter, 
+                rasio: parseFloat(rasio.toFixed(2)), 
+                status: kesimpulan,
+                is_mafia: isMafiaActive,
+                is_gps: (currentGpsStatusValue === 'AKTIF'),
+                gps_detail: currentGpsStatusValue,
+                is_approved: isApprovalActive,
+                foto_urls: array_foto_base64.filter(x => x !== null)
+            };
+
+            const btnSave = document.getElementById("btn_save");
+            if (id_log_sedang_diedit !== null) {
+                btnSave.style.backgroundColor = "#ff9f0a"; btnSave.innerText = "UPDATE";
+            } else {
+                btnSave.style.backgroundColor = "#0a84ff"; btnSave.innerText = "SAVE";
+            }
+        }
+
+        async function simpanKeCloud() {
+            if (!data_siap_simpan) return alert("Hitung rasio terlebih dahulu sebelum menekan SAVE/UPDATE!");
+            
+            const btnSave = document.getElementById("btn_save");
+            const remark_text = document.getElementById("entry_remark").value.trim();
+            data_siap_simpan["remark"] = remark_text ? remark_text : null;
+            data_siap_simpan["foto_urls"] = array_foto_base64.filter(x => x !== null);
+            
+            btnSave.disabled = true;
+            const textAwal = btnSave.innerText;
+            btnSave.innerText = "...";
+
+            try {
+                if (id_log_sedang_diedit !== null) {
+                    const { error } = await _supabase
+                        .from('log_bbm')
+                        .update(data_siap_simpan)
+                        .eq('id', id_log_sedang_diedit);
+                    if (error) throw error;
+                    alert(`Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) Berhasil Diperbarui!`);
+                } else {
+                    const { error } = await _supabase
+                        .from('log_bbm')
+                        .insert([data_siap_simpan]);
+                    if (error) throw error;
+                    alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
+                }
+
+                if (data_siap_simpan.is_approved) {
+                    const sekarang = new Date();
+                    const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+                    localStorage.setItem('last_bbm_approval_time', waktuString);
+                    updateApprovalLabel();
+                }
+
+                btnSave.style.backgroundColor = "#3a3f4d"; btnSave.innerText = "SAVE";
+                loadMiniLog(data_siap_simpan.plat_nomor);
+            } catch (err) {
+                alert("Gagal memproses data ke Cloud:\n" + err.message);
+                btnSave.innerText = textAwal;
+            } finally {
+                btnSave.disabled = false;
+            }
+        }
+
+        function lemparKeForm(encodedData) {
+            const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
+            id_log_sedang_diedit = dataObj.id; 
+
+            document.getElementById("entry_plat").value = dataObj.plat_nomor;
+            document.getElementById("entry_start").value = dataObj.km_start;
+            document.getElementById("entry_akhir").value = dataObj.km_akhir;
+            document.getElementById("entry_liter").value = dataObj.liter;
+            document.getElementById("entry_remark").value = dataObj.remark || "";
+            
+            hitungRasio(); 
+
+            document.getElementById("toggle_mafia").checked = dataObj.is_mafia === true;
+            toggleMafiaMode(dataObj.is_mafia === true);
+
+            let gpsVal = dataObj.gps_detail ? dataObj.gps_detail : (dataObj.is_gps ? 'AKTIF' : 'MATI');
+            setGpsStatus(gpsVal);
+
+            if (dataObj.status === "KURANG") {
+                document.getElementById("box_approval").classList.remove("hidden");
+                document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
+                handleApprovalChange(dataObj.is_approved === true);
+            }
+            
+            clearAllPhotos();
+            if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
+                dataObj.foto_urls.forEach((url, i) => {
+                    if(i < 3) {
+                        array_foto_timestamps[i] = Date.now() + i;
+                        renderFotoSlot(i + 1, url);
+                    }
+                });
+            }
+
+            loadMiniLog(dataObj.plat_nomor);
+            cekRequestor(dataObj.plat_nomor);
+        }
+
+        function copasTeks(btn) {
+            const text = document.getElementById("label_rekues").innerText;
+            if(text.includes("...")) return alert("Hitung rasio terlebih dahulu!");
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
+
+        function copasPilihan(btn) {
+            const val = document.getElementById("menu_var").value;
+            if(!val || val === "-- Pilih Teks Tambahan --") return alert("Silakan pilih teks terlebih dahulu!");
+            navigator.clipboard.writeText(val).then(() => {
+                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
+
+        function resetForm() {
+            data_siap_simpan = null;
+            id_log_sedang_diedit = null;
+            array_foto_timestamps = [0, 0, 0];
+            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
+            document.getElementById("label_jarak").innerText = "Jarak: -";
+            document.getElementById("label_hasil").innerText = "- KM/L";
+            document.getElementById("label_status").innerText = "-";
+            document.getElementById("label_status").style.color = "#ffffff";
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+            document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
+            document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_sn_gps").innerText = "SN: -";
+            document.getElementById("label_aktif_terakhir").classList.add("hidden");
+            
+            document.getElementById("toggle_mafia").checked = false;
+            toggleMafiaMode(false);
+
+            setGpsStatus("MATI");
+
+            document.getElementById("box_approval").classList.add("hidden");
+            document.getElementById("toggle_approval").checked = false;
+            handleApprovalChange(false);
+
+            clearAllPhotos();
+            document.getElementById("log_plat_badge").innerText = "";
+            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
+
+            const btnSave = document.getElementById("btn_save");
+            btnSave.style.backgroundColor = "#3a3f4d";
+            btnSave.innerText = "SAVE";
+        }
+
+        // =========================================================
+        // FITUR: GENERATE UPDATE MASSAL GPS AROBS VIA EXCEL
+        // =========================================================
+
+        function cleanPlatString(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/^TOTAL\s+/i, '')
+                .split('(')[0]
+                .replace(/[^A-Z0-9]/gi, '')
+                .toUpperCase();
+        }
+
+        function downloadTemplateGps() {
+            const templateData = [
+                { "Nomor plat registrasi": "B 1209 DZU", "Nama kendaraan": "B1209DZU ( SN : 1140167302 )", "Tanggal mulai": "02/09/2026 08.30.28" },
+                { "Nomor plat registrasi": "D8365FN", "Nama kendaraan": "D8365FN ( SN : 1146283065 )", "Tanggal mulai": "02/09/2026 08.30.27" }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Mengemudi");
+            XLSX.writeFile(workbook, "Template_AROBS_GPS.xlsx");
+        }
+
+        async function handleExcelGpsUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const txtBtn = document.getElementById("txt_btn_gen_gps");
+            input.disabled = true;
+            txtBtn.innerText = "Membaca Excel...";
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                    if (!jsonRows || jsonRows.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        return;
+                    }
+
+                    txtBtn.innerText = "Mengambil master plat dari Database...";
+
+                    const { data: dbLogPlats, error: errDb } = await _supabase.from('log_bbm').select('plat_nomor');
+                    if (errDb) throw errDb;
+
+                    const dbPlatMap = new Map();
+                    if (dbLogPlats) {
+                        dbLogPlats.forEach(r => {
+                            if (r.plat_nomor) {
+                                const cleaned = cleanPlatString(r.plat_nomor);
+                                if (cleaned) dbPlatMap.set(cleaned, r.plat_nomor);
+                            }
+                        });
+                    }
+
+                    if (dbPlatMap.size === 0) {
+                        alert("Database belum memiliki log plat nomor!");
+                        return;
+                    }
+
+                    txtBtn.innerText = "Memproses & Mencocokkan Data...";
+
+                    const excelDataMap = new Map();
+
+                    for (let row of jsonRows) {
+                        let platRaw = "";
+                        for (let k in row) {
+                            const kLower = k.toLowerCase();
+                            if (kLower.includes('registrasi') || kLower.includes('plat') || kLower.includes('kendaraan')) {
+                                if (row[k]) { platRaw = String(row[k]); break; }
+                            }
+                        }
+
+                        const cleanedPlat = cleanPlatString(platRaw);
+                        if (!cleanedPlat || !dbPlatMap.has(cleanedPlat)) continue;
+
+                        const actualDbPlat = dbPlatMap.get(cleanedPlat);
+
+                        let extractedSn = null;
+                        for (let k in row) {
+                            const valStr = String(row[k]);
+                            const match = valStr.match(/SN\s*:\s*([A-Za-z0-9]+)/i);
+                            if (match && match[1]) {
+                                extractedSn = match[1].trim();
+                                break;
+                            }
+                        }
+
+                        let tglMulai = null;
+                        for (let k in row) {
+                            if (k.toLowerCase().includes('tanggal mulai') || k.toLowerCase().includes('tgl mulai')) {
+                                if (row[k]) { tglMulai = String(row[k]).trim(); break; }
+                            }
+                        }
+
+                        if (!excelDataMap.has(actualDbPlat) || (tglMulai && !excelDataMap.get(actualDbPlat).tglMulai)) {
+                            excelDataMap.set(actualDbPlat, {
+                                sn: extractedSn,
+                                tglMulai: tglMulai
+                            });
+                        }
+                    }
+
+                    txtBtn.innerText = "Mengupdate Database...";
+                    let countAktif = 0, countMati = 0, countNotFound = 0;
+
+                    for (let [cleanedPlat, actualDbPlat] of dbPlatMap.entries()) {
+                        const excelItem = excelDataMap.get(actualDbPlat);
+
+                        let statusGps = "MATI";
+                        let snGps = null;
+                        let tglAktif = null;
+
+                        if (excelItem) {
+                            snGps = excelItem.sn;
+                            tglAktif = excelItem.tglMulai;
+
+                            if (!snGps) {
+                                statusGps = "NOTFOUNDAROB";
+                                countNotFound++;
+                            } else if (tglAktif) {
+                                statusGps = "AKTIF";
+                                countAktif++;
+                            } else {
+                                statusGps = "MATI";
+                                countMati++;
+                            }
+                        } else {
+                            statusGps = "MATI";
+                            countMati++;
+                        }
+
+                        await _supabase
+                            .from('plat_gps_status')
+                            .upsert({
+                                plat_nomor: actualDbPlat,
+                                sn_gps: snGps,
+                                aktif_terakhir: tglAktif,
+                                status_gps: statusGps,
+                                updated_at: new Date().toISOString()
+                            }, { onConflict: 'plat_nomor' });
+
+                        const isGpsActive = (statusGps === 'AKTIF');
+                        await _supabase
+                            .from('log_bbm')
+                            .update({ is_gps: isGpsActive, gps_detail: statusGps })
+                            .eq('plat_nomor', actualDbPlat);
+                    }
+
+                    alert(`Berhasil Generate Update Massal!\n` +
+                          `🟢 GPS AKTIF: ${countAktif} plat\n` +
+                          `🔴 GPS MATI: ${countMati} plat\n` +
+                          `🟣 GPS NOTFOUNDAROB: ${countNotFound} plat`);
+
+                } catch (err) {
+                    alert("Gagal memproses file Excel:\n" + err.message);
+                } finally {
+                    input.value = "";
+                    txtBtn.innerText = "📂 Pilih File Excel AROBS & Generate Update";
+                    input.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // =========================================================
+        // HELPER EXPORT EXCEL & PAGING DATABASE
+        // =========================================================
+
+        function formatDataForExcel(rawData) {
+            return rawData.map(item => ({
+                "ID": item.id,
+                "Tanggal": item.tanggal ? item.tanggal : "-",
+                "Plat Nomor": item.plat_nomor || "-",
+                "KM Start": item.km_start || 0,
+                "KM Akhir": item.km_akhir || 0,
+                "Jarak (KM)": item.jarak || 0,
+                "Liter": item.liter || 0,
+                "Rasio (KM/L)": item.rasio || 0,
+                "Status": item.status || "-",
+                "Mafia": item.is_mafia ? "YA" : "TIDAK",
+                "GPS Status": item.gps_detail || (item.is_gps ? "AKTIF" : "MATI"),
+                "Approved": item.is_approved ? "YA" : "TIDAK",
+                "Remark": item.remark || "-"
+            }));
+        }
+
+        function exportToExcelFile(dataArray, fileName) {
+            const formatted = formatDataForExcel(dataArray);
+            const worksheet = XLSX.utils.json_to_sheet(formatted);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Log BBM");
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        async function fetchAllDataChunked(filterField = null, filterValue = null, progressCallback = null) {
+            let allRows = [];
+            let pageSize = 1000;
+            let page = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                let from = page * pageSize;
+                let to = from + pageSize - 1;
+
+                let query = _supabase
+                    .from('log_bbm')
+                    .select(SELECT_COLUMNS_LIGHT)
+                    .order('id', { ascending: false })
+                    .range(from, to);
+
+                if (filterField !== null) {
+                    query = query.eq(filterField, filterValue);
+                }
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allRows = allRows.concat(data);
+                    if (progressCallback) progressCallback(allRows.length);
+                    if (data.length < pageSize) hasMore = false;
+                    else page++;
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            return allRows;
+        }
+
+        async function downloadAllLog(btn) {
+            const txtEl = document.getElementById("txt_btn_1");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked(null, null, (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ada data log di Cloud.");
+                    return;
+                }
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(data, `Log_BBM_All_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh All Log:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "1. Download All Log";
+            }
+        }
+
+        async function downloadMafiaLog(btn) {
+            const txtEl = document.getElementById("txt_btn_2");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked('is_mafia', true, (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ditemukan data kendaraan dengan status Mafia.");
+                    return;
+                }
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(data, `Log_BBM_Mafia_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh Log Mafia:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "2. Download Plat Mafia";
+            }
+        }
+
+        async function downloadKurang3of5Log(btn) {
+            const txtEl = document.getElementById("txt_btn_3");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Menganalisis & Mengambil data...";
+                const data = await fetchAllDataChunked(null, null, (total) => {
+                    txtEl.innerText = `Menganalisis... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ada data log di Cloud.");
+                    return;
+                }
+
+                const groupedByPlat = {};
+                data.forEach(row => {
+                    const plat = row.plat_nomor ? row.plat_nomor.trim().toUpperCase() : 'UNKNOWN';
+                    if (!groupedByPlat[plat]) groupedByPlat[plat] = [];
+                    groupedByPlat[plat].push(row);
+                });
+
+                const targetPlats = new Set();
+
+                Object.keys(groupedByPlat).forEach(plat => {
+                    const logs = groupedByPlat[plat];
+                    const last5 = logs.slice(0, 5);
+                    const kurangCount = last5.filter(r => r.status === "KURANG").length;
+
+                    if (kurangCount >= 3) {
+                        targetPlats.add(plat);
+                    }
+                });
+
+                if (targetPlats.size === 0) {
+                    alert("Tidak ada plat kendaraan yang memenuhi kriteria (memiliki 3 atau lebih status KURANG dalam 5 transaksi terakhir).");
+                    return;
+                }
+
+                const filteredData = data.filter(row => row.plat_nomor && targetPlats.has(row.plat_nomor.trim().toUpperCase()));
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(filteredData, `Log_BBM_Indikasi_Kurang_3_dari_5_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal memproses data:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "3. Data Plat (3+ status KURANG di 5 rekues terakhir)";
+            }
+        }
+
+        async function downloadGpsMatiLog(btn) {
+            const txtEl = document.getElementById("txt_btn_4");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked(null, null, (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ada data log di Cloud.");
+                    return;
+                }
+
+                const filtered = data.filter(row => row.gps_detail === 'MATI' || (row.is_gps === false && row.gps_detail !== 'NOTFOUNDAROB'));
+
+                if (filtered.length === 0) {
+                    alert("Tidak ditemukan data log dengan status GPS Mati.");
+                    return;
+                }
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(filtered, `Log_BBM_GPS_Mati_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh Log GPS Mati:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "4. Download GPS Tidak Aktif / Mati";
+            }
+        }
+
+        async function downloadGpsNotFoundLog(btn) {
+            const txtEl = document.getElementById("txt_btn_5");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked('gps_detail', 'NOTFOUNDAROB', (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ditemukan data log dengan status GPS NOTFOUNDAROB.");
+                    return;
+                }
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(data, `Log_BBM_GPS_NOTFOUNDAROB_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh Log GPS NOTFOUNDAROB:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "5. Download GPS NOTFOUNDAROB";
+            }
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator BBM Cloud Pro - GPS 3 Status & Requestor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
