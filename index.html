@@ -41,8 +41,8 @@
                 
                 <!-- INPUT PLAT DENGAN INFO REQUESTOR & SN BERLETAK BERTUMPUK -->
                 <div class="flex items-center gap-1.5 w-full">
-                    <!-- KOTAK REQUESTOR & SN (2 BARIS) -->
-                    <div id="box_requestor_info" class="bg-[#13161c] border border-gray-700 rounded px-2 py-1 text-[10px] font-bold text-[#ff9f0a] flex flex-col items-center justify-center min-w-[90px] max-w-[120px] truncate leading-tight" title="Requestor & SN">
+                    <!-- KOTAK REQUESTOR & SN (2 BARIS - BISA DIKLIK UTK INPUT/EDIT REQ) -->
+                    <div id="box_requestor_info" onclick="tambahAtauEditRequestor()" class="bg-[#13161c] border border-gray-700 hover:border-amber-500 cursor-pointer rounded px-2 py-1 text-[10px] font-bold text-[#ff9f0a] flex flex-col items-center justify-center min-w-[90px] max-w-[120px] truncate leading-tight transition-all" title="Klik untuk Tambah / Edit Requestor">
                         <span id="txt_nama_req" class="truncate w-full text-center">- Requestor -</span>
                         <span id="txt_sn_gps" class="text-[9px] text-gray-400 font-mono truncate w-full text-center">SN: -</span>
                     </div>
@@ -680,6 +680,7 @@
             }
         }
 
+        // FITUR TAMBAHAN: CEK & TAMPILKAN STYLING NAMA REQUESTOR
         async function cekRequestor(plat) {
             const elNama = document.getElementById("txt_nama_req");
             const elSn = document.getElementById("txt_sn_gps");
@@ -697,8 +698,11 @@
 
                 if (resReq.data && resReq.data.nama_requestor) {
                     elNama.innerText = resReq.data.nama_requestor;
+                    elNama.classList.remove("text-red-400", "underline");
                 } else {
-                    elNama.innerText = "No Name";
+                    // JIKA BELUM ADA REQUESTOR -> TAMPILKAN TOMBOL/TEKS INPUT MERAH
+                    elNama.innerText = "+ Input Req";
+                    elNama.classList.add("text-red-400", "underline");
                 }
 
                 if (resGpsStatus.data) {
@@ -721,6 +725,39 @@
                 console.log("Error fetch requestor/SN:", err.message);
                 elNama.innerText = "Unknown";
                 elSn.innerText = "SN: Error";
+            }
+        }
+
+        // FITUR TAMBAHAN: TAMBAH ATAU EDIT MANUAL NAMA REQUESTOR KE SUPABASE
+        async function tambahAtauEditRequestor() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) return alert("Silakan isi dan cek Plat Nomor terlebih dahulu!");
+
+            const elNama = document.getElementById("txt_nama_req");
+            const currentReq = elNama.innerText;
+            const defaultVal = (currentReq === "+ Input Req" || currentReq === "No Name" || currentReq === "Unknown" || currentReq === "- Requestor -") ? "" : currentReq;
+            
+            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`, defaultVal);
+            if (namaBaru === null) return; // User menekan batal
+            
+            const namaTrimmed = namaBaru.trim();
+            if (!namaTrimmed) return alert("Nama Requestor tidak boleh kosong!");
+
+            try {
+                const { error } = await _supabase
+                    .from('plat_requestor')
+                    .upsert({
+                        plat_nomor: plat,
+                        nama_requestor: namaTrimmed
+                    }, { onConflict: 'plat_nomor' });
+
+                if (error) throw error;
+
+                elNama.innerText = namaTrimmed;
+                elNama.classList.remove("text-red-400", "underline");
+                alert(`Berhasil menyimpan Requestor "${namaTrimmed}" untuk plat ${plat}!`);
+            } catch (err) {
+                alert("Gagal menyimpan Requestor:\n" + err.message);
             }
         }
 
@@ -900,6 +937,7 @@
             document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
             document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
             document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
             document.getElementById("txt_sn_gps").innerText = "SN: -";
             document.getElementById("label_aktif_terakhir").classList.add("hidden");
             
@@ -922,7 +960,7 @@
         }
 
         // =========================================================
-        // FITUR: GENERATE UPDATE MASSAL GPS AROBS VIA EXCEL
+        // FITUR PERBAIKAN: GENERATE UPDATE MASSAL GPS AROBS VIA EXCEL
         // =========================================================
 
         function cleanPlatString(str) {
@@ -943,6 +981,49 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Mengemudi");
             XLSX.writeFile(workbook, "Template_AROBS_GPS.xlsx");
+        }
+
+        // FUNGSI CHUNKING UTK MEMBACA SELURUH MASTER PLAT (TANPA BATASAN 1000 BARIS)
+        async function fetchAllPlatsFromDb() {
+            const platMap = new Map();
+            const tables = ['log_bbm', 'plat_requestor', 'plat_gps_status'];
+            const pageSize = 1000;
+
+            for (const table of tables) {
+                let page = 0;
+                let hasMore = true;
+                while (hasMore) {
+                    let from = page * pageSize;
+                    let to = from + pageSize - 1;
+
+                    const { data, error } = await _supabase
+                        .from(table)
+                        .select('plat_nomor')
+                        .range(from, to);
+
+                    if (error) {
+                        console.error(`Error fetch plat dari ${table}:`, error);
+                        break;
+                    }
+
+                    if (data && data.length > 0) {
+                        data.forEach(r => {
+                            if (r.plat_nomor) {
+                                const cleaned = cleanPlatString(r.plat_nomor);
+                                if (cleaned && !platMap.has(cleaned)) {
+                                    platMap.set(cleaned, r.plat_nomor.trim().toUpperCase());
+                                }
+                            }
+                        });
+                        if (data.length < pageSize) hasMore = false;
+                        else page++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+            }
+
+            return platMap;
         }
 
         async function handleExcelGpsUpload(input) {
@@ -967,25 +1048,10 @@
                         return;
                     }
 
-                    txtBtn.innerText = "Mengambil master plat dari Database...";
+                    txtBtn.innerText = "Membaca seluruh master plat dari Database (tanpa limit)...";
 
-                    const { data: dbLogPlats, error: errDb } = await _supabase.from('log_bbm').select('plat_nomor');
-                    if (errDb) throw errDb;
-
-                    const dbPlatMap = new Map();
-                    if (dbLogPlats) {
-                        dbLogPlats.forEach(r => {
-                            if (r.plat_nomor) {
-                                const cleaned = cleanPlatString(r.plat_nomor);
-                                if (cleaned) dbPlatMap.set(cleaned, r.plat_nomor);
-                            }
-                        });
-                    }
-
-                    if (dbPlatMap.size === 0) {
-                        alert("Database belum memiliki log plat nomor!");
-                        return;
-                    }
+                    // 1. Ambil seluruh plat terdaftar dari DB (tanpa pembatasan 1000 baris)
+                    const dbPlatMap = await fetchAllPlatsFromDb();
 
                     txtBtn.innerText = "Memproses & Mencocokkan Data...";
 
@@ -1001,9 +1067,14 @@
                         }
 
                         const cleanedPlat = cleanPlatString(platRaw);
-                        if (!cleanedPlat || !dbPlatMap.has(cleanedPlat)) continue;
+                        if (!cleanedPlat) continue;
 
-                        const actualDbPlat = dbPlatMap.get(cleanedPlat);
+                        // PERBAIKAN: Jika plat belum ada di DB (Plat Baru), tambahkan ke dbPlatMap agar tetap tergenerate!
+                        let actualDbPlat = dbPlatMap.get(cleanedPlat);
+                        if (!actualDbPlat) {
+                            actualDbPlat = platRaw.replace(/^TOTAL\s+/i, '').split('(')[0].trim().toUpperCase();
+                            dbPlatMap.set(cleanedPlat, actualDbPlat);
+                        }
 
                         let extractedSn = null;
                         for (let k in row) {
@@ -1030,8 +1101,9 @@
                         }
                     }
 
-                    txtBtn.innerText = "Mengupdate Database...";
+                    txtBtn.innerText = `Mengupdate Database (${dbPlatMap.size} Plat)...`;
                     let countAktif = 0, countMati = 0, countNotFound = 0;
+                    const statusRecords = [];
 
                     for (let [cleanedPlat, actualDbPlat] of dbPlatMap.entries()) {
                         const excelItem = excelDataMap.get(actualDbPlat);
@@ -1059,24 +1131,37 @@
                             countMati++;
                         }
 
-                        await _supabase
-                            .from('plat_gps_status')
-                            .upsert({
-                                plat_nomor: actualDbPlat,
-                                sn_gps: snGps,
-                                aktif_terakhir: tglAktif,
-                                status_gps: statusGps,
-                                updated_at: new Date().toISOString()
-                            }, { onConflict: 'plat_nomor' });
-
-                        const isGpsActive = (statusGps === 'AKTIF');
-                        await _supabase
-                            .from('log_bbm')
-                            .update({ is_gps: isGpsActive, gps_detail: statusGps })
-                            .eq('plat_nomor', actualDbPlat);
+                        statusRecords.push({
+                            plat_nomor: actualDbPlat,
+                            sn_gps: snGps,
+                            aktif_terakhir: tglAktif,
+                            status_gps: statusGps,
+                            updated_at: new Date().toISOString()
+                        });
                     }
 
-                    alert(`Berhasil Generate Update Massal!\n` +
+                    // Batching upsert ke plat_gps_status (setiap 500 data) agar sangat cepat
+                    for (let i = 0; i < statusRecords.length; i += 500) {
+                        const chunk = statusRecords.slice(i, i + 500);
+                        const { error: errBatch } = await _supabase
+                            .from('plat_gps_status')
+                            .upsert(chunk, { onConflict: 'plat_nomor' });
+                        if (errBatch) console.error("Error batch upsert GPS status:", errBatch);
+                    }
+
+                    // Update status is_gps & gps_detail di log_bbm dalam batch
+                    for (let i = 0; i < statusRecords.length; i += 50) {
+                        const chunk = statusRecords.slice(i, i + 50);
+                        await Promise.all(chunk.map(item => 
+                            _supabase
+                                .from('log_bbm')
+                                .update({ is_gps: (item.status_gps === 'AKTIF'), gps_detail: item.status_gps })
+                                .eq('plat_nomor', item.plat_nomor)
+                        ));
+                    }
+
+                    alert(`Berhasil Generate Update Massal GPS!\n` +
+                          `Total Plat Diproses: ${dbPlatMap.size} plat\n` +
                           `🟢 GPS AKTIF: ${countAktif} plat\n` +
                           `🔴 GPS MATI: ${countMati} plat\n` +
                           `🟣 GPS NOTFOUNDAROB: ${countNotFound} plat`);
