@@ -280,6 +280,14 @@
                         <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
                     </button>
+                    <button onclick="downloadGpsMatiLog(this)" class="bg-red-950/40 hover:bg-red-900/60 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span id="txt_btn_4">4. Download GPS Tidak Aktif / Mati</span>
+                        <span class="text-xs">📍</span>
+                    </button>
+                    <button onclick="downloadGpsNotFoundLog(this)" class="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/50 text-purple-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span id="txt_btn_5">5. Download GPS NOTFOUNDAROB</span>
+                        <span class="text-xs">❓</span>
+                    </button>
                 </div>
             </div>
 
@@ -293,7 +301,7 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, is_approved, remark";
+        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark";
 
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
@@ -1143,6 +1151,63 @@
             } finally {
                 btn.disabled = false;
                 txtEl.innerText = "3. Data Plat (3+ status KURANG di 5 rekues terakhir)";
+            }
+        }
+
+        async function downloadGpsMatiLog(btn) {
+            const txtEl = document.getElementById("txt_btn_4");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked(null, null, (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ada data log di Cloud.");
+                    return;
+                }
+
+                const filtered = data.filter(row => row.gps_detail === 'MATI' || (row.is_gps === false && row.gps_detail !== 'NOTFOUNDAROB'));
+
+                if (filtered.length === 0) {
+                    alert("Tidak ditemukan data log dengan status GPS Mati.");
+                    return;
+                }
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(filtered, `Log_BBM_GPS_Mati_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh Log GPS Mati:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "4. Download GPS Tidak Aktif / Mati";
+            }
+        }
+
+        async function downloadGpsNotFoundLog(btn) {
+            const txtEl = document.getElementById("txt_btn_5");
+            btn.disabled = true;
+
+            try {
+                txtEl.innerText = "Mengambil data...";
+                const data = await fetchAllDataChunked('gps_detail', 'NOTFOUNDAROB', (total) => {
+                    txtEl.innerText = `Mengambil... (${total} data)`;
+                });
+
+                if (!data || data.length === 0) {
+                    alert("Tidak ditemukan data log dengan status GPS NOTFOUNDAROB.");
+                    return;
+                }
+
+                txtEl.innerText = "Membuat Excel...";
+                exportToExcelFile(data, `Log_BBM_GPS_NOTFOUNDAROB_${new Date().toISOString().slice(0,10)}.xlsx`);
+            } catch (err) {
+                alert("Gagal mengunduh Log GPS NOTFOUNDAROB:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = "5. Download GPS NOTFOUNDAROB";
             }
         }
     </script>
