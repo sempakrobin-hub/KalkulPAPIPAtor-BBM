@@ -837,13 +837,43 @@
             btnSave.innerText = "...";
 
             try {
+                let isAutoUpdated = false;
+
+                // Cek log terakhir plat ini jika tidak sedang dalam mode edit manual
+                if (id_log_sedang_diedit === null) {
+                    const { data: lastLogData, error: fetchErr } = await _supabase
+                        .from('log_bbm')
+                        .select('id, created_at')
+                        .eq('plat_nomor', data_siap_simpan.plat_nomor)
+                        .order('id', { ascending: false })
+                        .limit(1);
+
+                    if (!fetchErr && lastLogData && lastLogData.length > 0) {
+                        const logTerakhir = lastLogData[0];
+                        if (logTerakhir.created_at) {
+                            const selisihJam = (new Date() - new Date(logTerakhir.created_at)) / (1000 * 60 * 60);
+                            
+                            // Jika tersimpan dalam waktu kurang dari 1 jam
+                            if (selisihJam < 1) {
+                                id_log_sedang_diedit = logTerakhir.id;
+                                isAutoUpdated = true;
+                            }
+                        }
+                    }
+                }
+
                 if (id_log_sedang_diedit !== null) {
                     const { error } = await _supabase
                         .from('log_bbm')
                         .update(data_siap_simpan)
                         .eq('id', id_log_sedang_diedit);
                     if (error) throw error;
-                    alert(`Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) Berhasil Diperbarui!`);
+
+                    if (isAutoUpdated) {
+                        alert(`Data ${data_siap_simpan.plat_nomor} otomatis memperbarui Log ID #${id_log_sedang_diedit} karena disimpan dalam kurun < 1 jam!`);
+                    } else {
+                        alert(`Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) Berhasil Diperbarui!`);
+                    }
                 } else {
                     const { error } = await _supabase
                         .from('log_bbm')
@@ -859,7 +889,8 @@
                     updateApprovalLabel();
                 }
 
-                btnSave.style.backgroundColor = "#3a3f4d"; btnSave.innerText = "SAVE";
+                btnSave.style.backgroundColor = "#3a3f4d"; 
+                btnSave.innerText = "SAVE";
                 loadMiniLog(data_siap_simpan.plat_nomor);
             } catch (err) {
                 alert("Gagal memproses data ke Cloud:\n" + err.message);
