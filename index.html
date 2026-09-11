@@ -266,12 +266,31 @@
                 </div>
             </div>
 
+            <!-- FITUR BARU: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
+                    <span>👤 Update Requestor Massal (Excel)</span>
+                    <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
+                </div>
+                <div class="flex flex-col gap-1.5 text-[10px]">
+                    <input type="file" id="excel_req_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelRequestorUpload(this)">
+                    <button onclick="document.getElementById('excel_req_uploader').click()" class="bg-[#0a84ff]/20 hover:bg-[#0a84ff]/30 border border-blue-500/50 text-blue-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
+                        <span id="txt_btn_gen_req">📂 Upload Excel Requestor & Update Massal</span>
+                        <span class="text-xs">👥</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
-                    <span>📊 Tarik Data Log (Excel)</span>
+                    <span>📊 Tarik Data Log & Master (Excel)</span>
                 </div>
                 <div class="grid grid-cols-1 gap-2 text-[10px] font-bold">
+                    <button onclick="downloadStatusGpsMaster(this)" class="bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/50 text-cyan-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                        <span id="txt_btn_gps_master">📡 Download Status GPS Terbaru (Plat, Requestor, Status)</span>
+                        <span class="text-xs">📥</span>
+                    </button>
                     <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
                         <span id="txt_btn_1">1. Download All Log</span>
                         <span class="text-xs">📥</span>
@@ -283,14 +302,6 @@
                     <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
                         <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
-                    </button>
-                    <button onclick="downloadGpsMatiLog(this)" class="bg-red-950/40 hover:bg-red-900/60 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
-                        <span id="txt_btn_4">4. Download GPS Tidak Aktif / Mati</span>
-                        <span class="text-xs">📍</span>
-                    </button>
-                    <button onclick="downloadGpsNotFoundLog(this)" class="bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/50 text-purple-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
-                        <span id="txt_btn_5">5. Download GPS NOTFOUNDAROB</span>
-                        <span class="text-xs">❓</span>
                     </button>
                 </div>
             </div>
@@ -991,6 +1002,112 @@
         }
 
         // =========================================================
+        // FITUR UPDATE MASSAL REQUESTOR VIA EXCEL
+        // =========================================================
+
+        function downloadTemplateRequestor() {
+            const templateData = [
+                { "Plat Nomor": "B 1209 DZU", "Nama Requestor": "Budi Santoso" },
+                { "Plat Nomor": "D 8365 FN", "Nama Requestor": "Ahmad Yani" }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Master Requestor");
+            XLSX.writeFile(workbook, "Template_Update_Requestor.xlsx");
+        }
+
+        async function handleExcelRequestorUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const txtBtn = document.getElementById("txt_btn_gen_req");
+            input.disabled = true;
+            txtBtn.innerText = "Membaca File Excel...";
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                    if (!jsonRows || jsonRows.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        return;
+                    }
+
+                    txtBtn.innerText = "Memproses Data Requestor...";
+
+                    const recordsToUpsert = [];
+                    const processedPlats = new Set();
+
+                    for (let row of jsonRows) {
+                        let platRaw = "";
+                        let namaReq = "";
+
+                        for (let k in row) {
+                            const kLower = k.toLowerCase();
+                            if (kLower.includes('plat') || kLower.includes('registrasi') || kLower.includes('kendaraan')) {
+                                if (row[k]) platRaw = String(row[k]).trim();
+                            }
+                            if (kLower.includes('requestor') || kLower.includes('nama')) {
+                                if (row[k]) namaReq = String(row[k]).trim();
+                            }
+                        }
+
+                        const cleanedPlat = cleanPlatString(platRaw);
+                        if (cleanedPlat && namaReq) {
+                            if (!processedPlats.has(cleanedPlat)) {
+                                processedPlats.add(cleanedPlat);
+                                recordsToUpsert.push({
+                                    plat_nomor: cleanedPlat,
+                                    nama_requestor: namaReq
+                                });
+                            }
+                        }
+                    }
+
+                    if (recordsToUpsert.length === 0) {
+                        alert("Tidak ada pasangan Plat Nomor dan Nama Requestor yang valid ditemukan di file!");
+                        return;
+                    }
+
+                    txtBtn.innerText = `Mengupdate Database (${recordsToUpsert.length} data)...`;
+
+                    // Batching upsert setiap 500 data agar cepat dan tidak melebih batasan Supabase
+                    let successCount = 0;
+                    for (let i = 0; i < recordsToUpsert.length; i += 500) {
+                        const chunk = recordsToUpsert.slice(i, i + 500);
+                        const { error } = await _supabase
+                            .from('plat_requestor')
+                            .upsert(chunk, { onConflict: 'plat_nomor' });
+
+                        if (error) throw error;
+                        successCount += chunk.length;
+                    }
+
+                    alert(`Berhasil Mengupdate Nama Requestor secara Massal!\n` +
+                          `Total Data Diperbarui/Disimpan: ${successCount} Plat Kendaraan.`);
+
+                    const currentPlat = document.getElementById("entry_plat").value.trim().toUpperCase();
+                    if (currentPlat) {
+                        cekRequestor(currentPlat);
+                    }
+
+                } catch (err) {
+                    alert("Gagal mengupdate Requestor massal:\n" + err.message);
+                } finally {
+                    input.value = "";
+                    txtBtn.innerText = "📂 Upload Excel Requestor & Update Massal";
+                    input.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // =========================================================
         // FITUR PERBAIKAN: GENERATE UPDATE MASSAL GPS AROBS VIA EXCEL
         // =========================================================
 
@@ -1100,7 +1217,6 @@
                         const cleanedPlat = cleanPlatString(platRaw);
                         if (!cleanedPlat) continue;
 
-                        // PERBAIKAN: Jika plat belum ada di DB (Plat Baru), tambahkan ke dbPlatMap agar tetap tergenerate!
                         let actualDbPlat = dbPlatMap.get(cleanedPlat);
                         if (!actualDbPlat) {
                             actualDbPlat = platRaw.replace(/^TOTAL\s+/i, '').split('(')[0].trim().toUpperCase();
@@ -1211,6 +1327,108 @@
         // =========================================================
         // HELPER EXPORT EXCEL & PAGING DATABASE
         // =========================================================
+
+        // FITUR BARU: DOWNLOAD STATUS GPS MASTER (BERISI PLAT, REQUESTOR, STATUS GPS)
+        async function downloadStatusGpsMaster(btn) {
+            const txtEl = document.getElementById("txt_btn_gps_master");
+            btn.disabled = true;
+            const originalText = txtEl.innerText;
+
+            try {
+                txtEl.innerText = "Mengambil master GPS...";
+                
+                // 1. Ambil seluruh data dari plat_gps_status
+                let allGpsRows = [];
+                let pageSize = 1000;
+                let page = 0;
+                let hasMore = true;
+
+                while (hasMore) {
+                    let from = page * pageSize;
+                    let to = from + pageSize - 1;
+
+                    const { data, error } = await _supabase
+                        .from('plat_gps_status')
+                        .select('plat_nomor, sn_gps, status_gps, aktif_terakhir')
+                        .order('plat_nomor', { ascending: true })
+                        .range(from, to);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        allGpsRows = allGpsRows.concat(data);
+                        if (data.length < pageSize) hasMore = false;
+                        else page++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                if (allGpsRows.length === 0) {
+                    alert("Belum ada data Master Status GPS di database.");
+                    return;
+                }
+
+                txtEl.innerText = "Mengambil data Requestor...";
+
+                // 2. Ambil seluruh data dari plat_requestor
+                let reqMap = new Map();
+                page = 0;
+                hasMore = true;
+
+                while (hasMore) {
+                    let from = page * pageSize;
+                    let to = from + pageSize - 1;
+
+                    const { data, error } = await _supabase
+                        .from('plat_requestor')
+                        .select('plat_nomor, nama_requestor')
+                        .range(from, to);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        data.forEach(r => {
+                            if (r.plat_nomor) {
+                                reqMap.set(r.plat_nomor.trim().toUpperCase(), r.nama_requestor || '-');
+                            }
+                        });
+                        if (data.length < pageSize) hasMore = false;
+                        else page++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                txtEl.innerText = "Memproses Excel...";
+
+                // 3. Gabungkan data
+                const formattedData = allGpsRows.map((item, index) => {
+                    const platKey = item.plat_nomor ? item.plat_nomor.trim().toUpperCase() : '';
+                    const namaReq = reqMap.get(platKey) || '-';
+
+                    return {
+                        "No": index + 1,
+                        "Plat Nomor": item.plat_nomor || "-",
+                        "Nama Requestor": namaReq,
+                        "SN GPS": item.sn_gps || "-",
+                        "Status GPS": item.status_gps || "MATI",
+                        "Aktif Terakhir": item.aktif_terakhir || "-"
+                    };
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(formattedData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Master Status GPS");
+                XLSX.writeFile(workbook, `Master_Status_GPS_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+            } catch (err) {
+                alert("Gagal mengunduh Status GPS:\n" + err.message);
+            } finally {
+                btn.disabled = false;
+                txtEl.innerText = originalText;
+            }
+        }
 
         function formatDataForExcel(rawData) {
             return rawData.map(item => ({
