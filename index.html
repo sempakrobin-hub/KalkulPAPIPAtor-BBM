@@ -54,7 +54,7 @@
                     <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
                 </div>
 
-                <!-- GRID CONTAINER: INPUT (START, AKHIR, LITER) & DISPLAY KEKURANGAN 1:12 -->
+                <!-- GRID CONTAINER: INPUT (START, AKHIR, LITER) & DISPLAY KEKURANGAN RASIO 1:11 -->
                 <div class="grid grid-cols-2 gap-2 w-full">
                     <!-- KOLOM KIRI: INPUT START, AKHIR, LITER -->
                     <div class="flex flex-col space-y-1.5">
@@ -74,10 +74,10 @@
                         </div>
                     </div>
 
-                    <!-- KOLOM KANAN: PANEL ANALISIS KEKURANGAN RASIO 1:12 -->
+                    <!-- KOLOM KANAN: PANEL ANALISIS KEKURANGAN RASIO 1:11 -->
                     <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
                         <div class="text-[9px] font-bold text-[#0a84ff] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
-                            <span>🎯 Rasio 1:12</span>
+                            <span>🎯 Rasio 1:11</span>
                             <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
                         </div>
                         
@@ -352,7 +352,7 @@
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI";
 
-        // VARIABEL STATE KEKURANGAN KM 1:12
+        // VARIABEL STATE KEKURANGAN KM 1:11
         let val_kurang_kemaren = 0;
         let val_kurang_sekarang = 0;
         let val_total_kurang = 0;
@@ -406,7 +406,7 @@
                     const rowLiter = parseFloat(row.liter) || 0;
                     const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
 
-                    totalTargetPrev += (rowLiter * 12);
+                    totalTargetPrev += (rowLiter * 11); // Menggunakan target rasio 1:11
                     totalActualPrev += rowJarak;
                 });
 
@@ -883,8 +883,8 @@
             document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
-            // AKUMULASI KEKURANGAN KM UNTUK TARGET RASIO 1:12
-            const targetKmSekarang = liter * 12;
+            // AKUMULASI KEKURANGAN KM UNTUK TARGET RASIO 1:11
+            const targetKmSekarang = liter * 11;
             const selisihSekarang = targetKmSekarang - jarak;
             
             val_kurang_sekarang = selisihSekarang > 0 ? Math.round(selisihSekarang * 10) / 10 : 0;
@@ -912,7 +912,7 @@
             }
 
             if (val_total_kurang > 0) {
-                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. Kekurangan rasio 1:12 saat ini: ${formatKm(val_total_kurang)} (Kemaren: ${formatKm(val_kurang_kemaren)}, Sekarang: ${formatKm(val_kurang_sekarang)})`;
+                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. Kekurangan rasio 1:11 saat ini: ${formatKm(val_total_kurang)} (Kemaren: ${formatKm(val_kurang_kemaren)}, Sekarang: ${formatKm(val_kurang_sekarang)})`;
             } else {
                 document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
             }
