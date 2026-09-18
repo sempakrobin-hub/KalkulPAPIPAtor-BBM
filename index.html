@@ -54,19 +54,48 @@
                     <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
                 </div>
 
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">START</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
-                </div>
+                <!-- GRID CONTAINER: INPUT (START, AKHIR, LITER) & DISPLAY KEKURANGAN 1:12 -->
+                <div class="grid grid-cols-2 gap-2 w-full">
+                    <!-- KOLOM KIRI: INPUT START, AKHIR, LITER -->
+                    <div class="flex flex-col space-y-1.5">
+                        <div class="flex items-center bg-[#2d323f] rounded px-2.5 py-1 text-[11px] font-bold text-[#a0a5b5]">
+                            <span class="w-11 flex-shrink-0">START</span>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none text-right" placeholder="Auto" onfocus="autoPaste(this, true)">
+                        </div>
 
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">AKHIR</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, true)">
-                </div>
+                        <div class="flex items-center bg-[#2d323f] rounded px-2.5 py-1 text-[11px] font-bold text-[#a0a5b5]">
+                            <span class="w-11 flex-shrink-0">AKHIR</span>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none text-right" placeholder="Auto" onfocus="autoPaste(this, true)">
+                        </div>
 
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">LITER</span>
-                    <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none" placeholder="Isi jumlah liter">
+                        <div class="flex items-center bg-[#2d323f] rounded px-2.5 py-1 text-[11px] font-bold text-[#a0a5b5]">
+                            <span class="w-11 flex-shrink-0">LITER</span>
+                            <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none text-right" placeholder="Liter">
+                        </div>
+                    </div>
+
+                    <!-- KOLOM KANAN: PANEL ANALISIS KEKURANGAN RASIO 1:12 -->
+                    <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
+                        <div class="text-[9px] font-bold text-[#0a84ff] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
+                            <span>🎯 Rasio 1:12</span>
+                            <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-[9.5px]">
+                            <span class="text-gray-400 font-medium">K.KEMAREN:</span>
+                            <span id="label_kurang_kemaren" class="text-amber-400 font-bold font-mono">0 Km</span>
+                        </div>
+
+                        <div class="flex justify-between items-center text-[9.5px]">
+                            <span class="text-gray-400 font-medium">K.SEKARANG:</span>
+                            <span id="label_kurang_sekarang" class="text-red-400 font-bold font-mono">0 Km</span>
+                        </div>
+
+                        <div class="border-t border-gray-800 pt-0.5 flex justify-between items-center mt-auto">
+                            <span class="text-gray-300 font-bold text-[9px]">TOT. KURANG:</span>
+                            <span id="label_total_kurang" class="text-red-500 font-black font-mono text-[10.5px]">0 Km</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
@@ -323,13 +352,71 @@
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI";
 
+        // VARIABEL STATE KEKURANGAN KM 1:12
+        let val_kurang_kemaren = 0;
+        let val_kurang_sekarang = 0;
+        let val_total_kurang = 0;
+
         let array_foto_base64 = [null, null, null];
         let array_foto_timestamps = [0, 0, 0];
 
         window.addEventListener('DOMContentLoaded', () => {
             updateApprovalLabel();
             setGpsStatus("MATI");
+            updateKurangDisplay();
         });
+
+        function formatKm(num) {
+            if (!num || num <= 0) return "0 Km";
+            let formatted = Math.round(num * 10) / 10;
+            return `${formatted} Km`;
+        }
+
+        function updateKurangDisplay() {
+            document.getElementById("label_kurang_kemaren").innerText = formatKm(val_kurang_kemaren);
+            document.getElementById("label_kurang_sekarang").innerText = formatKm(val_kurang_sekarang);
+            document.getElementById("label_total_kurang").innerText = formatKm(val_total_kurang);
+        }
+
+        async function hitungKurangKemaren(plat) {
+            if (!plat) {
+                val_kurang_kemaren = 0;
+                updateKurangDisplay();
+                return;
+            }
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select('id, km_start, km_akhir, jarak, liter')
+                    .eq('plat_nomor', plat);
+
+                if (error || !data) {
+                    val_kurang_kemaren = 0;
+                    updateKurangDisplay();
+                    return;
+                }
+
+                let totalTargetPrev = 0;
+                let totalActualPrev = 0;
+
+                data.forEach(row => {
+                    // Jangan hitung log yang sedang diedit
+                    if (id_log_sedang_diedit !== null && row.id === id_log_sedang_diedit) return;
+
+                    const rowLiter = parseFloat(row.liter) || 0;
+                    const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
+
+                    totalTargetPrev += (rowLiter * 12);
+                    totalActualPrev += rowJarak;
+                });
+
+                let selisihPrev = totalTargetPrev - totalActualPrev;
+                val_kurang_kemaren = selisihPrev > 0 ? Math.round(selisihPrev * 10) / 10 : 0;
+            } catch (e) {
+                val_kurang_kemaren = 0;
+            }
+            updateKurangDisplay();
+        }
 
         function updateApprovalLabel() {
             const lastApproved = localStorage.getItem('last_bbm_approval_time');
@@ -639,6 +726,7 @@
             try {
                 loadMiniLog(plat);
                 await cekRequestor(plat);
+                await hitungKurangKemaren(plat);
 
                 const { data, error } = await _supabase
                     .from('log_bbm')
@@ -712,7 +800,6 @@
                     elNama.innerText = resReq.data.nama_requestor;
                     elNama.classList.remove("text-red-400", "underline");
                 } else {
-                    // JIKA BELUM ADA REQUESTOR -> TAMPILKAN TOMBOL/TEKS INPUT MERAH
                     elNama.innerText = "+ Input Req";
                     elNama.classList.add("text-red-400", "underline");
                 }
@@ -750,7 +837,7 @@
             const defaultVal = (currentReq === "+ Input Req" || currentReq === "No Name" || currentReq === "Unknown" || currentReq === "- Requestor -") ? "" : currentReq;
             
             const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`, defaultVal);
-            if (namaBaru === null) return; // User menekan batal
+            if (namaBaru === null) return; 
             
             const namaTrimmed = namaBaru.trim();
             if (!namaTrimmed) return alert("Nama Requestor tidak boleh kosong!");
@@ -794,6 +881,17 @@
             document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
+            // AKUMULASI KEKURANGAN KM UNTUK TARGET RASIO 1:12
+            const targetKmSekarang = liter * 12;
+            const selisihSekarang = targetKmSekarang - jarak;
+            
+            val_kurang_sekarang = selisihSekarang > 0 ? Math.round(selisihSekarang * 10) / 10 : 0;
+
+            const totalSelisih = val_kurang_kemaren + selisihSekarang;
+            val_total_kurang = totalSelisih > 0 ? Math.round(totalSelisih * 10) / 10 : 0;
+
+            updateKurangDisplay();
+
             let kesimpulan, bgWarna;
             if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
             else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
@@ -811,7 +909,11 @@
                 handleApprovalChange(false);
             }
 
-            document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
+            if (val_total_kurang > 0) {
+                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. Kekurangan rasio 1:12 saat ini: ${formatKm(val_total_kurang)} (Kemaren: ${formatKm(val_kurang_kemaren)}, Sekarang: ${formatKm(val_kurang_sekarang)})`;
+            } else {
+                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
+            }
 
             data_siap_simpan = { 
                 plat_nomor: plat, 
@@ -851,7 +953,6 @@
             try {
                 let isAutoUpdated = false;
 
-                // Cek log terakhir plat ini jika tidak sedang dalam mode edit manual
                 if (id_log_sedang_diedit === null) {
                     const { data: lastLogData, error: fetchErr } = await _supabase
                         .from('log_bbm')
@@ -865,7 +966,6 @@
                         if (logTerakhir.created_at) {
                             const selisihJam = (new Date() - new Date(logTerakhir.created_at)) / (1000 * 60 * 60);
                             
-                            // Jika tersimpan dalam waktu kurang dari 1 jam
                             if (selisihJam < 1) {
                                 id_log_sedang_diedit = logTerakhir.id;
                                 isAutoUpdated = true;
@@ -904,6 +1004,7 @@
                 btnSave.style.backgroundColor = "#3a3f4d"; 
                 btnSave.innerText = "SAVE";
                 loadMiniLog(data_siap_simpan.plat_nomor);
+                await hitungKurangKemaren(data_siap_simpan.plat_nomor);
             } catch (err) {
                 alert("Gagal memproses data ke Cloud:\n" + err.message);
                 btnSave.innerText = textAwal;
@@ -912,7 +1013,7 @@
             }
         }
 
-        function lemparKeForm(encodedData) {
+        async function lemparKeForm(encodedData) {
             const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
             id_log_sedang_diedit = dataObj.id; 
 
@@ -921,7 +1022,8 @@
             document.getElementById("entry_akhir").value = dataObj.km_akhir;
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
-            
+
+            await hitungKurangKemaren(dataObj.plat_nomor);
             hitungRasio(); 
 
             document.getElementById("toggle_mafia").checked = dataObj.is_mafia === true;
@@ -971,6 +1073,11 @@
         function resetForm() {
             data_siap_simpan = null;
             id_log_sedang_diedit = null;
+            val_kurang_kemaren = 0;
+            val_kurang_sekarang = 0;
+            val_total_kurang = 0;
+            updateKurangDisplay();
+
             array_foto_timestamps = [0, 0, 0];
             ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
             document.getElementById("label_jarak").innerText = "Jarak: -";
@@ -1077,7 +1184,6 @@
 
                     txtBtn.innerText = `Mengupdate Database (${recordsToUpsert.length} data)...`;
 
-                    // Batching upsert setiap 500 data agar cepat dan tidak melebih batasan Supabase
                     let successCount = 0;
                     for (let i = 0; i < recordsToUpsert.length; i += 500) {
                         const chunk = recordsToUpsert.slice(i, i + 500);
@@ -1132,7 +1238,6 @@
             XLSX.writeFile(workbook, "Template_AROBS_GPS.xlsx");
         }
 
-        // FUNGSI CHUNKING UTK MEMBACA SELURUH MASTER PLAT (TANPA BATASAN 1000 BARIS)
         async function fetchAllPlatsFromDb() {
             const platMap = new Map();
             const tables = ['log_bbm', 'plat_requestor', 'plat_gps_status'];
@@ -1199,7 +1304,6 @@
 
                     txtBtn.innerText = "Membaca seluruh master plat dari Database (tanpa limit)...";
 
-                    // 1. Ambil seluruh plat terdaftar dari DB (tanpa pembatasan 1000 baris)
                     const dbPlatMap = await fetchAllPlatsFromDb();
 
                     txtBtn.innerText = "Memproses & Mencocokkan Data...";
@@ -1288,7 +1392,6 @@
                         });
                     }
 
-                    // Batching upsert ke plat_gps_status (setiap 500 data) agar sangat cepat
                     for (let i = 0; i < statusRecords.length; i += 500) {
                         const chunk = statusRecords.slice(i, i + 500);
                         const { error: errBatch } = await _supabase
@@ -1297,7 +1400,6 @@
                         if (errBatch) console.error("Error batch upsert GPS status:", errBatch);
                     }
 
-                    // Update status is_gps & gps_detail di log_bbm dalam batch
                     for (let i = 0; i < statusRecords.length; i += 50) {
                         const chunk = statusRecords.slice(i, i + 50);
                         await Promise.all(chunk.map(item => 
@@ -1329,7 +1431,6 @@
         // HELPER EXPORT EXCEL & PAGING DATABASE
         // =========================================================
 
-        // FITUR BARU: DOWNLOAD STATUS GPS MASTER (BERISI PLAT, REQUESTOR, STATUS GPS)
         async function downloadStatusGpsMaster(btn) {
             const txtEl = document.getElementById("txt_btn_gps_master");
             btn.disabled = true;
@@ -1338,7 +1439,6 @@
             try {
                 txtEl.innerText = "Mengambil master GPS...";
                 
-                // 1. Ambil seluruh data dari plat_gps_status
                 let allGpsRows = [];
                 let pageSize = 1000;
                 let page = 0;
@@ -1372,7 +1472,6 @@
 
                 txtEl.innerText = "Mengambil data Requestor...";
 
-                // 2. Ambil seluruh data dari plat_requestor
                 let reqMap = new Map();
                 page = 0;
                 hasMore = true;
@@ -1403,7 +1502,6 @@
 
                 txtEl.innerText = "Memproses Excel...";
 
-                // 3. Gabungkan data
                 const formattedData = allGpsRows.map((item, index) => {
                     const platKey = item.plat_nomor ? item.plat_nomor.trim().toUpperCase() : '';
                     const namaReq = reqMap.get(platKey) || '-';
@@ -1591,63 +1689,6 @@
             } finally {
                 btn.disabled = false;
                 txtEl.innerText = "3. Data Plat (3+ status KURANG di 5 rekues terakhir)";
-            }
-        }
-
-        async function downloadGpsMatiLog(btn) {
-            const txtEl = document.getElementById("txt_btn_4");
-            btn.disabled = true;
-
-            try {
-                txtEl.innerText = "Mengambil data...";
-                const data = await fetchAllDataChunked(null, null, (total) => {
-                    txtEl.innerText = `Mengambil... (${total} data)`;
-                });
-
-                if (!data || data.length === 0) {
-                    alert("Tidak ada data log di Cloud.");
-                    return;
-                }
-
-                const filtered = data.filter(row => row.gps_detail === 'MATI' || (row.is_gps === false && row.gps_detail !== 'NOTFOUNDAROB'));
-
-                if (filtered.length === 0) {
-                    alert("Tidak ditemukan data log dengan status GPS Mati.");
-                    return;
-                }
-
-                txtEl.innerText = "Membuat Excel...";
-                exportToExcelFile(filtered, `Log_BBM_GPS_Mati_${new Date().toISOString().slice(0,10)}.xlsx`);
-            } catch (err) {
-                alert("Gagal mengunduh Log GPS Mati:\n" + err.message);
-            } finally {
-                btn.disabled = false;
-                txtEl.innerText = "4. Download GPS Tidak Aktif / Mati";
-            }
-        }
-
-        async function downloadGpsNotFoundLog(btn) {
-            const txtEl = document.getElementById("txt_btn_5");
-            btn.disabled = true;
-
-            try {
-                txtEl.innerText = "Mengambil data...";
-                const data = await fetchAllDataChunked('gps_detail', 'NOTFOUNDAROB', (total) => {
-                    txtEl.innerText = `Mengambil... (${total} data)`;
-                });
-
-                if (!data || data.length === 0) {
-                    alert("Tidak ditemukan data log dengan status GPS NOTFOUNDAROB.");
-                    return;
-                }
-
-                txtEl.innerText = "Membuat Excel...";
-                exportToExcelFile(data, `Log_BBM_GPS_NOTFOUNDAROB_${new Date().toISOString().slice(0,10)}.xlsx`);
-            } catch (err) {
-                alert("Gagal mengunduh Log GPS NOTFOUNDAROB:\n" + err.message);
-            } finally {
-                btn.disabled = false;
-                txtEl.innerText = "5. Download GPS NOTFOUNDAROB";
             }
         }
     </script>
