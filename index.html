@@ -35,7 +35,7 @@
     <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start justify-center">
         
         <!-- PANEL KIRI: FORM UTAMA -->
-        <div id="main_card" class="w-full lg:w-[420px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
+        <div id="main_card" class="w-full lg:w-[440px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
             
             <div class="p-4 flex flex-col space-y-3.5 flex-1">
                 
@@ -54,46 +54,72 @@
                     <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
                 </div>
 
-                <!-- GRID CONTAINER: INPUT (START, AKHIR, LITER) & DISPLAY KEKURANGAN RASIO 1:11 -->
-                <div class="grid grid-cols-2 gap-2 w-full">
-                    <!-- KOLOM KIRI: INPUT START, AKHIR, LITER -->
-                    <div class="flex flex-col space-y-1.5">
-                        <div class="flex items-center bg-[#2d323f] rounded px-2.5 py-1 text-[11px] font-bold text-[#a0a5b5]">
-                            <span class="w-11 flex-shrink-0">START</span>
-                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none text-right" placeholder="Auto" onfocus="autoPaste(this, true)">
+                <!-- CONTAINER INPUT (START, AKHIR, LITER) & DUAL PANEL RASIO 1:11 & 1:12 -->
+                <div class="flex flex-col space-y-2 w-full">
+                    <!-- ROW INPUT START, AKHIR, LITER -->
+                    <div class="grid grid-cols-3 gap-1.5 w-full">
+                        <div class="flex items-center bg-[#2d323f] rounded px-2 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                            <span class="w-10 flex-shrink-0 text-[10px]">START</span>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none text-right text-[11px]" placeholder="Auto" onfocus="autoPaste(this, true)">
                         </div>
 
-                        <div class="flex items-center bg-[#2d323f] rounded px-2.5 py-1 text-[11px] font-bold text-[#a0a5b5]">
-                            <span class="w-11 flex-shrink-0">AKHIR</span>
-                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none text-right" placeholder="Auto" onfocus="autoPaste(this, true)">
+                        <div class="flex items-center bg-[#2d323f] rounded px-2 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                            <span class="w-10 flex-shrink-0 text-[10px]">AKHIR</span>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none text-right text-[11px]" placeholder="Auto" onfocus="autoPaste(this, true)">
                         </div>
 
-                        <div class="flex items-center bg-[#2d323f] rounded px-2.5 py-1 text-[11px] font-bold text-[#a0a5b5]">
-                            <span class="w-11 flex-shrink-0">LITER</span>
-                            <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none text-right" placeholder="Liter">
+                        <div class="flex items-center bg-[#2d323f] rounded px-2 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
+                            <span class="w-10 flex-shrink-0 text-[10px]">LITER</span>
+                            <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none text-right text-[11px]" placeholder="Liter">
                         </div>
                     </div>
 
-                    <!-- KOLOM KANAN: PANEL ANALISIS KEKURANGAN RASIO 1:11 -->
-                    <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
-                        <div class="text-[9px] font-bold text-[#0a84ff] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
-                            <span>🎯 Rasio 1:11</span>
-                            <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
-                        </div>
-                        
-                        <div class="flex justify-between items-center text-[9.5px]">
-                            <span class="text-gray-400 font-medium">K.KEMAREN:</span>
-                            <span id="label_kurang_kemaren" class="text-amber-400 font-bold font-mono">0 Km</span>
+                    <!-- PANEL ANALISIS DEFISIT BERSANDINGAN (1:11 & 1:12) -->
+                    <div class="grid grid-cols-2 gap-2 w-full">
+                        <!-- PANEL RASIO 1:11 -->
+                        <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
+                            <div class="text-[9px] font-bold text-[#0a84ff] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
+                                <span>🎯 Rasio 1:11</span>
+                                <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center text-[9.5px]">
+                                <span class="text-gray-400 font-medium">K.KEMAREN:</span>
+                                <span id="label_kurang_kemaren" class="text-amber-400 font-bold font-mono">0 Km</span>
+                            </div>
+
+                            <div class="flex justify-between items-center text-[9.5px]">
+                                <span class="text-gray-400 font-medium">K.SEKARANG:</span>
+                                <span id="label_kurang_sekarang" class="text-red-400 font-bold font-mono">0 Km</span>
+                            </div>
+
+                            <div class="border-t border-gray-800 pt-0.5 flex justify-between items-center mt-auto">
+                                <span class="text-gray-300 font-bold text-[9px]">TOT. KURANG:</span>
+                                <span id="label_total_kurang" class="text-red-500 font-black font-mono text-[10.5px]">0 Km</span>
+                            </div>
                         </div>
 
-                        <div class="flex justify-between items-center text-[9.5px]">
-                            <span class="text-gray-400 font-medium">K.SEKARANG:</span>
-                            <span id="label_kurang_sekarang" class="text-red-400 font-bold font-mono">0 Km</span>
-                        </div>
+                        <!-- PANEL RASIO 1:12 -->
+                        <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
+                            <div class="text-[9px] font-bold text-[#a855f7] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
+                                <span>🎯 Rasio 1:12</span>
+                                <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center text-[9.5px]">
+                                <span class="text-gray-400 font-medium">K.KEMAREN:</span>
+                                <span id="label_kurang_kemaren_12" class="text-amber-400 font-bold font-mono">0 Km</span>
+                            </div>
 
-                        <div class="border-t border-gray-800 pt-0.5 flex justify-between items-center mt-auto">
-                            <span class="text-gray-300 font-bold text-[9px]">TOT. KURANG:</span>
-                            <span id="label_total_kurang" class="text-red-500 font-black font-mono text-[10.5px]">0 Km</span>
+                            <div class="flex justify-between items-center text-[9.5px]">
+                                <span class="text-gray-400 font-medium">K.SEKARANG:</span>
+                                <span id="label_kurang_sekarang_12" class="text-red-400 font-bold font-mono">0 Km</span>
+                            </div>
+
+                            <div class="border-t border-gray-800 pt-0.5 flex justify-between items-center mt-auto">
+                                <span class="text-gray-300 font-bold text-[9px]">TOT. KURANG:</span>
+                                <span id="label_total_kurang_12" class="text-red-500 font-black font-mono text-[10.5px]">0 Km</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -357,6 +383,11 @@
         let val_kurang_sekarang = 0;
         let val_total_kurang = 0;
 
+        // VARIABEL STATE KEKURANGAN KM 1:12
+        let val_kurang_kemaren_12 = 0;
+        let val_kurang_sekarang_12 = 0;
+        let val_total_kurang_12 = 0;
+
         let array_foto_base64 = [null, null, null];
         let array_foto_timestamps = [0, 0, 0];
 
@@ -373,14 +404,21 @@
         }
 
         function updateKurangDisplay() {
+            // Label Rasio 1:11
             document.getElementById("label_kurang_kemaren").innerText = formatKm(val_kurang_kemaren);
             document.getElementById("label_kurang_sekarang").innerText = formatKm(val_kurang_sekarang);
             document.getElementById("label_total_kurang").innerText = formatKm(val_total_kurang);
+
+            // Label Rasio 1:12
+            document.getElementById("label_kurang_kemaren_12").innerText = formatKm(val_kurang_kemaren_12);
+            document.getElementById("label_kurang_sekarang_12").innerText = formatKm(val_kurang_sekarang_12);
+            document.getElementById("label_total_kurang_12").innerText = formatKm(val_total_kurang_12);
         }
 
         async function hitungKurangKemaren(plat) {
             if (!plat) {
                 val_kurang_kemaren = 0;
+                val_kurang_kemaren_12 = 0;
                 updateKurangDisplay();
                 return;
             }
@@ -392,29 +430,35 @@
 
                 if (error || !data) {
                     val_kurang_kemaren = 0;
+                    val_kurang_kemaren_12 = 0;
                     updateKurangDisplay();
                     return;
                 }
 
-                let totalTargetPrev = 0;
+                let totalTargetPrev11 = 0;
+                let totalTargetPrev12 = 0;
                 let totalActualPrev = 0;
 
                 data.forEach(row => {
-                    // Jangan hitung log yang sedang diedit agar tidak terhitung ganda
                     if (id_log_sedang_diedit !== null && row.id === id_log_sedang_diedit) return;
 
                     const rowLiter = parseFloat(row.liter) || 0;
                     const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
 
-                    totalTargetPrev += (rowLiter * 11); // Menggunakan target rasio 1:11
+                    totalTargetPrev11 += (rowLiter * 11); // Target 1:11
+                    totalTargetPrev12 += (rowLiter * 12); // Target 1:12
                     totalActualPrev += rowJarak;
                 });
 
-                let selisihPrev = totalTargetPrev - totalActualPrev;
-                val_kurang_kemaren = selisihPrev > 0 ? Math.round(selisihPrev * 10) / 10 : 0;
+                let selisihPrev11 = totalTargetPrev11 - totalActualPrev;
+                val_kurang_kemaren = selisihPrev11 > 0 ? Math.round(selisihPrev11 * 10) / 10 : 0;
+
+                let selisihPrev12 = totalTargetPrev12 - totalActualPrev;
+                val_kurang_kemaren_12 = selisihPrev12 > 0 ? Math.round(selisihPrev12 * 10) / 10 : 0;
             } catch (e) {
                 console.error("Error fetching akumulasi kemaren:", e);
                 val_kurang_kemaren = 0;
+                val_kurang_kemaren_12 = 0;
             }
             updateKurangDisplay();
         }
@@ -874,7 +918,7 @@
             if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
             if (liter <= 0) return alert("BBM harus lebih dari 0!");
 
-            // DITARIK ASYNC DAHULU AGAR AKUMULASI KM KEMARIN TERHITUNG
+            // HITUNG AKUMULASI KKM KEMARIN UNTUK DUA RASIO
             await hitungKurangKemaren(plat);
 
             const jarak = km_akhir - km_start;
@@ -883,14 +927,21 @@
             document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
-            // AKUMULASI KEKURANGAN KM UNTUK TARGET RASIO 1:11
-            const targetKmSekarang = liter * 11;
-            const selisihSekarang = targetKmSekarang - jarak;
-            
-            val_kurang_sekarang = selisihSekarang > 0 ? Math.round(selisihSekarang * 10) / 10 : 0;
+            // HITUNG KEKURANGAN RASIO 1:11
+            const targetKmSekarang11 = liter * 11;
+            const selisihSekarang11 = targetKmSekarang11 - jarak;
+            val_kurang_sekarang = selisihSekarang11 > 0 ? Math.round(selisihSekarang11 * 10) / 10 : 0;
 
-            const totalSelisih = val_kurang_kemaren + val_kurang_sekarang;
-            val_total_kurang = totalSelisih > 0 ? Math.round(totalSelisih * 10) / 10 : 0;
+            const totalSelisih11 = val_kurang_kemaren + val_kurang_sekarang;
+            val_total_kurang = totalSelisih11 > 0 ? Math.round(totalSelisih11 * 10) / 10 : 0;
+
+            // HITUNG KEKURANGAN RASIO 1:12
+            const targetKmSekarang12 = liter * 12;
+            const selisihSekarang12 = targetKmSekarang12 - jarak;
+            val_kurang_sekarang_12 = selisihSekarang12 > 0 ? Math.round(selisihSekarang12 * 10) / 10 : 0;
+
+            const totalSelisih12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
+            val_total_kurang_12 = totalSelisih12 > 0 ? Math.round(totalSelisih12 * 10) / 10 : 0;
 
             updateKurangDisplay();
 
@@ -911,8 +962,12 @@
                 handleApprovalChange(false);
             }
 
-            if (val_total_kurang > 0) {
-                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. Kekurangan rasio 1:11 saat ini: ${formatKm(val_total_kurang)} (Kemaren: ${formatKm(val_kurang_kemaren)}, Sekarang: ${formatKm(val_kurang_sekarang)})`;
+            let textKurangInfo = [];
+            if (val_total_kurang > 0) textKurangInfo.push(`Defisit 1:11: ${formatKm(val_total_kurang)}`);
+            if (val_total_kurang_12 > 0) textKurangInfo.push(`Defisit 1:12: ${formatKm(val_total_kurang_12)}`);
+
+            if (textKurangInfo.length > 0) {
+                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. (${textKurangInfo.join(' | ')})`;
             } else {
                 document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
             }
@@ -1078,6 +1133,9 @@
             val_kurang_kemaren = 0;
             val_kurang_sekarang = 0;
             val_total_kurang = 0;
+            val_kurang_kemaren_12 = 0;
+            val_kurang_sekarang_12 = 0;
+            val_total_kurang_12 = 0;
             updateKurangDisplay();
 
             array_foto_timestamps = [0, 0, 0];
