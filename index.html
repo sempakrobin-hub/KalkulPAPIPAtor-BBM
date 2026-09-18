@@ -100,7 +100,21 @@
                         </div>
                     </div>
                 </div>
-
+   <!-- PANEL LUNAS (RESET KEKURANGAN SEBELUMNYA) -->
+                <div id="box_lunas" class="flex items-center justify-between bg-[#2d323f] border border-green-500/40 rounded px-3 py-2 transition-all duration-300">
+                    <div class="flex flex-col">
+                        <span class="text-[11px] font-bold text-[#34c759]">LUNAS (RESET DEFISIT)</span>
+                        <span class="text-[9px] text-gray-400 italic">Hapus akumulasi kekurangan sebelumnya</span>
+                    </div>
+                    <label for="toggle_lunas" class="flex items-center cursor-pointer select-none">
+                        <div class="relative">
+                            <input type="checkbox" id="toggle_lunas" class="sr-only" onchange="handleLunasChange(this.checked)">
+                            <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
+                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
+                            <span id="text_lunas_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
+                        </div>
+                    </label>
+                </div>
                 <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                     <span class="w-12 flex-shrink-0">RMK</span>
                     <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
@@ -159,22 +173,6 @@
                             </div>
                         </label>
                     </div>
-                </div>
-
-                <!-- PANEL LUNAS (RESET KEKURANGAN SEBELUMNYA) -->
-                <div id="box_lunas" class="flex items-center justify-between bg-[#2d323f] border border-green-500/40 rounded px-3 py-2 transition-all duration-300">
-                    <div class="flex flex-col">
-                        <span class="text-[11px] font-bold text-[#34c759]">LUNAS (RESET DEFISIT)</span>
-                        <span class="text-[9px] text-gray-400 italic">Hapus akumulasi kekurangan sebelumnya</span>
-                    </div>
-                    <label for="toggle_lunas" class="flex items-center cursor-pointer select-none">
-                        <div class="relative">
-                            <input type="checkbox" id="toggle_lunas" class="sr-only" onchange="handleLunasChange(this.checked)">
-                            <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
-                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                            <span id="text_lunas_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
-                        </div>
-                    </label>
                 </div>
 
                 <!-- GRID TOMBOL AKSI -->
