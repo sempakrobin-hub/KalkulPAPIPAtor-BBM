@@ -27,9 +27,6 @@
         #toggle_approval:checked ~ .block {
             background-color: #34c759;
         }
-        #toggle_lunas:checked ~ .block {
-            background-color: #34c759;
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
@@ -100,21 +97,7 @@
                         </div>
                     </div>
                 </div>
-   <!-- PANEL LUNAS (RESET KEKURANGAN SEBELUMNYA) -->
-                <div id="box_lunas" class="flex items-center justify-between bg-[#2d323f] border border-green-500/40 rounded px-3 py-2 transition-all duration-300">
-                    <div class="flex flex-col">
-                        <span class="text-[11px] font-bold text-[#34c759]">LUNAS (RESET DEFISIT)</span>
-                        <span class="text-[9px] text-gray-400 italic">Hapus akumulasi kekurangan sebelumnya</span>
-                    </div>
-                    <label for="toggle_lunas" class="flex items-center cursor-pointer select-none">
-                        <div class="relative">
-                            <input type="checkbox" id="toggle_lunas" class="sr-only" onchange="handleLunasChange(this.checked)">
-                            <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
-                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                            <span id="text_lunas_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
-                        </div>
-                    </label>
-                </div>
+
                 <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
                     <span class="w-12 flex-shrink-0">RMK</span>
                     <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
@@ -363,14 +346,13 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, is_lunas, remark";
+        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark";
 
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI";
 
         // VARIABEL STATE KEKURANGAN KM 1:11
-        let actual_kurang_kemaren = 0;
         let val_kurang_kemaren = 0;
         let val_kurang_sekarang = 0;
         let val_total_kurang = 0;
@@ -381,7 +363,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             updateApprovalLabel();
             setGpsStatus("MATI");
-            handleLunasChange(false);
             updateKurangDisplay();
         });
 
@@ -397,46 +378,19 @@
             document.getElementById("label_total_kurang").innerText = formatKm(val_total_kurang);
         }
 
-        function handleLunasChange(isTrue) {
-            const textIndicator = document.getElementById("text_lunas_slide");
-            if (isTrue) {
-                textIndicator.innerText = "YES";
-                textIndicator.style.color = "#ffffff";
-                textIndicator.style.right = "auto";
-                textIndicator.style.left = "0.5rem";
-                val_kurang_kemaren = 0;
-            } else {
-                textIndicator.innerText = "NO";
-                textIndicator.style.color = "#a0a5b5";
-                textIndicator.style.left = "auto";
-                textIndicator.style.right = "0.5rem";
-                val_kurang_kemaren = actual_kurang_kemaren;
-            }
-            val_total_kurang = val_kurang_kemaren + val_kurang_sekarang;
-            updateKurangDisplay();
-
-            if (data_siap_simpan !== null) {
-                data_siap_simpan.is_lunas = isTrue;
-            }
-        }
-
         async function hitungKurangKemaren(plat) {
             if (!plat) {
-                actual_kurang_kemaren = 0;
                 val_kurang_kemaren = 0;
                 updateKurangDisplay();
                 return;
             }
             try {
-                // Diurutkan berdasarkan ID terbaru agar dapat memotong akumulasi di titik LUNAS terakhir
                 const { data, error } = await _supabase
                     .from('log_bbm')
-                    .select('id, km_start, km_akhir, jarak, liter, is_lunas')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false });
+                    .select('id, km_start, km_akhir, jarak, liter')
+                    .eq('plat_nomor', plat);
 
                 if (error || !data) {
-                    actual_kurang_kemaren = 0;
                     val_kurang_kemaren = 0;
                     updateKurangDisplay();
                     return;
@@ -445,30 +399,21 @@
                 let totalTargetPrev = 0;
                 let totalActualPrev = 0;
 
-                for (let row of data) {
-                    if (id_log_sedang_diedit !== null && row.id === id_log_sedang_diedit) continue;
-
-                    // Hentikan akumulasi riwayat lama jika menemukan titik LUNAS
-                    if (row.is_lunas === true) {
-                        break;
-                    }
+                data.forEach(row => {
+                    // Jangan hitung log yang sedang diedit agar tidak terhitung ganda
+                    if (id_log_sedang_diedit !== null && row.id === id_log_sedang_diedit) return;
 
                     const rowLiter = parseFloat(row.liter) || 0;
                     const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
 
-                    totalTargetPrev += (rowLiter * 11); // Rasio acuan 1:11
+                    totalTargetPrev += (rowLiter * 11); // Menggunakan target rasio 1:11
                     totalActualPrev += rowJarak;
-                }
+                });
 
                 let selisihPrev = totalTargetPrev - totalActualPrev;
-                actual_kurang_kemaren = selisihPrev > 0 ? Math.round(selisihPrev * 10) / 10 : 0;
-
-                const isLunasActive = document.getElementById("toggle_lunas").checked;
-                val_kurang_kemaren = isLunasActive ? 0 : actual_kurang_kemaren;
-
+                val_kurang_kemaren = selisihPrev > 0 ? Math.round(selisihPrev * 10) / 10 : 0;
             } catch (e) {
                 console.error("Error fetching akumulasi kemaren:", e);
-                actual_kurang_kemaren = 0;
                 val_kurang_kemaren = 0;
             }
             updateKurangDisplay();
@@ -752,7 +697,7 @@
                                 <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
                             </div>
                             <div class="text-gray-300 mt-0.5">
-                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''} ${r.is_lunas ? '💵[L]' : ''}
+                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
                             </div>
                         </div>
                         <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
@@ -772,9 +717,6 @@
             document.getElementById("btn_save").innerText = "SAVE";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
             clearAllPhotos();
-
-            document.getElementById("toggle_lunas").checked = false;
-            handleLunasChange(false);
 
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
@@ -925,7 +867,6 @@
             const liter = parseFloat(literRaw);
             const isMafiaActive = document.getElementById("toggle_mafia").checked;
             const isApprovalActive = document.getElementById("toggle_approval").checked;
-            const isLunasActive = document.getElementById("toggle_lunas").checked;
 
             if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
                 return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
@@ -933,6 +874,7 @@
             if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
             if (liter <= 0) return alert("BBM harus lebih dari 0!");
 
+            // DITARIK ASYNC DAHULU AGAR AKUMULASI KM KEMARIN TERHITUNG
             await hitungKurangKemaren(plat);
 
             const jarak = km_akhir - km_start;
@@ -941,6 +883,7 @@
             document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
+            // AKUMULASI KEKURANGAN KM UNTUK TARGET RASIO 1:11
             const targetKmSekarang = liter * 11;
             const selisihSekarang = targetKmSekarang - jarak;
             
@@ -986,7 +929,6 @@
                 is_gps: (currentGpsStatusValue === 'AKTIF'),
                 gps_detail: currentGpsStatusValue,
                 is_approved: isApprovalActive,
-                is_lunas: isLunasActive,
                 foto_urls: array_foto_base64.filter(x => x !== null)
             };
 
@@ -1083,9 +1025,6 @@
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
 
-            document.getElementById("toggle_lunas").checked = dataObj.is_lunas === true;
-            handleLunasChange(dataObj.is_lunas === true);
-
             await hitungKurangKemaren(dataObj.plat_nomor);
             await hitungRasio(); 
 
@@ -1136,7 +1075,6 @@
         function resetForm() {
             data_siap_simpan = null;
             id_log_sedang_diedit = null;
-            actual_kurang_kemaren = 0;
             val_kurang_kemaren = 0;
             val_kurang_sekarang = 0;
             val_total_kurang = 0;
@@ -1163,9 +1101,6 @@
             document.getElementById("box_approval").classList.add("hidden");
             document.getElementById("toggle_approval").checked = false;
             handleApprovalChange(false);
-
-            document.getElementById("toggle_lunas").checked = false;
-            handleLunasChange(false);
 
             clearAllPhotos();
             document.getElementById("log_plat_badge").innerText = "";
@@ -1598,7 +1533,6 @@
                 "Mafia": item.is_mafia ? "YA" : "TIDAK",
                 "GPS Status": item.gps_detail || (item.is_gps ? "AKTIF" : "MATI"),
                 "Approved": item.is_approved ? "YA" : "TIDAK",
-                "Lunas": item.is_lunas ? "YA" : "TIDAK",
                 "Remark": item.remark || "-"
             }));
         }
