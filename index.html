@@ -41,7 +41,7 @@
                 
                 <!-- INPUT PLAT DENGAN INFO REQUESTOR & SN BERLETAK BERTUMPUK -->
                 <div class="flex items-center gap-1.5 w-full">
-                    <!-- KOTAK REQUESTOR & SN (2 BARIS - BISA DIKLIK UTK INPUT/EDIT REQ) -->
+                    <!-- KOTAK REQUESTOR & SN -->
                     <div id="box_requestor_info" onclick="tambahAtauEditRequestor()" class="bg-[#13161c] border border-gray-700 hover:border-amber-500 cursor-pointer rounded px-2 py-1 text-[10px] font-bold text-[#ff9f0a] flex flex-col items-center justify-center min-w-[90px] max-w-[120px] truncate leading-tight transition-all" title="Klik untuk Tambah / Edit Requestor">
                         <span id="txt_nama_req" class="truncate w-full text-center">- Requestor -</span>
                         <span id="txt_sn_gps" class="text-[9px] text-gray-400 font-mono truncate w-full text-center">SN: -</span>
@@ -185,7 +185,7 @@
                 <div class="flex flex-col space-y-1.5 pt-1">
                     <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
                         <option value="-- Pilih Teks Tambahan --">-- Pilih Teks Tambahan --</option>
-                         <option value="Silahkan revisi nominal menjadi 100.000 karena tidak masuk area terdampak pot. Dan tambahkan lampiran eviden untuk bbm selain pertalite spbu (photo dispenser pertamini kelihatan jumlah liter dan harga)">Silahkan revisi nominal menjadi 100.000 karena tidak masuk area terdampak pot. Dan tambahkan lampiran eviden untuk bbm selain pertalite spbu (photo dispenser pertamini kelihatan jumlah liter dan harga)"</option>
+                        <option value="Silahkan revisi nominal menjadi 100.000 karena tidak masuk area terdampak pot. Dan tambahkan lampiran eviden untuk bbm selain pertalite spbu (photo dispenser pertamini kelihatan jumlah liter dan harga)">Silahkan revisi nominal menjadi 100.000 karena tidak masuk area terdampak pot. Dan tambahkan lampiran eviden untuk bbm selain pertalite spbu (photo dispenser pertamini kelihatan jumlah liter dan harga)"</option>
                         <option value="Rekues ulang menggunakan item cost &quot;Shopping List Material&quot;">Rekues ulang menggunakan item cost "Shopping List Material"</option>
                         <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
                         <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
@@ -296,7 +296,7 @@
                 </div>
             </div>
 
-            <!-- FITUR BARU: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
+            <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
                     <span>👤 Update Requestor Massal (Excel)</span>
@@ -400,7 +400,7 @@
                 let totalActualPrev = 0;
 
                 data.forEach(row => {
-                    // Jangan hitung log yang sedang diedit
+                    // Jangan hitung log yang sedang diedit agar tidak terhitung ganda
                     if (id_log_sedang_diedit !== null && row.id === id_log_sedang_diedit) return;
 
                     const rowLiter = parseFloat(row.liter) || 0;
@@ -413,6 +413,7 @@
                 let selisihPrev = totalTargetPrev - totalActualPrev;
                 val_kurang_kemaren = selisihPrev > 0 ? Math.round(selisihPrev * 10) / 10 : 0;
             } catch (e) {
+                console.error("Error fetching akumulasi kemaren:", e);
                 val_kurang_kemaren = 0;
             }
             updateKurangDisplay();
@@ -780,7 +781,6 @@
             }
         }
 
-        // FITUR TAMBAHAN: CEK & TAMPILKAN STYLING NAMA REQUESTOR
         async function cekRequestor(plat) {
             const elNama = document.getElementById("txt_nama_req");
             const elSn = document.getElementById("txt_sn_gps");
@@ -827,7 +827,6 @@
             }
         }
 
-        // FITUR TAMBAHAN: TAMBAH ATAU EDIT MANUAL NAMA REQUESTOR KE SUPABASE
         async function tambahAtauEditRequestor() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) return alert("Silakan isi dan cek Plat Nomor terlebih dahulu!");
@@ -860,7 +859,7 @@
             }
         }
 
-        function hitungRasio() {
+        async function hitungRasio() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             const km_start = parseFloat(document.getElementById("entry_start").value);
             const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
@@ -875,6 +874,9 @@
             if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
             if (liter <= 0) return alert("BBM harus lebih dari 0!");
 
+            // DITARIK ASYNC DAHULU AGAR AKUMULASI KM KEMARIN TERHITUNG
+            await hitungKurangKemaren(plat);
+
             const jarak = km_akhir - km_start;
             const rasio = jarak / liter;
 
@@ -887,7 +889,7 @@
             
             val_kurang_sekarang = selisihSekarang > 0 ? Math.round(selisihSekarang * 10) / 10 : 0;
 
-            const totalSelisih = val_kurang_kemaren + selisihSekarang;
+            const totalSelisih = val_kurang_kemaren + val_kurang_sekarang;
             val_total_kurang = totalSelisih > 0 ? Math.round(totalSelisih * 10) / 10 : 0;
 
             updateKurangDisplay();
@@ -1024,7 +1026,7 @@
             document.getElementById("entry_remark").value = dataObj.remark || "";
 
             await hitungKurangKemaren(dataObj.plat_nomor);
-            hitungRasio(); 
+            await hitungRasio(); 
 
             document.getElementById("toggle_mafia").checked = dataObj.is_mafia === true;
             toggleMafiaMode(dataObj.is_mafia === true);
@@ -1108,10 +1110,6 @@
             btnSave.style.backgroundColor = "#3a3f4d";
             btnSave.innerText = "SAVE";
         }
-
-        // =========================================================
-        // FITUR UPDATE MASSAL REQUESTOR VIA EXCEL
-        // =========================================================
 
         function downloadTemplateRequestor() {
             const templateData = [
@@ -1213,10 +1211,6 @@
             };
             reader.readAsArrayBuffer(file);
         }
-
-        // =========================================================
-        // FITUR PERBAIKAN: GENERATE UPDATE MASSAL GPS AROBS VIA EXCEL
-        // =========================================================
 
         function cleanPlatString(str) {
             if (!str) return '';
@@ -1426,10 +1420,6 @@
             };
             reader.readAsArrayBuffer(file);
         }
-
-        // =========================================================
-        // HELPER EXPORT EXCEL & PAGING DATABASE
-        // =========================================================
 
         async function downloadStatusGpsMaster(btn) {
             const txtEl = document.getElementById("txt_btn_gps_master");
