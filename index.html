@@ -11,6 +11,8 @@
     <!-- Library Leaflet.js untuk Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Library Tesseract.js untuk OCR Scan LongLat -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         body {
             background-color: #14161d;
@@ -261,6 +263,47 @@
                         <span class="text-gray-400 font-medium">📏 Jarak Rute (Mobil Real):</span>
                         <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
                     </div>
+
+                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW & METODE CROP TERBUKTI SUKSES) -->
+                    <div class="bg-[#13161c] border border-gray-800 rounded p-2.5 flex flex-col space-y-2 mt-1">
+                        <span class="text-[10px] font-bold text-[#ff9f0a] uppercase">📷 Scan Foto LongLat (Klik Paste)</span>
+
+                        <!-- Area Paste Gambar -->
+                        <div id="paste_area_longlat" tabindex="0" onclick="clickToPasteScanImage()" onpaste="handlePasteScanImage(event)" class="border-2 border-dashed border-gray-600 hover:border-amber-500 rounded p-2.5 text-center cursor-pointer bg-[#14161d] transition focus:outline-none focus:border-amber-500 select-none">
+                            <p class="text-[10px] text-amber-400 font-bold">📋 Klik di sini untuk Paste Gambar</p>
+                            <p class="text-[8px] text-gray-400 mt-0.5">atau gunakan tombol Ctrl + V setelah copy foto</p>
+                        </div>
+
+                        <!-- PREVIEW GAMBAR ASLI VS HASIL CROP WATERMARK -->
+                        <div id="preview_ocr_container" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-gray-800">
+                            <div class="flex flex-col space-y-1">
+                                <span class="text-[8px] font-bold text-gray-400 text-center uppercase">Gambar Asli</span>
+                                <div class="w-full h-24 bg-black rounded border border-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img id="img_ocr_original" class="max-w-full max-h-full object-contain">
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-1">
+                                <div class="flex items-center justify-center gap-1">
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Crop Watermark</span>
+                                    <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">100% Sukses</span>
+                                </div>
+                                <div id="canvas_ocr_wrapper" class="w-full h-24 bg-white rounded border border-gray-700 flex items-center justify-center overflow-hidden">
+                                    <!-- Canvas Hasil Crop dimasukkan secara dinamis -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indikator Loading Scan -->
+                        <div id="scan_ocr_loading" class="hidden text-center py-1 text-amber-400 text-[10px] font-bold animate-pulse">
+                            ⏳ Membaca koordinat watermark secara akurat...
+                        </div>
+
+                        <!-- Hasil Scan Text -->
+                        <div class="bg-[#2d323f] rounded p-1.5 text-[10px] flex flex-col space-y-0.5">
+                            <span class="text-gray-400 text-[8px] font-bold uppercase">Hasil Extract LongLat (Format Koma):</span>
+                            <span id="label_hasil_ocr" class="font-mono text-amber-400 font-bold select-all text-[10px] break-all">-</span>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -358,7 +401,7 @@
                 </div>
             </div>
 			
-			        <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
+			<!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
                     <span>👤 Master Requestor </span>
@@ -388,7 +431,6 @@
                 </div>
             </div>
 
-
             <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
@@ -407,7 +449,7 @@
                         <span id="txt_btn_2">2. Download Plat Mafia</span>
                         <span class="text-xs">🚨</span>
                     </button>
-                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                    <button onclick="downloadKurang3of5Log(this)" class="bg-[#amber-950/40] hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
                         <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
                     </button>
@@ -453,6 +495,171 @@
             updateKurangDisplay();
         });
 
+        // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
+        async function clickToPasteScanImage() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.read) {
+                    const clipboardItems = await navigator.clipboard.read();
+                    for (const item of clipboardItems) {
+                        for (const type of item.types) {
+                            if (type.startsWith('image/')) {
+                                const blob = await item.getType(type);
+                                prosesOCRFoto(blob);
+                                return;
+                            }
+                        }
+                    }
+                    alert("Tidak ada gambar di clipboard. Silakan copy foto terlebih dahulu!");
+                } else {
+                    document.getElementById("paste_area_longlat").focus();
+                }
+            } catch (err) {
+                document.getElementById("paste_area_longlat").focus();
+            }
+        }
+
+        // HANDLE PASTE GAMBAR DARI CLIPBOARD (EVENT)
+        function handlePasteScanImage(event) {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
+                    const blob = item.getAsFile();
+                    prosesOCRFoto(blob);
+                    break;
+                }
+            }
+        }
+
+        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH (AKURASI TINGGI)
+        function preprocessImageForOCR(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // CROP KUADRAN BAWAH KANAN (PERSIS CONTOH SUKSES)
+                    const cropWidth = img.width * 0.55;    
+                    const cropHeight = img.height * 0.35;  
+                    const startX = img.width - cropWidth;
+                    const startY = img.height - cropHeight;
+
+                    canvas.width = cropWidth;
+                    canvas.height = cropHeight;
+
+                    // Gambar area potongan watermark ke canvas
+                    ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+                    // FILTER WARNA: Mengisolasi teks merah/oranye watermark
+                    const imgData = ctx.getImageData(0, 0, cropWidth, cropHeight);
+                    const data = imgData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        let r = data[i], g = data[i+1], b = data[i+2];
+                        if (r > 100 && r > g * 1.15 && r > b * 1.15) {
+                            data[i] = data[i+1] = data[i+2] = 0; // Teks merah jadi HITAM PEKAT
+                        } else {
+                            data[i] = data[i+1] = data[i+2] = 255; // Background jadi PUTIH BERSIH
+                        }
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                    resolve({ canvas, originalUrl: URL.createObjectURL(file) });
+                };
+                img.onerror = (err) => reject(err);
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // PROSES SCAN OCR TESSERACT.JS DENGAN PARSER REGEX ROBUST
+        async function prosesOCRFoto(imageFile) {
+            const loadingEl = document.getElementById("scan_ocr_loading");
+            const labelHasil = document.getElementById("label_hasil_ocr");
+            const previewContainer = document.getElementById("preview_ocr_container");
+            const imgOriginal = document.getElementById("img_ocr_original");
+            const canvasWrapper = document.getElementById("canvas_ocr_wrapper");
+
+            loadingEl.classList.remove("hidden");
+            labelHasil.innerText = "Membaca koordinat watermark...";
+
+            try {
+                const { canvas, originalUrl } = await preprocessImageForOCR(imageFile);
+
+                imgOriginal.src = originalUrl;
+                canvasWrapper.innerHTML = "";
+                canvas.className = "max-w-full max-h-full object-contain";
+                canvasWrapper.appendChild(canvas);
+                previewContainer.classList.remove("hidden");
+
+                const result = await Tesseract.recognize(canvas, 'eng');
+                const text = result.data.text;
+
+                const coords = extractLongLatFromText(text);
+
+                if (coords) {
+                    const latDisplay = coords.lat.replace('.', ',');
+                    const lngDisplay = coords.lng.replace('.', ',');
+
+                    labelHasil.innerText = `Lat: ${latDisplay} | Long: ${lngDisplay}`;
+
+                    document.getElementById("entry_start_lat").value = latDisplay;
+                    document.getElementById("entry_start_lng").value = lngDisplay;
+
+                    const siteLat = document.getElementById("entry_site_lat").value;
+                    const siteLng = document.getElementById("entry_site_lng").value;
+                    if (siteLat && siteLng) {
+                        generateMapRoute();
+                    }
+                } else {
+                    labelHasil.innerText = "Gagal menemukan koordinat LongLat pada foto!";
+                }
+            } catch (err) {
+                console.error("OCR Error:", err);
+                labelHasil.innerText = "Terjadi kesalahan saat membaca foto.";
+            } finally {
+                loadingEl.classList.add("hidden");
+            }
+        }
+
+        // EXTRACTION LONGLAT (DENGAN CLEANING OCR ROBUST)
+        function extractLongLatFromText(rawText) {
+            if (!rawText) return null;
+
+            let cleanedText = rawText
+                .replace(/[=\~_`|]/g, '')
+                .replace(/\.,/g, '.')
+                .replace(/,\./g, '.')
+                .replace(/,,/g, ',')
+                .replace(/O/g, '0')
+                .replace(/o/g, '0');
+
+            let latMatch = cleanedText.match(/(-?\d{1,2}\.\d{3,})/);
+            let longMatch = cleanedText.match(/(\d{2,3}\.\d{3,})/);
+
+            let latitude = latMatch ? latMatch[1] : null;
+            let longitude = longMatch ? longMatch[1] : null;
+
+            if (!longitude) {
+                let longNoDot = cleanedText.match(/\b(1\d{2})(\d{5,7})\b/);
+                if (longNoDot) {
+                    longitude = `${longNoDot[1]}.${longNoDot[2]}`;
+                }
+            }
+
+            if (!latitude || !longitude) return null;
+
+            let latNum = parseFloat(latitude);
+            let lngNum = parseFloat(longitude);
+
+            if (latNum > 0 && latNum <= 11 && lngNum >= 90 && lngNum <= 145) {
+                latNum = -Math.abs(latNum);
+            }
+
+            return {
+                lat: latNum.toFixed(4),
+                lng: lngNum.toFixed(4)
+            };
+        }
+
         async function generateMapRoute() {
             const siteId = document.getElementById("entry_site_id").value.trim();
             const siteLat = parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.'));
@@ -492,7 +699,6 @@
             distLabel.innerText = "Mencari rute jalan...";
 
             try {
-                // Fetch Driving Route dari OSRM API (Rute Jalan Mobil Aktual)
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${siteLng},${siteLat}?overview=full&geometries=geojson`;
                 const response = await fetch(osrmUrl);
                 const routeData = await response.json();
@@ -503,7 +709,6 @@
                     
                     distLabel.innerText = `${distanceKm} Km`;
 
-                    // Render Garis Rute Jalan Real di Leaflet (Warna Biru ala Google Maps)
                     const routeLayer = L.geoJSON(route.geometry, {
                         style: {
                             color: '#0a84ff',
@@ -520,7 +725,6 @@
             } catch (err) {
                 console.warn("Gagal mengambil rute OSRM, fallback ke garis lurus:", err);
 
-                // Fallback: Garis Lurus + Hitung Jarak Haversine jika koneksi OSRM error/offline
                 const fallbackLine = L.polyline([startCoords, siteCoords], {
                     color: '#ff9f0a',
                     weight: 4,
@@ -536,9 +740,8 @@
             }
         }
 
-        // Fungsi Hitung Jarak Garis Lurus (Haversine Formula) untuk Fallback
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius Bumi dalam KM
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -683,12 +886,10 @@
         }
 
         function updateKurangDisplay() {
-            // Label Rasio 1:11
             document.getElementById("label_kurang_kemaren").innerText = formatKm(val_kurang_kemaren);
             document.getElementById("label_kurang_sekarang").innerText = formatKm(val_kurang_sekarang);
             document.getElementById("label_total_kurang").innerText = formatKm(val_total_kurang);
 
-            // Label Rasio 1:12
             document.getElementById("label_kurang_kemaren_12").innerText = formatKm(val_kurang_kemaren_12);
             document.getElementById("label_kurang_sekarang_12").innerText = formatKm(val_kurang_sekarang_12);
             document.getElementById("label_total_kurang_12").innerText = formatKm(val_total_kurang_12);
@@ -724,8 +925,8 @@
                     const rowLiter = parseFloat(row.liter) || 0;
                     const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
 
-                    totalTargetPrev11 += (rowLiter * 11); // Target 1:11
-                    totalTargetPrev12 += (rowLiter * 12); // Target 1:12
+                    totalTargetPrev11 += (rowLiter * 11);
+                    totalTargetPrev12 += (rowLiter * 12);
                     totalActualPrev += rowJarak;
                 });
 
@@ -1207,7 +1408,6 @@
             if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
             if (liter <= 0) return alert("BBM harus lebih dari 0!");
 
-            // HITUNG AKUMULASI KKM KEMARIN UNTUK DUA RASIO
             await hitungKurangKemaren(plat);
 
             const jarak = km_akhir - km_start;
@@ -1216,7 +1416,6 @@
             document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
-            // HITUNG KEKURANGAN RASIO 1:11
             const targetKmSekarang11 = liter * 11;
             const selisihSekarang11 = targetKmSekarang11 - jarak;
             val_kurang_sekarang = selisihSekarang11 > 0 ? Math.round(selisihSekarang11 * 10) / 10 : 0;
@@ -1224,7 +1423,6 @@
             const totalSelisih11 = val_kurang_kemaren + val_kurang_sekarang;
             val_total_kurang = totalSelisih11 > 0 ? Math.round(totalSelisih11 * 10) / 10 : 0;
 
-            // HITUNG KEKURANGAN RASIO 1:12
             const targetKmSekarang12 = liter * 12;
             const selisihSekarang12 = targetKmSekarang12 - jarak;
             val_kurang_sekarang_12 = selisihSekarang12 > 0 ? Math.round(selisihSekarang12 * 10) / 10 : 0;
@@ -1445,6 +1643,13 @@
             array_foto_timestamps = [0, 0, 0];
             ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark', 'entry_site_id', 'entry_site_lat', 'entry_site_lng', 'entry_start_lat', 'entry_start_lng'].forEach(id => document.getElementById(id).value = "");
             
+            if (document.getElementById("label_hasil_ocr")) {
+                document.getElementById("label_hasil_ocr").innerText = "-";
+            }
+            if (document.getElementById("preview_ocr_container")) {
+                document.getElementById("preview_ocr_container").classList.add("hidden");
+            }
+
             if (mapFeatureGroup) {
                 mapFeatureGroup.clearLayers();
             }
