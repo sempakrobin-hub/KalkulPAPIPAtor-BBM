@@ -8,6 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Library SheetJS untuk Export & Import Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Library Leaflet.js untuk Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body {
             background-color: #14161d;
@@ -228,6 +231,38 @@
                     </div>
                 </div>
 
+                <!-- PANEL MAP & RUTE SITE ID -->
+                <div class="flex flex-col space-y-2 pt-3 border-t border-gray-700 mt-3">
+                    <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
+
+                    <!-- Input Site ID & Koordinat Tujuan -->
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <input type="text" id="entry_site_id" placeholder="Site ID" onkeyup="cariSiteIdAuto()" onchange="cariSiteIdAuto()" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500 uppercase">
+                        <input type="text" id="entry_site_lat" placeholder="Lat Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <input type="text" id="entry_site_lng" placeholder="Long Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                    </div>
+
+                    <!-- Input Koordinat Awal Perjalanan -->
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <input type="text" id="entry_start_lat" placeholder="Lat Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <input type="text" id="entry_start_lng" placeholder="Long Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                    </div>
+
+                    <!-- Tombol Render Map -->
+                    <button type="button" onclick="generateMapRoute()" class="bg-[#0a84ff] text-white text-[10px] font-bold py-1.5 rounded hover:opacity-80 transition uppercase">
+                        🚀 Tampilkan Rute di Map
+                    </button>
+
+                    <!-- Container Map -->
+                    <div id="map_container" class="w-full h-48 rounded-lg border border-gray-700 z-10 mt-1"></div>
+
+                    <!-- INFO JARAK RUTE DI BAWAH MAP -->
+                    <div class="bg-[#13161c] border border-gray-800 rounded px-2.5 py-1.5 flex items-center justify-between text-[10px]">
+                        <span class="text-gray-400 font-medium">📏 Jarak Rute (Mobil Real):</span>
+                        <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
+                    </div>
+                </div>
+
             </div>
 
             <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.4em] py-3 w-full text-center select-none uppercase border-t border-gray-700">
@@ -308,6 +343,36 @@
                 </div>
             </div>
 
+            <!-- FITUR: PANEL GENERATE UPDATE MASTER SITE MASSAL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#a855f7] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
+                    <span>📍 Master Site ID </span>
+                    <button onclick="downloadTemplateSite()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
+                </div>
+                <div class="flex flex-col gap-1.5 text-[10px]">
+                    <input type="file" id="excel_site_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelSiteUpload(this)">
+                    <button onclick="document.getElementById('excel_site_uploader').click()" class="bg-[#a855f7]/20 hover:bg-[#a855f7]/30 border border-purple-500/50 text-purple-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
+                        <span id="txt_btn_gen_site">📂 Upload Excel Master Site </span>
+                        <span class="text-xs">🗺️</span>
+                    </button>
+                </div>
+            </div>
+			
+			        <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
+                    <span>👤 Master Requestor </span>
+                    <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
+                </div>
+                <div class="flex flex-col gap-1.5 text-[10px]">
+                    <input type="file" id="excel_req_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelRequestorUpload(this)">
+                    <button onclick="document.getElementById('excel_req_uploader').click()" class="bg-[#0a84ff]/20 hover:bg-[#0a84ff]/30 border border-blue-500/50 text-blue-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
+                        <span id="txt_btn_gen_req">📂 Upload Excel Master Requestor </span>
+                        <span class="text-xs">👥</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- FITUR: PANEL GENERATE & UPDATE GPS MASSAL AROBS -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#ff9f0a] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
@@ -317,26 +382,12 @@
                 <div class="flex flex-col gap-1.5 text-[10px]">
                     <input type="file" id="excel_gps_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelGpsUpload(this)">
                     <button onclick="document.getElementById('excel_gps_uploader').click()" class="bg-[#34c759]/20 hover:bg-[#34c759]/30 border border-green-500/50 text-green-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_gps">📂 Pilih File Excel AROBS & Generate Update</span>
+                        <span id="txt_btn_gen_gps">📂 Upload Excel GPS AROBS Update </span>
                         <span class="text-xs">⚡</span>
                     </button>
                 </div>
             </div>
 
-            <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>👤 Update Requestor Massal (Excel)</span>
-                    <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
-                </div>
-                <div class="flex flex-col gap-1.5 text-[10px]">
-                    <input type="file" id="excel_req_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelRequestorUpload(this)">
-                    <button onclick="document.getElementById('excel_req_uploader').click()" class="bg-[#0a84ff]/20 hover:bg-[#0a84ff]/30 border border-blue-500/50 text-blue-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_req">📂 Upload Excel Requestor & Update Massal</span>
-                        <span class="text-xs">👥</span>
-                    </button>
-                </div>
-            </div>
 
             <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
@@ -373,11 +424,15 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark";
+        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark, site_id, site_lat, site_lng, start_lat, start_lng";
 
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI";
+
+        // VARIABEL STATE MAP LEAFLET
+        let myLeafletMap = null;
+        let mapFeatureGroup = null;
 
         // VARIABEL STATE KEKURANGAN KM 1:11
         let val_kurang_kemaren = 0;
@@ -397,6 +452,229 @@
             setGpsStatus("MATI");
             updateKurangDisplay();
         });
+
+        async function generateMapRoute() {
+            const siteId = document.getElementById("entry_site_id").value.trim();
+            const siteLat = parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.'));
+            const siteLng = parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.'));
+            
+            const startLat = parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.'));
+            const startLng = parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.'));
+
+            const distLabel = document.getElementById("label_map_distance");
+
+            if (isNaN(siteLat) || isNaN(siteLng) || isNaN(startLat) || isNaN(startLng)) {
+                distLabel.innerText = "- Km";
+                return alert("Mohon lengkapi Latitude & Longitude untuk Titik Awal maupun Site ID!");
+            }
+
+            const startCoords = [startLat, startLng];
+            const siteCoords = [siteLat, siteLng];
+
+            if (!myLeafletMap) {
+                myLeafletMap = L.map('map_container').setView(startCoords, 12);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(myLeafletMap);
+
+                mapFeatureGroup = L.layerGroup().addTo(myLeafletMap);
+            } else {
+                mapFeatureGroup.clearLayers();
+            }
+
+            const startMarker = L.marker(startCoords).bindPopup("<b>🚩 Titik Awal Perjalanan</b>");
+            const siteMarker = L.marker(siteCoords).bindPopup(`<b>🎯 Site ID:</b> ${siteId || 'Tanpa ID'}`);
+            mapFeatureGroup.addLayer(startMarker);
+            mapFeatureGroup.addLayer(siteMarker);
+
+            distLabel.innerText = "Mencari rute jalan...";
+
+            try {
+                // Fetch Driving Route dari OSRM API (Rute Jalan Mobil Aktual)
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${siteLng},${siteLat}?overview=full&geometries=geojson`;
+                const response = await fetch(osrmUrl);
+                const routeData = await response.json();
+
+                if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
+                    const route = routeData.routes[0];
+                    const distanceKm = (route.distance / 1000).toFixed(2);
+                    
+                    distLabel.innerText = `${distanceKm} Km`;
+
+                    // Render Garis Rute Jalan Real di Leaflet (Warna Biru ala Google Maps)
+                    const routeLayer = L.geoJSON(route.geometry, {
+                        style: {
+                            color: '#0a84ff',
+                            weight: 5,
+                            opacity: 0.85
+                        }
+                    });
+
+                    mapFeatureGroup.addLayer(routeLayer);
+                    myLeafletMap.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+                } else {
+                    throw new Error("Rute jalan tidak ditemukan");
+                }
+            } catch (err) {
+                console.warn("Gagal mengambil rute OSRM, fallback ke garis lurus:", err);
+
+                // Fallback: Garis Lurus + Hitung Jarak Haversine jika koneksi OSRM error/offline
+                const fallbackLine = L.polyline([startCoords, siteCoords], {
+                    color: '#ff9f0a',
+                    weight: 4,
+                    dashArray: '5, 10'
+                });
+                mapFeatureGroup.addLayer(fallbackLine);
+
+                const fallbackDist = calculateHaversineDistance(startLat, startLng, siteLat, siteLng).toFixed(2);
+                distLabel.innerText = `${fallbackDist} Km (Garis Lurus)`;
+
+                const bounds = L.latLngBounds([startCoords, siteCoords]);
+                myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+
+        // Fungsi Hitung Jarak Garis Lurus (Haversine Formula) untuk Fallback
+        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius Bumi dalam KM
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        async function cariSiteIdAuto() {
+            const siteIdInput = document.getElementById("entry_site_id").value.trim().toUpperCase();
+            if (!siteIdInput) return;
+
+            try {
+                const { data, error } = await _supabase
+                    .from('master_site')
+                    .select('latitude, longitude')
+                    .eq('site_id', siteIdInput)
+                    .maybeSingle();
+
+                if (data) {
+                    document.getElementById("entry_site_lat").value = data.latitude;
+                    document.getElementById("entry_site_lng").value = data.longitude;
+                }
+            } catch (err) {
+                console.log("Site ID belum terdaftar di master_site:", err);
+            }
+        }
+
+        function downloadTemplateSite() {
+            const templateData = [
+                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ" },
+                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub" }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Master Site");
+            XLSX.writeFile(workbook, "Template_Master_Site.xlsx");
+        }
+
+        async function handleExcelSiteUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const txtBtn = document.getElementById("txt_btn_gen_site");
+            input.disabled = true;
+            txtBtn.innerText = "Membaca File Excel...";
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                    if (!jsonRows || jsonRows.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        return;
+                    }
+
+                    txtBtn.innerText = "Memproses Data Master Site...";
+
+                    const recordsToUpsert = [];
+                    const processedSites = new Set();
+
+                    for (let row of jsonRows) {
+                        let siteIdRaw = "";
+                        let latVal = null;
+                        let lngVal = null;
+                        let namaSite = "";
+
+                        for (let k in row) {
+                            const kLower = k.toLowerCase().trim();
+                            if (kLower.includes('site') && (kLower.includes('id') || kLower.includes('kode'))) {
+                                if (row[k]) siteIdRaw = String(row[k]).trim();
+                            }
+                            if (kLower.includes('lat')) {
+                                if (row[k] !== "") latVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
+                            if (kLower.includes('long') || kLower.includes('lng')) {
+                                if (row[k] !== "") lngVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
+                            if (kLower.includes('nama')) {
+                                if (row[k]) namaSite = String(row[k]).trim();
+                            }
+                        }
+
+                        if (!siteIdRaw && row["Site ID"]) siteIdRaw = String(row["Site ID"]).trim();
+
+                        if (siteIdRaw && !isNaN(latVal) && !isNaN(lngVal) && latVal !== null && lngVal !== null) {
+                            const cleanedSiteId = siteIdRaw.toUpperCase();
+                            if (!processedSites.has(cleanedSiteId)) {
+                                processedSites.add(cleanedSiteId);
+                                recordsToUpsert.push({
+                                    site_id: cleanedSiteId,
+                                    latitude: latVal,
+                                    longitude: lngVal,
+                                    nama_site: namaSite || null
+                                });
+                            }
+                        }
+                    }
+
+                    if (recordsToUpsert.length === 0) {
+                        alert("Tidak ada data Site ID dan Koordinat (Lat/Long) yang valid ditemukan!");
+                        return;
+                    }
+
+                    txtBtn.innerText = `Mengupdate Database (${recordsToUpsert.length} site)...`;
+
+                    let successCount = 0;
+                    for (let i = 0; i < recordsToUpsert.length; i += 500) {
+                        const chunk = recordsToUpsert.slice(i, i + 500);
+                        const { error } = await _supabase
+                            .from('master_site')
+                            .upsert(chunk, { onConflict: 'site_id' });
+
+                        if (error) throw error;
+                        successCount += chunk.length;
+                    }
+
+                    alert(`Berhasil Import Master Site secara Massal!\n` +
+                          `Total Site ID Diperbarui/Disimpan: ${successCount} Site.`);
+
+                } catch (err) {
+                    alert("Gagal mengupdate Master Site massal:\n" + err.message);
+                } finally {
+                    input.value = "";
+                    txtBtn.innerText = "📂 Upload Excel Master Site & Import Massal";
+                    input.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
         function formatKm(num) {
             if (!num || num <= 0) return "0 Km";
@@ -790,6 +1068,16 @@
                     document.getElementById("entry_liter").value = lastData.liter || "";
                     document.getElementById("entry_remark").value = lastData.remark || "";
                     
+                    document.getElementById("entry_site_id").value = lastData.site_id || "";
+                    document.getElementById("entry_site_lat").value = lastData.site_lat || "";
+                    document.getElementById("entry_site_lng").value = lastData.site_lng || "";
+                    document.getElementById("entry_start_lat").value = lastData.start_lat || "";
+                    document.getElementById("entry_start_lng").value = lastData.start_lng || "";
+
+                    if (lastData.site_lat && lastData.site_lng && lastData.start_lat && lastData.start_lng) {
+                        generateMapRoute();
+                    }
+
                     toggleMafiaMode(lastData.is_mafia === true);
                     document.getElementById("toggle_mafia").checked = lastData.is_mafia === true;
 
@@ -985,7 +1273,12 @@
                 is_gps: (currentGpsStatusValue === 'AKTIF'),
                 gps_detail: currentGpsStatusValue,
                 is_approved: isApprovalActive,
-                foto_urls: array_foto_base64.filter(x => x !== null)
+                foto_urls: array_foto_base64.filter(x => x !== null),
+                site_id: document.getElementById("entry_site_id").value.trim() || null,
+                site_lat: parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.')) || null,
+                site_lng: parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.')) || null,
+                start_lat: parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.')) || null,
+                start_lng: parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.')) || null
             };
 
             const btnSave = document.getElementById("btn_save");
@@ -1081,6 +1374,16 @@
             document.getElementById("entry_liter").value = dataObj.liter;
             document.getElementById("entry_remark").value = dataObj.remark || "";
 
+            document.getElementById("entry_site_id").value = dataObj.site_id || "";
+            document.getElementById("entry_site_lat").value = dataObj.site_lat || "";
+            document.getElementById("entry_site_lng").value = dataObj.site_lng || "";
+            document.getElementById("entry_start_lat").value = dataObj.start_lat || "";
+            document.getElementById("entry_start_lng").value = dataObj.start_lng || "";
+
+            if (dataObj.site_lat && dataObj.site_lng && dataObj.start_lat && dataObj.start_lng) {
+                generateMapRoute();
+            }
+
             await hitungKurangKemaren(dataObj.plat_nomor);
             await hitungRasio(); 
 
@@ -1140,7 +1443,13 @@
             updateKurangDisplay();
 
             array_foto_timestamps = [0, 0, 0];
-            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark'].forEach(id => document.getElementById(id).value = "");
+            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark', 'entry_site_id', 'entry_site_lat', 'entry_site_lng', 'entry_start_lat', 'entry_start_lng'].forEach(id => document.getElementById(id).value = "");
+            
+            if (mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+            document.getElementById("label_map_distance").innerText = "- Km";
+
             document.getElementById("label_jarak").innerText = "Jarak: -";
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_status").innerText = "-";
@@ -1163,7 +1472,7 @@
 
             clearAllPhotos();
             document.getElementById("log_plat_badge").innerText = "";
-            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
+            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk meilhat log...</div>`;
 
             const btnSave = document.getElementById("btn_save");
             btnSave.style.backgroundColor = "#3a3f4d";
@@ -1592,7 +1901,12 @@
                 "Mafia": item.is_mafia ? "YA" : "TIDAK",
                 "GPS Status": item.gps_detail || (item.is_gps ? "AKTIF" : "MATI"),
                 "Approved": item.is_approved ? "YA" : "TIDAK",
-                "Remark": item.remark || "-"
+                "Remark": item.remark || "-",
+                "Site ID": item.site_id || "-",
+                "Lat Site": item.site_lat || "-",
+                "Long Site": item.site_lng || "-",
+                "Lat Start": item.start_lat || "-",
+                "Long Start": item.start_lng || "-"
             }));
         }
 
