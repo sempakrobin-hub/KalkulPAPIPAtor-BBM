@@ -534,7 +534,7 @@
             }
         }
 
-        // PROSES CANVAS PREPROCESSING (Meningkatkan kontras & mempebesar 2.5x agar Tanda Minus terbaca 100%)
+        // PREPROCESSING CANVAS DENGAN SKALA RINGAN (1.8x)
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -542,7 +542,7 @@
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    const scale = 2.5;
+                    const scale = 1.8; // Skala diperkecil agar proses scan jauh lebih cepat
                     canvas.width = img.width * scale;
                     canvas.height = img.height * scale;
 
@@ -556,18 +556,13 @@
                         const r = data[i];
                         const g = data[i + 1];
                         const b = data[i + 2];
-                        
                         const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
 
-                        // Threshold binarisasi: Ubah piksel terang/merah (teks stempel) jadi Hitam, background jadi Putih
+                        // Threshold binarisasi: Teks terang/merah -> Hitam, background -> Putih
                         if (brightness > 75 || r > 110) {
-                            data[i] = 0;
-                            data[i + 1] = 0;
-                            data[i + 2] = 0;
+                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
                         } else {
-                            data[i] = 255;
-                            data[i + 1] = 255;
-                            data[i + 2] = 255;
+                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
@@ -578,37 +573,36 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS
+        // PROSES SCAN OCR TESSERACT.JS (VERSI DIPALINGKAN JAUH LEBIH CEPAT)
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
             
             loadingEl.classList.remove("hidden");
-            labelHasil.innerText = "Memproses & memperjelas gambar...";
+            labelHasil.innerText = "Membaca koordinat (Mode Cepat)...";
 
             try {
-                // Preprocess Gambar dengan Canvas (Threshold Binarization)
+                // Preprocess Gambar dengan Canvas
                 const processedCanvas = await preprocessImageForOCR(imageFile);
 
-                // Jalankan OCR menggunakan Tesseract pada canvas yang sudah diperjelas
-                const result = await Tesseract.recognize(processedCanvas, 'eng');
+                // OCR dengan Whitelist Karakter agar super cepat & fokus pada angka/simbol koordinat
+                const result = await Tesseract.recognize(processedCanvas, 'eng', {
+                    tessedit_char_whitelist: '0123456789.,- :'
+                });
                 const text = result.data.text;
 
                 // Cari pola koordinat Latitude & Longitude
                 const coords = extractLongLatFromText(text);
 
                 if (coords) {
-                    // Format tampilan hasil scan: mengubah titik (.) menjadi koma (,)
                     const latDisplay = coords.lat.replace('.', ',');
                     const lngDisplay = coords.lng.replace('.', ',');
 
                     labelHasil.innerText = `Lat: ${latDisplay} | Long: ${lngDisplay}`;
 
-                    // Langsung mengisi input LongLat Awal Perjalanan
                     document.getElementById("entry_start_lat").value = latDisplay;
                     document.getElementById("entry_start_lng").value = lngDisplay;
 
-                    // Trigger pembuatan rute map secara otomatis jika lokasi tujuan (Site) sudah terisi
                     const siteLat = document.getElementById("entry_site_lat").value;
                     const siteLng = document.getElementById("entry_site_lng").value;
                     if (siteLat && siteLng) {
@@ -625,23 +619,17 @@
             }
         }
 
-        // FUNGSI EXTRACTION LONGLAT DARI TEKS OCR (PRESISI TANDA MINUS & DESIMAL)
+        // EXTRACTION LONGLAT (AKURAT MINUS + DIBATASI 4 DESIMAL)
         function extractLongLatFromText(rawText) {
             if (!rawText) return null;
 
-            // Bersihkan teks: ubah O/o jadi 0, serta ubah karakter mirip minus/dash/tilde/underscore jadi '-'
             let cleaned = rawText
                 .replace(/[Oo]/g, '0')
-                .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u207B\u208B~_`'"]/g, '-');
+                .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u207B\u208B~_`'"]/g, '-')
+                .replace(/-\s+(\d)/g, '-$1')
+                .replace(/(?:^|[^\d\w])([:;,\/\\\.\*\+~_])\s*(\d{1,2}[.,]\d{2,})/g, ' -$2');
 
-            // Satukan kembali minus yang terpisah spasi dengan angka (misal "- 0.94" -> "-0.94")
-            cleaned = cleaned.replace(/-\s+(\d)/g, '-$1');
-
-            // Jika tanda baca/simbol aneh berada persis sebelum angka awal, ubah menjadi minus
-            cleaned = cleaned.replace(/(?:^|[^\d\w])([:;,\/\\\.\*\+~_])\s*(\d{1,2}[.,]\d{3,})/g, ' -$2');
-
-            // Pattern RegEx 1: Menangkap pasangan koordinat desimal langsung (misal -0.9429985, 119.854805 atau -0,9429985 119,854805)
-            const regexPair = /(-?\d+[.,]\d{3,})\s*[\s,;:\/]+\s*(-?\d+[.,]\d{3,})/;
+            const regexPair = /(-?\d+[.,]\d{2,})\s*[\s,;:\/]+\s*(-?\d+[.,]\d{2,})/;
             let match = cleaned.match(regexPair);
 
             let latVal = null;
@@ -651,9 +639,8 @@
                 latVal = match[1].replace(',', '.');
                 lngVal = match[2].replace(',', '.');
             } else {
-                // Pattern RegEx 2: Alternatif jika label Lat dan Long terpisah
-                const latMatch = cleaned.match(/(?:lat|latitude)?\s*[:=\s]*(-?\d+[.,]\d{3,})/i);
-                const lngMatch = cleaned.match(/(?:long|lng|longitude)?\s*[:=\s]*(-?\d+[.,]\d{3,})/i);
+                const latMatch = cleaned.match(/(?:lat|latitude)?\s*[:=\s]*(-?\d+[.,]\d{2,})/i);
+                const lngMatch = cleaned.match(/(?:long|lng|longitude)?\s*[:=\s]*(-?\d+[.,]\d{2,})/i);
 
                 if (latMatch && lngMatch) {
                     latVal = latMatch[1].replace(',', '.');
@@ -665,15 +652,15 @@
                 let latNum = parseFloat(latVal);
                 let lngNum = parseFloat(lngVal);
 
-                // Logika Wilayah Indonesia: Jika Longitude di kisaran Indonesia (95 s/d 142) & Latitude bernilai 0 s/d 11,
-                // maka Latitude pasti berada di Selatan Khatulistiwa (Minus), contoh: -0.9429985 (Palu/Sulawesi).
+                // Otomatis deteksi & paksa minus jika di wilayah Indonesia Selatan Khatulistiwa
                 if (latNum > 0 && latNum <= 11 && lngNum >= 95 && lngNum <= 142) {
                     latNum = -Math.abs(latNum);
                 }
 
+                // Dibatasi 4 desimal agar ringan & presisi (~11 meter)
                 return {
-                    lat: latNum.toString(),
-                    lng: lngNum.toString()
+                    lat: latNum.toFixed(4),
+                    lng: lngNum.toFixed(4)
                 };
             }
 
