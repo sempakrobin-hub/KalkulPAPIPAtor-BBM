@@ -264,7 +264,7 @@
                         <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
                     </div>
 
-                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW HASIL FILTER OCR) -->
+                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW & CROP OTOMATIS) -->
                     <div class="bg-[#13161c] border border-gray-800 rounded p-2.5 flex flex-col space-y-2 mt-1">
                         <span class="text-[10px] font-bold text-[#ff9f0a] uppercase">📷 Scan Foto LongLat (Klik Paste)</span>
 
@@ -274,7 +274,7 @@
                             <p class="text-[8px] text-gray-400 mt-0.5">atau gunakan tombol Ctrl + V setelah copy foto</p>
                         </div>
 
-                        <!-- PREVIEW GAMBAR ASLI VS HASIL FILTER OCR (CANVAS) -->
+                        <!-- PREVIEW GAMBAR ASLI VS HASIL CROP WATERMARK -->
                         <div id="preview_ocr_container" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-gray-800">
                             <div class="flex flex-col space-y-1">
                                 <span class="text-[8px] font-bold text-gray-400 text-center uppercase">Gambar Asli</span>
@@ -284,18 +284,18 @@
                             </div>
                             <div class="flex flex-col space-y-1">
                                 <div class="flex items-center justify-center gap-1">
-                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hasil Filter OCR</span>
-                                    <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">Hitam Putih</span>
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Crop Watermark</span>
+                                    <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">High Speed</span>
                                 </div>
                                 <div id="canvas_ocr_wrapper" class="w-full h-24 bg-white rounded border border-gray-700 flex items-center justify-center overflow-hidden">
-                                    <!-- Canvas Hitam Putih dimasukkan secara dinamis via JS -->
+                                    <!-- Canvas Hasil Crop dimasukkan secara dinamis -->
                                 </div>
                             </div>
                         </div>
 
                         <!-- Indikator Loading Scan -->
                         <div id="scan_ocr_loading" class="hidden text-center py-1 text-amber-400 text-[10px] font-bold animate-pulse">
-                            ⏳ Membaca koordinat dari foto...
+                            ⏳ Membaca koordinat watermark secara akurat...
                         </div>
 
                         <!-- Hasil Scan Text -->
@@ -531,7 +531,7 @@
             }
         }
 
-        // PREPROCESSING DENGAN THRESHOLD DINAMIS (ANTI SILAU/TERANG)
+        // PREPROCESSING DENGAN CROP OTOMATIS AREA WATERMARK DI BAWAH (ANTI BLOK HITAM)
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -539,36 +539,35 @@
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    const scale = 2.0;
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
+                    // CROP HANYA AREA BAWAH (TEMPAT WATERMARK GPS BERADA: 65% s.d 100% tinggi gambar)
+                    const cropY = img.height * 0.65;
+                    const cropHeight = img.height - cropY;
+                    const cropWidth = img.width;
+                    const cropX = 0;
+
+                    const scale = 2.5; // Memperbesar resolusi teks agar dot-matrix titik koma terbaca tajam
+                    canvas.width = cropWidth * scale;
+                    canvas.height = cropHeight * scale;
 
                     ctx.imageSmoothingEnabled = true;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
                     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const data = imgData.data;
-
-                    // Hitung rata-rata tingkat kecerahan gambar secara dinamis
-                    let totalBrightness = 0;
-                    for (let i = 0; i < data.length; i += 4) {
-                        totalBrightness += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-                    }
-                    const avgBrightness = totalBrightness / (data.length / 4);
-                    const dynamicThreshold = Math.max(80, Math.min(160, avgBrightness * 0.85));
 
                     for (let i = 0; i < data.length; i += 4) {
                         const r = data[i];
                         const g = data[i + 1];
                         const b = data[i + 2];
 
-                        const isRedText = (r > 60 && r > g + 15 && r > b + 15);
+                        // Deteksi warna merah terang watermark secara spesifik
+                        const isRedText = (r > 70 && r > g + 15 && r > b + 15);
                         const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
 
-                        if (isRedText || brightness > dynamicThreshold) {
-                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
+                        if (isRedText || brightness > 160) {
+                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; // Teks jadi Hitam
                         } else {
-                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
+                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Latar jadi Putih Bersih
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
@@ -579,7 +578,7 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS DENGAN PREVIEW DUAL CANVAS
+        // PROSES SCAN OCR TESSERACT.JS DENGAN CROP & FILTER KILAT
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -588,7 +587,7 @@
             const canvasWrapper = document.getElementById("canvas_ocr_wrapper");
 
             loadingEl.classList.remove("hidden");
-            labelHasil.innerText = "Membaca koordinat (Mode Adaptif)...";
+            labelHasil.innerText = "Membaca koordinat watermark...";
 
             try {
                 const { canvas, originalUrl } = await preprocessImageForOCR(imageFile);
