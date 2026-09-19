@@ -264,32 +264,25 @@
                         <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
                     </div>
 
-                    <!-- FITUR SCAN FOTO LONGLAT (HIDE / SHOW) -->
-                    <div class="bg-[#13161c] border border-gray-800 rounded overflow-hidden mt-1">
-                        <!-- Header Toggle Hide / Show -->
-                        <button type="button" onclick="toggleScanPanel()" class="w-full px-2.5 py-1.5 flex items-center justify-between text-[10px] font-bold text-[#ff9f0a] bg-[#1e222b] hover:bg-[#252a36] transition">
-                            <span>📷 Scan Foto LongLat (Klik Paste)</span>
-                            <span id="icon_scan_toggle" class="text-gray-400 text-[9px]">▼ Show</span>
-                        </button>
+                    <!-- FITUR SCAN FOTO LONGLAT (LANGSUNG TAMPIL PERMANEN) -->
+                    <div class="bg-[#13161c] border border-gray-800 rounded p-2 flex flex-col space-y-2 mt-1">
+                        <span class="text-[10px] font-bold text-[#ff9f0a] uppercase">📷 Scan Foto LongLat (Klik Paste)</span>
 
-                        <!-- Body Panel (Default Hidden) -->
-                        <div id="panel_scan_longlat" class="hidden p-2 flex flex-col space-y-2 border-t border-gray-800">
-                            <!-- Area Paste Gambar (Klik / Ctrl+V) -->
-                            <div id="paste_area_longlat" tabindex="0" onclick="clickToPasteScanImage()" onpaste="handlePasteScanImage(event)" class="border-2 border-dashed border-gray-600 hover:border-amber-500 rounded p-3 text-center cursor-pointer bg-[#14161d] transition focus:outline-none focus:border-amber-500 select-none">
-                                <p class="text-[10px] text-amber-400 font-bold">📋 Klik di sini untuk Paste Gambar</p>
-                                <p class="text-[8px] text-gray-400 mt-0.5">atau gunakan tombol Ctrl + V setelah copy foto</p>
-                            </div>
+                        <!-- Area Paste Gambar (Klik / Ctrl+V) -->
+                        <div id="paste_area_longlat" tabindex="0" onclick="clickToPasteScanImage()" onpaste="handlePasteScanImage(event)" class="border-2 border-dashed border-gray-600 hover:border-amber-500 rounded p-3 text-center cursor-pointer bg-[#14161d] transition focus:outline-none focus:border-amber-500 select-none">
+                            <p class="text-[10px] text-amber-400 font-bold">📋 Klik di sini untuk Paste Gambar</p>
+                            <p class="text-[8px] text-gray-400 mt-0.5">atau gunakan tombol Ctrl + V setelah copy foto</p>
+                        </div>
 
-                            <!-- Indikator Loading Scan -->
-                            <div id="scan_ocr_loading" class="hidden text-center py-1 text-amber-400 text-[10px] font-bold animate-pulse">
-                                ⏳ Membaca koordinat dari foto...
-                            </div>
+                        <!-- Indikator Loading Scan -->
+                        <div id="scan_ocr_loading" class="hidden text-center py-1 text-amber-400 text-[10px] font-bold animate-pulse">
+                            ⏳ Membaca koordinat dari foto...
+                        </div>
 
-                            <!-- Hasil Scan Text -->
-                            <div class="bg-[#2d323f] rounded p-1.5 text-[10px] flex flex-col space-y-0.5">
-                                <span class="text-gray-400 text-[8px] font-bold uppercase">Hasil Extract LongLat (Format Koma):</span>
-                                <span id="label_hasil_ocr" class="font-mono text-amber-400 font-bold select-all text-[10px] break-all">-</span>
-                            </div>
+                        <!-- Hasil Scan Text -->
+                        <div class="bg-[#2d323f] rounded p-1.5 text-[10px] flex flex-col space-y-0.5">
+                            <span class="text-gray-400 text-[8px] font-bold uppercase">Hasil Extract LongLat (Format Koma):</span>
+                            <span id="label_hasil_ocr" class="font-mono text-amber-400 font-bold select-all text-[10px] break-all">-</span>
                         </div>
                     </div>
                 </div>
@@ -484,20 +477,6 @@
             updateKurangDisplay();
         });
 
-        // FUNGSI HIDE / SHOW PANEL SCAN FOTO LONGLAT
-        function toggleScanPanel() {
-            const panel = document.getElementById("panel_scan_longlat");
-            const icon = document.getElementById("icon_scan_toggle");
-            if (panel.classList.contains("hidden")) {
-                panel.classList.remove("hidden");
-                icon.innerText = "▲ Hide";
-                document.getElementById("paste_area_longlat").focus();
-            } else {
-                panel.classList.add("hidden");
-                icon.innerText = "▼ Show";
-            }
-        }
-
         // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
         async function clickToPasteScanImage() {
             try {
@@ -534,7 +513,7 @@
             }
         }
 
-        // PREPROCESSING CANVAS DENGAN SKALA RINGAN (1.8x)
+        // PREPROCESSING CANVAS DENGAN KONTRAST TINGGI & SKALA RINGAN
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -542,7 +521,7 @@
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    const scale = 1.8; // Skala diperkecil agar proses scan jauh lebih cepat
+                    const scale = 1.8;
                     canvas.width = img.width * scale;
                     canvas.height = img.height * scale;
 
@@ -558,7 +537,6 @@
                         const b = data[i + 2];
                         const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
 
-                        // Threshold binarisasi: Teks terang/merah -> Hitam, background -> Putih
                         if (brightness > 75 || r > 110) {
                             data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
                         } else {
@@ -573,7 +551,7 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS (VERSI DIPALINGKAN JAUH LEBIH CEPAT)
+        // PROSES SCAN OCR TESSERACT.JS (KILAT & CERDAS ENKRIPSI ANGKA DESIMAL)
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -582,16 +560,14 @@
             labelHasil.innerText = "Membaca koordinat (Mode Cepat)...";
 
             try {
-                // Preprocess Gambar dengan Canvas
                 const processedCanvas = await preprocessImageForOCR(imageFile);
 
-                // OCR dengan Whitelist Karakter agar super cepat & fokus pada angka/simbol koordinat
+                // Whitelist khusus angka, koma, titik, minus, dan spasi untuk mempercepat OCR
                 const result = await Tesseract.recognize(processedCanvas, 'eng', {
                     tessedit_char_whitelist: '0123456789.,- :'
                 });
                 const text = result.data.text;
 
-                // Cari pola koordinat Latitude & Longitude
                 const coords = extractLongLatFromText(text);
 
                 if (coords) {
@@ -619,52 +595,62 @@
             }
         }
 
-        // EXTRACTION LONGLAT (AKURAT MINUS + DIBATASI 4 DESIMAL)
+        // EXTRACTION LONGLAT (SANGAT AKURAT KANAN-KIRI, 4 DESIMAL & MINUS OTOMATIS)
         function extractLongLatFromText(rawText) {
             if (!rawText) return null;
 
             let cleaned = rawText
                 .replace(/[Oo]/g, '0')
                 .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u207B\u208B~_`'"]/g, '-')
-                .replace(/-\s+(\d)/g, '-$1')
-                .replace(/(?:^|[^\d\w])([:;,\/\\\.\*\+~_])\s*(\d{1,2}[.,]\d{2,})/g, ' -$2');
+                .replace(/-\s+(\d)/g, '-$1');
 
-            const regexPair = /(-?\d+[.,]\d{2,})\s*[\s,;:\/]+\s*(-?\d+[.,]\d{2,})/;
-            let match = cleaned.match(regexPair);
+            // Tangkap SEMUA angka yang berbentuk desimal (punya koma/titik desimal)
+            const allDecimals = cleaned.match(/-?\d+[.,]\d{2,}/g);
+
+            if (!allDecimals || allDecimals.length < 2) return null;
 
             let latVal = null;
             let lngVal = null;
 
-            if (match) {
-                latVal = match[1].replace(',', '.');
-                lngVal = match[2].replace(',', '.');
-            } else {
-                const latMatch = cleaned.match(/(?:lat|latitude)?\s*[:=\s]*(-?\d+[.,]\d{2,})/i);
-                const lngMatch = cleaned.match(/(?:long|lng|longitude)?\s*[:=\s]*(-?\d+[.,]\d{2,})/i);
+            // Cari nilai Longitude (Indonesia berada di 95-142) dan Latitude (-12 sampai 12)
+            for (let i = 0; i < allDecimals.length; i++) {
+                let numStr = allDecimals[i].replace(',', '.');
+                let num = parseFloat(numStr);
 
-                if (latMatch && lngMatch) {
-                    latVal = latMatch[1].replace(',', '.');
-                    lngVal = lngMatch[1].replace(',', '.');
+                if (num >= 90 && num <= 145 && !lngVal) {
+                    lngVal = numStr;
+                    if (i > 0 && !latVal) {
+                        latVal = allDecimals[i - 1].replace(',', '.');
+                    }
+                } else if (Math.abs(num) <= 15 && !latVal) {
+                    latVal = numStr;
+                    if (i + 1 < allDecimals.length && !lngVal) {
+                        let nextNum = parseFloat(allDecimals[i + 1].replace(',', '.'));
+                        if (nextNum >= 90 && nextNum <= 145) {
+                            lngVal = allDecimals[i + 1].replace(',', '.');
+                        }
+                    }
                 }
             }
 
-            if (latVal && lngVal) {
-                let latNum = parseFloat(latVal);
-                let lngNum = parseFloat(lngVal);
-
-                // Otomatis deteksi & paksa minus jika di wilayah Indonesia Selatan Khatulistiwa
-                if (latNum > 0 && latNum <= 11 && lngNum >= 95 && lngNum <= 142) {
-                    latNum = -Math.abs(latNum);
-                }
-
-                // Dibatasi 4 desimal agar ringan & presisi (~11 meter)
-                return {
-                    lat: latNum.toFixed(4),
-                    lng: lngNum.toFixed(4)
-                };
+            // Fallback jika tidak terdeteksi via batas wilayah: ambil 2 angka desimal pertama
+            if (!latVal || !lngVal) {
+                latVal = allDecimals[0].replace(',', '.');
+                lngVal = allDecimals[1].replace(',', '.');
             }
 
-            return null;
+            let latNum = parseFloat(latVal);
+            let lngNum = parseFloat(lngVal);
+
+            // Paksa minus jika berada di koordinat Indonesia Selatan Khatulistiwa
+            if (latNum > 0 && latNum <= 11 && lngNum >= 90 && lngNum <= 145) {
+                latNum = -Math.abs(latNum);
+            }
+
+            return {
+                lat: latNum.toFixed(4),
+                lng: lngNum.toFixed(4)
+            };
         }
 
         async function generateMapRoute() {
