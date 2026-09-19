@@ -1,2129 +1,312 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - GPS Tracker System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Library SheetJS untuk Export & Import Excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Library Leaflet.js untuk Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        body {
-            background-color: #14161d;
-            color: #ffffff;
-            font-family: 'Arial', sans-serif;
-        }
-        .dot {
-            transition: all 0.3s ease-in-out;
-        }
-        input:checked ~ .dot {
-            transform: translateX(100%);
-            background-color: #ffffff;
-        }
-        #toggle_mafia:checked ~ .block {
-            background-color: #ff3b30;
-        }
-        #toggle_approval:checked ~ .block {
-            background-color: #34c759;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Scan LongLat</title>
+  <!-- Library Tesseract.js untuk OCR Gambar -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #0d1117;
+      color: #f0f6fc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .card {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-toggle {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .card-body {
+      padding: 0 16px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-field {
+      flex: 1;
+      background-color: #0d1117;
+      border: 1px solid #388bfd;
+      color: #f0f6fc;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .input-field::placeholder {
+      color: #8b949e;
+    }
+
+    .btn-primary {
+      background-color: #1f6feb;
+      color: #ffffff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      background-color: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary.green {
+      color: #3fb950;
+    }
+
+    .btn-secondary.yellow {
+      color: #d29922;
+    }
+
+    .status-msg {
+      font-size: 12px;
+      color: #f85149;
+      text-align: center;
+      font-style: italic;
+      min-height: 18px;
+    }
+
+    .footer-bar {
+      background-color: #f0b90b;
+      color: #000000;
+      text-align: center;
+      padding: 12px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      font-size: 16px;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
+<body>
 
-    <!-- CONTAINER UTAMA DUAL PANE -->
-    <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start justify-center">
-        
-        <!-- PANEL KIRI: FORM UTAMA -->
-        <div id="main_card" class="w-full lg:w-[440px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
-            
-            <div class="p-4 flex flex-col space-y-3.5 flex-1">
-                
-                <!-- INPUT PLAT DENGAN INFO REQUESTOR & SN BERLETAK BERTUMPUK -->
-                <div class="flex items-center gap-1.5 w-full">
-                    <!-- KOTAK REQUESTOR & SN -->
-                    <div id="box_requestor_info" onclick="tambahAtauEditRequestor()" class="bg-[#13161c] border border-gray-700 hover:border-amber-500 cursor-pointer rounded px-2 py-1 text-[10px] font-bold text-[#ff9f0a] flex flex-col items-center justify-center min-w-[90px] max-w-[120px] truncate leading-tight transition-all" title="Klik untuk Tambah / Edit Requestor">
-                        <span id="txt_nama_req" class="truncate w-full text-center">- Requestor -</span>
-                        <span id="txt_sn_gps" class="text-[9px] text-gray-400 font-mono truncate w-full text-center">SN: -</span>
-                    </div>
-                    
-                    <div class="flex-1 flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                        <span class="w-10 flex-shrink-0">PLAT</span>
-                        <input type="text" id="entry_plat" class="w-full bg-transparent text-white font-normal uppercase outline-none" placeholder="Klik untuk Auto-Paste" onfocus="autoPaste(this, false)">
-                    </div>
-                    <button onclick="cekPlat()" id="btn_cek" class="bg-[#ff9f0a] text-white px-3 py-2 rounded text-[11px] font-bold hover:opacity-80 w-14 flex-shrink-0">CEK</button>
-                </div>
-
-                <!-- CONTAINER INPUT (START, AKHIR, LITER) & DUAL PANEL RASIO 1:11 & 1:12 -->
-                <div class="flex flex-col space-y-2 w-full">
-                    <!-- ROW INPUT START, AKHIR, LITER -->
-                    <div class="grid grid-cols-3 gap-1.5 w-full">
-                        <div class="flex items-center bg-[#2d323f] rounded px-2 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                            <span class="w-10 flex-shrink-0 text-[10px]">START</span>
-                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_start" class="w-full bg-transparent text-white font-normal outline-none text-right text-[11px]" placeholder="Auto" onfocus="autoPaste(this, true)">
-                        </div>
-
-                        <div class="flex items-center bg-[#2d323f] rounded px-2 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                            <span class="w-10 flex-shrink-0 text-[10px]">AKHIR</span>
-                            <input type="text" inputmode="numeric" pattern="[0-9]*" id="entry_akhir" class="w-full bg-transparent text-white font-normal outline-none text-right text-[11px]" placeholder="Auto" onfocus="autoPaste(this, true)">
-                        </div>
-
-                        <div class="flex items-center bg-[#2d323f] rounded px-2 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                            <span class="w-10 flex-shrink-0 text-[10px]">LITER</span>
-                            <input type="text" inputmode="decimal" id="entry_liter" class="w-full bg-transparent text-white font-normal outline-none text-right text-[11px]" placeholder="Liter">
-                        </div>
-                    </div>
-
-                    <!-- PANEL ANALISIS DEFISIT BERSANDINGAN (1:11 & 1:12) -->
-                    <div class="grid grid-cols-2 gap-2 w-full">
-                        <!-- PANEL RASIO 1:11 -->
-                        <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
-                            <div class="text-[9px] font-bold text-[#0a84ff] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
-                                <span>🎯 Rasio 1:11</span>
-                                <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
-                            </div>
-                            
-                            <div class="flex justify-between items-center text-[9.5px]">
-                                <span class="text-gray-400 font-medium">K.KEMAREN:</span>
-                                <span id="label_kurang_kemaren" class="text-amber-400 font-bold font-mono">0 Km</span>
-                            </div>
-
-                            <div class="flex justify-between items-center text-[9.5px]">
-                                <span class="text-gray-400 font-medium">K.SEKARANG:</span>
-                                <span id="label_kurang_sekarang" class="text-red-400 font-bold font-mono">0 Km</span>
-                            </div>
-
-                            <div class="border-t border-gray-800 pt-0.5 flex justify-between items-center mt-auto">
-                                <span class="text-gray-300 font-bold text-[9px]">TOT. KURANG:</span>
-                                <span id="label_total_kurang" class="text-red-500 font-black font-mono text-[10.5px]">0 Km</span>
-                            </div>
-                        </div>
-
-                        <!-- PANEL RASIO 1:12 -->
-                        <div class="bg-[#13161c] border border-gray-700 rounded-lg p-2 flex flex-col justify-between text-[10px] space-y-1">
-                            <div class="text-[9px] font-bold text-[#a855f7] uppercase tracking-wider border-b border-gray-800 pb-0.5 flex justify-between items-center">
-                                <span>🎯 Rasio 1:12</span>
-                                <span class="text-[8px] text-gray-500 font-normal">Km Defisit</span>
-                            </div>
-                            
-                            <div class="flex justify-between items-center text-[9.5px]">
-                                <span class="text-gray-400 font-medium">K.KEMAREN:</span>
-                                <span id="label_kurang_kemaren_12" class="text-amber-400 font-bold font-mono">0 Km</span>
-                            </div>
-
-                            <div class="flex justify-between items-center text-[9.5px]">
-                                <span class="text-gray-400 font-medium">K.SEKARANG:</span>
-                                <span id="label_kurang_sekarang_12" class="text-red-400 font-bold font-mono">0 Km</span>
-                            </div>
-
-                            <div class="border-t border-gray-800 pt-0.5 flex justify-between items-center mt-auto">
-                                <span class="text-gray-300 font-bold text-[9px]">TOT. KURANG:</span>
-                                <span id="label_total_kurang_12" class="text-red-500 font-black font-mono text-[10.5px]">0 Km</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">RMK</span>
-                    <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
-                </div>
-
-                <!-- BOX MAFIA MODE -->
-                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-300">
-                    <div class="flex flex-col flex-1 overflow-hidden">
-                        <span class="text-[11px] font-bold text-[#a0a5b5]" id="title_mafia">STATUS KENDARAAN</span>
-                        <div id="marquee_mafia" class="hidden text-[10px] font-black tracking-widest text-white uppercase overflow-hidden whitespace-nowrap pt-0.5">
-                            <marquee scrollamount="4">⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA ⚠️ MAFIA</marquee>
-                        </div>
-                    </div>
-                    <label for="toggle_mafia" class="flex items-center cursor-pointer select-none">
-                        <div class="relative">
-                            <input type="checkbox" id="toggle_mafia" class="sr-only" onchange="toggleMafiaMode(this.checked)">
-                            <div class="block bg-gray-600 w-10 h-6 rounded-full transition-colors"></div>
-                            <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- STATUS GPS (3 PILIHAN + TANGGAL AKTIF TERAKHIR) -->
-                <div id="box_gps" class="flex flex-col bg-[#dc2626] rounded p-2.5 transition-all duration-300 space-y-2">
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-[11px] font-bold text-white uppercase" id="title_gps">STATUS GPS: MATI</span>
-                        <span id="label_aktif_terakhir" class="text-[9px] font-mono text-white/90 bg-black/30 px-1.5 py-0.5 rounded hidden truncate" title="Tanggal Aktif Terakhir">
-                            Aktif: -
-                        </span>
-                    </div>
-                    <!-- Tombol Pilihan 3 Status -->
-                    <div class="grid grid-cols-3 gap-1 bg-black/25 p-1 rounded-lg">
-                        <button type="button" onclick="setGpsStatus('AKTIF')" id="btn_gps_aktif" class="py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition">ON</button>
-                        <button type="button" onclick="setGpsStatus('MATI')" id="btn_gps_mati" class="py-1 rounded text-[10px] font-bold bg-black/40 text-white transition">OFF</button>
-                        <button type="button" onclick="setGpsStatus('NOTFOUNDAROB')" id="btn_gps_notfound" class="py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition">NOTFOUND</button>
-                    </div>
-                    <!-- Tombol Copas khusus jika GPS Mati -->
-                    <button onclick="copasGpsMati(this)" id="btn_copas_gps" class="bg-black/30 hover:bg-black/50 text-white py-1 rounded transition flex items-center justify-center text-[10px] font-bold gap-1 select-none border border-white/10 w-full">
-                        📋 <span>Copas Pesan Kendala GPS</span>
-                    </button>
-                </div>
-
-                <!-- PANEL NEED APPROVAL -->
-                <div id="box_approval" class="hidden flex-col bg-[#2d323f] border border-orange-500/40 rounded px-3 py-2 transition-all duration-300 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex flex-col">
-                            <span class="text-[11px] font-bold text-[#ff9f0a]">NEED APPROVAL</span>
-                            <span id="label_last_approved" class="text-[9px] text-gray-400 italic">Last Approved: -</span>
-                        </div>
-                        <label for="toggle_approval" class="flex items-center cursor-pointer select-none">
-                            <div class="relative">
-                                <input type="checkbox" id="toggle_approval" class="sr-only" onchange="handleApprovalChange(this.checked)">
-                                <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
-                                <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                                <span id="text_approval_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- GRID TOMBOL AKSI -->
-                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold pt-1">
-                    <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
-                    <button onclick="simpanKeCloud()" id="btn_save" class="bg-[#3a3f4d] text-white py-2 rounded hover:opacity-80 uppercase">SAVE</button>
-                    <button onclick="resetForm()" class="bg-[#3a3f4d] text-gray-300 py-2 rounded hover:opacity-80 uppercase">RESET</button>
-                </div>
-
-                <div class="flex items-center justify-around bg-[#2d323f] px-3 py-2 rounded h-10 text-center">
-                    <span id="label_hasil" class="text-[#34c759] font-bold text-sm border-r border-gray-700 pr-2 flex-1">- KM/L</span>
-                    <span id="label_jarak" class="text-[#a0a5b5] text-[11px] border-r border-gray-700 px-2 flex-1">Jarak: -</span>
-                    <span id="label_status" class="text-white font-bold text-[10px] px-2 py-0.5 rounded bg-transparent min-w-[60px] text-center">-</span>
-                </div>
-
-                <div class="bg-[#2d323f] p-2.5 rounded flex flex-col space-y-2 min-h-[60px]">
-                    <p id="label_rekues" class="text-[11px] italic text-gray-300 leading-relaxed">
-                        Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter
-                    </p>
-                    <div class="text-right">
-                        <button onclick="copasTeks(this)" id="btn_copas" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-2.5 py-1 rounded hover:opacity-80 whitespace-nowrap">
-                            Copas
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col space-y-1.5 pt-1">
-                    <select id="menu_var" class="w-full bg-[#2d323f] text-white text-[11px] p-2 rounded outline-none border border-transparent focus:border-gray-600">
-                        <option value="-- Pilih Teks Tambahan --">-- Pilih Teks Tambahan --</option>
-                        <option value="Silahkan revisi nominal menjadi 100.000 karena tidak masuk area terdampak pot.">Silahkan revisi nominal menjadi 100.000 karena tidak masuk area terdampak pot</option>
-                        <option value="Next rekues wajib menggunakan foto eviden untuk pembelian non spbu ( foto harga eceran)">Next rekues wajib menggunakan foto eviden untuk pembelian non spbu ( foto harga eceran)</option>
-                        <option value="Rekues ulang menggunakan item cost &quot;Shopping List Material&quot;">Rekues ulang menggunakan item cost "Shopping List Material"</option>
-                        <option value="Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..">Koordinasi dengan NDS ( Vania +62 895-3221-73069) untuk registrasi site..</option>
-                        <option value="Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.">Approve with remark - Next rekues mohon tambahkan justifikasi terkait kendala dilapangan.</option>
-                        <option value="Revisi site id sesuaikan dengan wo yang diupload.">Revisi site id sesuaikan dengan wo yang diupload.</option>
-                        <option value="Revisi status SL id, tunggu hingga approve ROH ( Instalation ).">Revisi status SL id, tunggu hingga approve ROH ( Instalation ).</option>
-                        <option value="Revisi items cost . &quot;kurir reguler&quot; hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost &quot;Delivery Material Perorangan&quot; atau &quot;Delivery Material Badan&quot;.">Revisi items cost . "kurir reguler" hanya untuk pengiriman dokumen, untuk pengiriman barang gunakan item cost "Delivery Material Perorangan" / "Delivery Material Badan".</option>
-                        <option value="Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).">Revisi item cost, Untuk Request Pengiriman Barang /Material dengan biaya 100rb lebih ,tolong menggunakan Item cost Delivery Material Perorangan (Travel) / Delivery Material Badan (PT).</option>
-                    </select>
-                    <div class="text-right">
-                        <button onclick="copasPilihan(this)" id="btn_copas_pilihan" class="bg-[#3a3f4d] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:opacity-80 whitespace-nowrap">
-                            Copas Pilihan
-                        </button>
-                    </div>
-                </div>
-
-                <!-- PANEL MAP & RUTE SITE ID -->
-                <div class="flex flex-col space-y-2 pt-3 border-t border-gray-700 mt-3">
-                    <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
-
-                    <!-- Input Site ID & Koordinat Tujuan -->
-                    <div class="grid grid-cols-3 gap-1.5">
-                        <input type="text" id="entry_site_id" placeholder="Site ID" onkeyup="cariSiteIdAuto()" onchange="cariSiteIdAuto()" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500 uppercase">
-                        <input type="text" id="entry_site_lat" placeholder="Lat Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                        <input type="text" id="entry_site_lng" placeholder="Long Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                    </div>
-
-                    <!-- Input Koordinat Awal Perjalanan -->
-                    <div class="grid grid-cols-2 gap-1.5">
-                        <input type="text" id="entry_start_lat" placeholder="Lat Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                        <input type="text" id="entry_start_lng" placeholder="Long Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                    </div>
-
-                    <!-- Tombol Render Map -->
-                    <button type="button" onclick="generateMapRoute()" class="bg-[#0a84ff] text-white text-[10px] font-bold py-1.5 rounded hover:opacity-80 transition uppercase">
-                        🚀 Tampilkan Rute di Map
-                    </button>
-
-                    <!-- Container Map -->
-                    <div id="map_container" class="w-full h-48 rounded-lg border border-gray-700 z-10 mt-1"></div>
-
-                    <!-- INFO JARAK RUTE DI BAWAH MAP -->
-                    <div class="bg-[#13161c] border border-gray-800 rounded px-2.5 py-1.5 flex items-center justify-between text-[10px]">
-                        <span class="text-gray-400 font-medium">📏 Jarak Rute (Mobil Real):</span>
-                        <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
-                    </div>
-
-                    <!-- FITUR AUTO SCAN LONGLAT (COLLAPSIBLE / HIDE - NON HIDE) -->
-                    <div class="bg-[#13161c] border border-gray-800 rounded-lg p-2.5 flex flex-col space-y-2 mt-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold text-[#0a84ff] uppercase flex items-center gap-1">
-                                📡 Auto Scan LongLat Awal
-                            </span>
-                            <button type="button" onclick="toggleAutoScanPanel()" id="btn_toggle_autoscan" class="bg-[#2d323f] hover:bg-gray-700 text-gray-300 text-[9px] font-bold px-2 py-0.5 rounded transition">
-                                Sembunyikan ▲
-                            </button>
-                        </div>
-
-                        <!-- PANEL KONTEN AUTOSCAN (BISA DILIPAT / TOGGLE) -->
-                        <div id="panel_autoscan_content" class="flex flex-col space-y-2 pt-1">
-                            <div class="flex gap-1.5">
-                                <input type="text" id="entry_scan_input" placeholder="Paste link G-Maps / Teks LongLat..." class="flex-1 bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                                <button type="button" onclick="scanLongLatFromInput()" class="bg-[#0a84ff] hover:opacity-80 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition whitespace-nowrap">
-                                    Scan Teks
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <button type="button" onclick="autoScanClipboardLongLat()" class="bg-[#2d323f] hover:bg-gray-700 text-emerald-400 border border-emerald-500/30 text-[9.5px] font-bold py-1.5 rounded transition flex items-center justify-center gap-1">
-                                    📋 Auto Scan Clipboard
-                                </button>
-                                <button type="button" onclick="getGPSPerangkatSaatIni()" class="bg-[#2d323f] hover:bg-gray-700 text-amber-400 border border-amber-500/30 text-[9.5px] font-bold py-1.5 rounded transition flex items-center justify-center gap-1">
-                                    📍 GPS Perangkat
-                                </button>
-                            </div>
-                            <span id="label_autoscan_status" class="text-[9px] text-gray-400 italic text-center hidden"></span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="bg-[#f3c623] text-black font-black text-xs tracking-[0.4em] py-3 w-full text-center select-none uppercase border-t border-gray-700">
-                P A P I P A
-            </div>
-        </div>
-
-        <!-- PANEL KANAN: PREVIEW MAP, HISTORI & EXPORT -->
-        <div class="flex-1 w-full bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl p-4 flex flex-col space-y-3 lg:max-w-md">
-            
-            <div class="flex justify-between items-center border-b border-gray-700 pb-1.5">
-                <h3 class="text-xs font-bold tracking-wider text-[#0a84ff] uppercase">🗺️ Visual & Preview Map Tracker</h3>
-                <span id="counter_foto" class="text-[10px] bg-[#2d323f] px-2 py-0.5 rounded text-gray-400">0 / 3 Foto</span>
-            </div>
-
-            <!-- SLOT CONTAINER FOTO PREVIEW -->
-            <div class="grid grid-cols-3 gap-2 w-full">
-                <!-- Slot 1 -->
-                <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
-                    <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
-                        <span class="text-lg block">📸</span>
-                        <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
-                    </div>
-                    <button onclick="hapusFoto(1)" id="btn_del_1" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
-                </div>
-                <!-- Slot 2 -->
-                <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
-                    <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
-                        <span class="text-lg block">📸</span>
-                        <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
-                    </div>
-                    <button onclick="hapusFoto(2)" id="btn_del_2" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
-                </div>
-                <!-- Slot 3 -->
-                <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
-                    <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
-                        <span class="text-lg block">📸</span>
-                        <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
-                    </div>
-                    <button onclick="hapusFoto(3)" id="btn_del_3" class="hidden absolute top-1 right-1 bg-black/80 text-red-500 hover:text-red-400 rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px] z-40">&times;</button>
-                </div>
-            </div>
-
-            <!-- TOMBOL AKSI ATTACHMENT COMPACT -->
-            <div class="bg-[#13161c] p-2 rounded-lg border border-gray-800">
-                <div class="flex flex-col sm:flex-row gap-1.5">
-                    <input type="file" id="file_uploader" accept="image/*" multiple class="hidden" onchange="handleFileSelect(this)">
-                    <button onclick="document.getElementById('file_uploader').click()" class="flex-1 bg-[#2d323f] border border-gray-600 text-white text-[10px] font-bold py-1.5 px-2 rounded hover:bg-gray-700 transition flex items-center justify-center gap-1">
-                        📂 Pilih File Foto Map
-                    </button>
-                    <button onclick="clearAllPhotos()" class="bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold py-1.5 px-2 rounded hover:bg-red-500/20 transition">
-                        Reset
-                    </button>
-                </div>
-            </div>
-
-            <!-- POSISI SEKARANG: DI BAWAH MAP & DI ATAS 5 LOG TERAKHIR -->
-            <div class="bg-[#2d323f] border border-gray-700 rounded-lg p-2.5 flex items-center justify-between gap-3">
-                <p id="label_map_warning" class="text-[11px] font-medium text-gray-300 italic leading-tight select-all">
-                    Mohon gunakan map update setiap kali rekues
-                </p>
-                <button onclick="copasPesanMap(this)" class="bg-[#3a3f4d] hover:bg-gray-600 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition whitespace-nowrap flex-shrink-0">
-                    Copas
-                </button>
-            </div>
-
-            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-44">
-                <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
-                    <span>📋 5 Log BBM Terakhir</span>
-                    <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
-                </div>
-                <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
-                    <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
-                </div>
-            </div>
-
-            <!-- FITUR: PANEL GENERATE UPDATE MASTER SITE MASSAL -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#a855f7] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>📍 Master Site ID </span>
-                    <button onclick="downloadTemplateSite()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
-                </div>
-                <div class="flex flex-col gap-1.5 text-[10px]">
-                    <input type="file" id="excel_site_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelSiteUpload(this)">
-                    <button onclick="document.getElementById('excel_site_uploader').click()" class="bg-[#a855f7]/20 hover:bg-[#a855f7]/30 border border-purple-500/50 text-purple-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_site">📂 Upload Excel Master Site </span>
-                        <span class="text-xs">🗺️</span>
-                    </button>
-                </div>
-            </div>
-			
-			        <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>👤 Master Requestor </span>
-                    <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
-                </div>
-                <div class="flex flex-col gap-1.5 text-[10px]">
-                    <input type="file" id="excel_req_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelRequestorUpload(this)">
-                    <button onclick="document.getElementById('excel_req_uploader').click()" class="bg-[#0a84ff]/20 hover:bg-[#0a84ff]/30 border border-blue-500/50 text-blue-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_req">📂 Upload Excel Master Requestor </span>
-                        <span class="text-xs">👥</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- FITUR: PANEL GENERATE & UPDATE GPS MASSAL AROBS -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#ff9f0a] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>⚡ Generate Update GPS (AROBS)</span>
-                    <button onclick="downloadTemplateGps()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
-                </div>
-                <div class="flex flex-col gap-1.5 text-[10px]">
-                    <input type="file" id="excel_gps_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelGpsUpload(this)">
-                    <button onclick="document.getElementById('excel_gps_uploader').click()" class="bg-[#34c759]/20 hover:bg-[#34c759]/30 border border-green-500/50 text-green-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_gps">📂 Upload Excel GPS AROBS Update </span>
-                        <span class="text-xs">⚡</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
-                    <span>📊 Tarik Data Log & Master (Excel)</span>
-                </div>
-                <div class="grid grid-cols-1 gap-2 text-[10px] font-bold">
-                    <button onclick="downloadStatusGpsMaster(this)" class="bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/50 text-cyan-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
-                        <span id="txt_btn_gps_master">📡 Download Status GPS Terbaru (Plat, Requestor, Status)</span>
-                        <span class="text-xs">📥</span>
-                    </button>
-                    <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_1">1. Download All Log</span>
-                        <span class="text-xs">📥</span>
-                    </button>
-                    <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_2">2. Download Plat Mafia</span>
-                        <span class="text-xs">🚨</span>
-                    </button>
-                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
-                        <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
-                        <span class="text-xs">⚠️</span>
-                    </button>
-                </div>
-            </div>
-
-        </div>
-
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        📡 AUTO SCAN LONGLAT AWAL
+      </div>
+      <button class="btn-toggle">Sembunyikan ▲</button>
     </div>
 
-    <script>
-        const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
-        
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark, site_id, site_lat, site_lng, start_lat, start_lng";
+    <div class="card-body">
+      <div class="input-group">
+        <input 
+          type="text" 
+          id="longLatInput" 
+          class="input-field" 
+          placeholder="Paste link G-Maps / Teks LongLat..."
+        >
+        <button class="btn-primary" id="btnScan">Scan Teks</button>
+      </div>
 
-        let data_siap_simpan = null;
-        let id_log_sedang_diedit = null; 
-        let currentGpsStatusValue = "MATI";
+      <div class="btn-group">
+        <button class="btn-secondary green" id="btnClipboard">
+          📋 Auto Scan Clipboard
+        </button>
+        <button class="btn-secondary yellow" id="btnGPS">
+          📍 GPS Perangkat
+        </button>
+      </div>
 
-        // VARIABEL STATE MAP LEAFLET
-        let myLeafletMap = null;
-        let mapFeatureGroup = null;
+      <div class="status-msg" id="statusText">
+        ⚠️ Tempelkan (Paste) gambar langsung ke input di atas.
+      </div>
+    </div>
 
-        // VARIABEL STATE KEKURANGAN KM 1:11
-        let val_kurang_kemaren = 0;
-        let val_kurang_sekarang = 0;
-        let val_total_kurang = 0;
+    <div class="footer-bar">
+      P A P I P A
+    </div>
+  </div>
 
-        // VARIABEL STATE KEKURANGAN KM 1:12
-        let val_kurang_kemaren_12 = 0;
-        let val_kurang_sekarang_12 = 0;
-        let val_total_kurang_12 = 0;
+  <script>
+    const longLatInput = document.getElementById('longLatInput');
+    const statusText = document.getElementById('statusText');
+    const btnClipboard = document.getElementById('btnClipboard');
 
-        let array_foto_base64 = [null, null, null];
-        let array_foto_timestamps = [0, 0, 0];
+    // 1. Event listener saat user melakukan PASTE (Ctrl+V) pada input
+    longLatInput.addEventListener('paste', async (event) => {
+      const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+      let imageFile = null;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            updateApprovalLabel();
-            setGpsStatus("MATI");
-            updateKurangDisplay();
-        });
+      for (const item of items) {
+        if (item.type.includes('image')) {
+          imageFile = item.getAsFile();
+          break;
+        }
+      }
 
-        // FUNGSI KONTROL AUTO SCAN LONGLAT
-        function toggleAutoScanPanel() {
-            const panel = document.getElementById("panel_autoscan_content");
-            const btn = document.getElementById("btn_toggle_autoscan");
-            if (panel.classList.contains("hidden")) {
-                panel.classList.remove("hidden");
-                btn.innerText = "Sembunyikan ▲";
+      if (imageFile) {
+        event.preventDefault(); // Mencegah penempelan teks mentah jika ada
+        processImage(imageFile);
+      }
+    });
+
+    // 2. Tombol "Auto Scan Clipboard" untuk membaca gambar langsung dari clipboard
+    btnClipboard.addEventListener('click', async () => {
+      try {
+        const clipboardItems = await navigator.clipboard.read();
+        let imageFile = null;
+
+        for (const item of clipboardItems) {
+          const imageType = item.types.find(type => type.startsWith('image/'));
+          if (imageType) {
+            imageFile = await item.getType(imageType);
+            break;
+          }
+        }
+
+        if (imageFile) {
+          processImage(imageFile);
+        } else {
+          statusText.innerText = '⚠️ Clipboard tidak berisi gambar.';
+        }
+      } catch (err) {
+        statusText.innerText = '⚠️ Izinkan akses clipboard atau gunakan Ctrl+V.';
+      }
+    });
+
+    // 3. Fungsi Utama: Proses Crop Kanan Bawah & Scan OCR
+    async function processImage(file) {
+      statusText.innerText = '⏳ Memproses scan OCR gambar...';
+      longLatInput.value = 'Scanning...';
+
+      try {
+        const extractedText = await scanBottomRightImage(file);
+
+        if (extractedText) {
+          // UBAH SEMUA TITIK UNTUK DIPERBAIKI MENJADI KOMA
+          const formattedText = extractedText.replace(/\./g, ',');
+          
+          // Masukkan ke input utama
+          longLatInput.value = formattedText;
+          statusText.innerText = '✅ Koordinat berhasil diekstrak dan diformat!';
+        } else {
+          longLatInput.value = '';
+          statusText.innerText = '⚠️ Koordinat tidak terdeteksi di kanan bawah gambar.';
+        }
+      } catch (error) {
+        console.error(error);
+        longLatInput.value = '';
+        statusText.innerText = '❌ Gagal memproses gambar.';
+      }
+    }
+
+    // 4. Crop Gambar di Area Kanan Bawah & Jalankan Tesseract
+    function scanBottomRightImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // Area Potong: 50% kanan & 35% bawah
+          const cropX = img.width * 0.5;
+          const cropY = img.height * 0.65;
+          const cropWidth = img.width * 0.5;
+          const cropHeight = img.height * 0.35;
+
+          canvas.width = cropWidth;
+          canvas.height = cropHeight;
+
+          // Menggambar potongannya ke canvas
+          ctx.drawImage(
+            img,
+            cropX, cropY, cropWidth, cropHeight,
+            0, 0, cropWidth, cropHeight
+          );
+
+          try {
+            // Jalankan Tesseract pada hasil potong canvas
+            const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+            
+            // Regex mencari pola angka koordinat (contoh: -7.1234, 110.1234 atau sejenisnya)
+            const coordPattern = /(-?\d+[\.,]\d+[\s,]+-?\d+[\.,]\d+)/;
+            const match = text.match(coordPattern);
+
+            if (match) {
+              resolve(match[0].trim());
             } else {
-                panel.classList.add("hidden");
-                btn.innerText = "Tampilkan ▼";
+              // Jika regex tidak pas, ambil baris teks paling bawah
+              const lines = text.trim().split('\n').filter(l => l.trim() !== '');
+              resolve(lines.length > 0 ? lines[lines.length - 1] : null);
             }
-        }
-
-        function parseCoordinates(str) {
-            if (!str) return null;
-            str = str.trim();
-
-            // Format URL Google Maps (@-6.12345,106.7890 / q=-6.12345,106.7890 / ll=-6.12345,106.7890)
-            const urlMatch = str.match(/(@|q=|ll=|place\/|loc:)(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/i);
-            if (urlMatch) {
-                return { lat: parseFloat(urlMatch[2]), lng: parseFloat(urlMatch[3]) };
-            }
-
-            // Format koordinat biasa (-6.2088, 106.8456 atau -6.2088; 106.8456)
-            const coordMatch = str.match(/(-?\d{1,2}\.\d+)\s*[\s,;:]+\s*(-?\d{1,3}\.\d+)/);
-            if (coordMatch) {
-                return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
-            }
-
-            return null;
-        }
-
-        function applyScannedLongLat(lat, lng, statusMsg) {
-            document.getElementById("entry_start_lat").value = lat;
-            document.getElementById("entry_start_lng").value = lng;
-
-            const statusEl = document.getElementById("label_autoscan_status");
-            if (statusEl) {
-                statusEl.innerText = statusMsg || `✅ Berhasil set Start LongLat: ${lat}, ${lng}`;
-                statusEl.classList.remove("hidden", "text-red-400", "text-amber-400");
-                statusEl.classList.add("text-green-400");
-            }
-
-            const siteLat = document.getElementById("entry_site_lat").value.trim();
-            const siteLng = document.getElementById("entry_site_lng").value.trim();
-            if (siteLat && siteLng) {
-                generateMapRoute();
-            }
-        }
-
-        function scanLongLatFromInput() {
-            const text = document.getElementById("entry_scan_input").value;
-            const res = parseCoordinates(text);
-            const statusEl = document.getElementById("label_autoscan_status");
-
-            if (res) {
-                applyScannedLongLat(res.lat, res.lng, `✅ Berhasil scan: Lat ${res.lat}, Long ${res.lng}`);
-            } else {
-                if (statusEl) {
-                    statusEl.innerText = "❌ Koordinat Lat/Long tidak ditemukan pada teks.";
-                    statusEl.classList.remove("hidden", "text-green-400", "text-amber-400");
-                    statusEl.classList.add("text-red-400");
-                }
-                alert("Gagal mendeteksi koordinat Lat/Long! Pastikan teks atau link memuat angka latitude & longitude.");
-            }
-        }
-
-        async function autoScanClipboardLongLat() {
-            const statusEl = document.getElementById("label_autoscan_status");
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById("entry_scan_input").value = text;
-                const res = parseCoordinates(text);
-                if (res) {
-                    applyScannedLongLat(res.lat, res.lng, `📋 Clipboard terdeteksi: ${res.lat}, ${res.lng}`);
-                } else {
-                    if (statusEl) {
-                        statusEl.innerText = "⚠️ Clipboard tidak berisi koordinat Lat/Long yang valid.";
-                        statusEl.classList.remove("hidden", "text-green-400", "text-amber-400");
-                        statusEl.classList.add("text-red-400");
-                    }
-                }
-            } catch (err) {
-                alert("Gagal membaca clipboard. Pastikan izin clipboard diizinkan oleh browser.");
-            }
-        }
-
-        function getGPSPerangkatSaatIni() {
-            const statusEl = document.getElementById("label_autoscan_status");
-            if (!navigator.geolocation) {
-                return alert("Fitur Geolocation tidak didukung oleh browser ini.");
-            }
-
-            if (statusEl) {
-                statusEl.innerText = "⏳ Mengambil GPS perangkat...";
-                statusEl.classList.remove("hidden", "text-red-400", "text-green-400");
-                statusEl.classList.add("text-amber-400");
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = parseFloat(position.coords.latitude.toFixed(6));
-                    const lng = parseFloat(position.coords.longitude.toFixed(6));
-                    applyScannedLongLat(lat, lng, `📍 GPS Perangkat berhasil didapatkan: ${lat}, ${lng}`);
-                },
-                (error) => {
-                    let msg = "Gagal mengambil lokasi GPS.";
-                    if (error.code === error.PERMISSION_DENIED) msg = "Izin GPS ditolak oleh pengguna.";
-                    else if (error.code === error.POSITION_UNAVAILABLE) msg = "Informasi lokasi tidak tersedia.";
-                    else if (error.code === error.TIMEOUT) msg = "Waktu permintaan GPS habis.";
-                    
-                    if (statusEl) {
-                        statusEl.innerText = `❌ ${msg}`;
-                        statusEl.classList.remove("text-amber-400", "text-green-400");
-                        statusEl.classList.add("text-red-400");
-                    }
-                    alert(msg);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
-
-        async function generateMapRoute() {
-            const siteId = document.getElementById("entry_site_id").value.trim();
-            const siteLat = parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.'));
-            const siteLng = parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.'));
-            
-            const startLat = parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.'));
-            const startLng = parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.'));
-
-            const distLabel = document.getElementById("label_map_distance");
-
-            if (isNaN(siteLat) || isNaN(siteLng) || isNaN(startLat) || isNaN(startLng)) {
-                distLabel.innerText = "- Km";
-                return alert("Mohon lengkapi Latitude & Longitude untuk Titik Awal maupun Site ID!");
-            }
-
-            const startCoords = [startLat, startLng];
-            const siteCoords = [siteLat, siteLng];
-
-            if (!myLeafletMap) {
-                myLeafletMap = L.map('map_container').setView(startCoords, 12);
-                
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap'
-                }).addTo(myLeafletMap);
-
-                mapFeatureGroup = L.layerGroup().addTo(myLeafletMap);
-            } else {
-                mapFeatureGroup.clearLayers();
-            }
-
-            const startMarker = L.marker(startCoords).bindPopup("<b>🚩 Titik Awal Perjalanan</b>");
-            const siteMarker = L.marker(siteCoords).bindPopup(`<b>🎯 Site ID:</b> ${siteId || 'Tanpa ID'}`);
-            mapFeatureGroup.addLayer(startMarker);
-            mapFeatureGroup.addLayer(siteMarker);
-
-            distLabel.innerText = "Mencari rute jalan...";
-
-            try {
-                // Fetch Driving Route dari OSRM API (Rute Jalan Mobil Aktual)
-                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${siteLng},${siteLat}?overview=full&geometries=geojson`;
-                const response = await fetch(osrmUrl);
-                const routeData = await response.json();
-
-                if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
-                    const route = routeData.routes[0];
-                    const distanceKm = (route.distance / 1000).toFixed(2);
-                    
-                    distLabel.innerText = `${distanceKm} Km`;
-
-                    // Render Garis Rute Jalan Real di Leaflet (Warna Biru ala Google Maps)
-                    const routeLayer = L.geoJSON(route.geometry, {
-                        style: {
-                            color: '#0a84ff',
-                            weight: 5,
-                            opacity: 0.85
-                        }
-                    });
-
-                    mapFeatureGroup.addLayer(routeLayer);
-                    myLeafletMap.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
-                } else {
-                    throw new Error("Rute jalan tidak ditemukan");
-                }
-            } catch (err) {
-                console.warn("Gagal mengambil rute OSRM, fallback ke garis lurus:", err);
-
-                // Fallback: Garis Lurus + Hitung Jarak Haversine jika koneksi OSRM error/offline
-                const fallbackLine = L.polyline([startCoords, siteCoords], {
-                    color: '#ff9f0a',
-                    weight: 4,
-                    dashArray: '5, 10'
-                });
-                mapFeatureGroup.addLayer(fallbackLine);
-
-                const fallbackDist = calculateHaversineDistance(startLat, startLng, siteLat, siteLng).toFixed(2);
-                distLabel.innerText = `${fallbackDist} Km (Garis Lurus)`;
-
-                const bounds = L.latLngBounds([startCoords, siteCoords]);
-                myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
-            }
-        }
-
-        // Fungsi Hitung Jarak Garis Lurus (Haversine Formula) untuk Fallback
-        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius Bumi dalam KM
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        async function cariSiteIdAuto() {
-            const siteIdInput = document.getElementById("entry_site_id").value.trim().toUpperCase();
-            if (!siteIdInput) return;
-
-            try {
-                const { data, error } = await _supabase
-                    .from('master_site')
-                    .select('latitude, longitude')
-                    .eq('site_id', siteIdInput)
-                    .maybeSingle();
-
-                if (data) {
-                    document.getElementById("entry_site_lat").value = data.latitude;
-                    document.getElementById("entry_site_lng").value = data.longitude;
-                }
-            } catch (err) {
-                console.log("Site ID belum terdaftar di master_site:", err);
-            }
-        }
-
-        function downloadTemplateSite() {
-            const templateData = [
-                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ" },
-                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub" }
-            ];
-            const worksheet = XLSX.utils.json_to_sheet(templateData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Master Site");
-            XLSX.writeFile(workbook, "Template_Master_Site.xlsx");
-        }
-
-        async function handleExcelSiteUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const txtBtn = document.getElementById("txt_btn_gen_site");
-            input.disabled = true;
-            txtBtn.innerText = "Membaca File Excel...";
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                    if (!jsonRows || jsonRows.length === 0) {
-                        alert("File Excel kosong atau format tidak sesuai!");
-                        return;
-                    }
-
-                    txtBtn.innerText = "Memproses Data Master Site...";
-
-                    const recordsToUpsert = [];
-                    const processedSites = new Set();
-
-                    for (let row of jsonRows) {
-                        let siteIdRaw = "";
-                        let latVal = null;
-                        let lngVal = null;
-                        let namaSite = "";
-
-                        for (let k in row) {
-                            const kLower = k.toLowerCase().trim();
-                            if (kLower.includes('site') && (kLower.includes('id') || kLower.includes('kode'))) {
-                                if (row[k]) siteIdRaw = String(row[k]).trim();
-                            }
-                            if (kLower.includes('lat')) {
-                                if (row[k] !== "") latVal = parseFloat(String(row[k]).replace(',', '.'));
-                            }
-                            if (kLower.includes('long') || kLower.includes('lng')) {
-                                if (row[k] !== "") lngVal = parseFloat(String(row[k]).replace(',', '.'));
-                            }
-                            if (kLower.includes('nama')) {
-                                if (row[k]) namaSite = String(row[k]).trim();
-                            }
-                        }
-
-                        if (!siteIdRaw && row["Site ID"]) siteIdRaw = String(row["Site ID"]).trim();
-
-                        if (siteIdRaw && !isNaN(latVal) && !isNaN(lngVal) && latVal !== null && lngVal !== null) {
-                            const cleanedSiteId = siteIdRaw.toUpperCase();
-                            if (!processedSites.has(cleanedSiteId)) {
-                                processedSites.add(cleanedSiteId);
-                                recordsToUpsert.push({
-                                    site_id: cleanedSiteId,
-                                    latitude: latVal,
-                                    longitude: lngVal,
-                                    nama_site: namaSite || null
-                                });
-                            }
-                        }
-                    }
-
-                    if (recordsToUpsert.length === 0) {
-                        alert("Tidak ada data Site ID dan Koordinat (Lat/Long) yang valid ditemukan!");
-                        return;
-                    }
-
-                    txtBtn.innerText = `Mengupdate Database (${recordsToUpsert.length} site)...`;
-
-                    let successCount = 0;
-                    for (let i = 0; i < recordsToUpsert.length; i += 500) {
-                        const chunk = recordsToUpsert.slice(i, i + 500);
-                        const { error } = await _supabase
-                            .from('master_site')
-                            .upsert(chunk, { onConflict: 'site_id' });
-
-                        if (error) throw error;
-                        successCount += chunk.length;
-                    }
-
-                    alert(`Berhasil Import Master Site secara Massal!\n` +
-                          `Total Site ID Diperbarui/Disimpan: ${successCount} Site.`);
-
-                } catch (err) {
-                    alert("Gagal mengupdate Master Site massal:\n" + err.message);
-                } finally {
-                    input.value = "";
-                    txtBtn.innerText = "📂 Upload Excel Master Site & Import Massal";
-                    input.disabled = false;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function formatKm(num) {
-            if (!num || num <= 0) return "0 Km";
-            let formatted = Math.round(num * 10) / 10;
-            return `${formatted} Km`;
-        }
-
-        function updateKurangDisplay() {
-            // Label Rasio 1:11
-            document.getElementById("label_kurang_kemaren").innerText = formatKm(val_kurang_kemaren);
-            document.getElementById("label_kurang_sekarang").innerText = formatKm(val_kurang_sekarang);
-            document.getElementById("label_total_kurang").innerText = formatKm(val_total_kurang);
-
-            // Label Rasio 1:12
-            document.getElementById("label_kurang_kemaren_12").innerText = formatKm(val_kurang_kemaren_12);
-            document.getElementById("label_kurang_sekarang_12").innerText = formatKm(val_kurang_sekarang_12);
-            document.getElementById("label_total_kurang_12").innerText = formatKm(val_total_kurang_12);
-        }
-
-        async function hitungKurangKemaren(plat) {
-            if (!plat) {
-                val_kurang_kemaren = 0;
-                val_kurang_kemaren_12 = 0;
-                updateKurangDisplay();
-                return;
-            }
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('id, km_start, km_akhir, jarak, liter')
-                    .eq('plat_nomor', plat);
-
-                if (error || !data) {
-                    val_kurang_kemaren = 0;
-                    val_kurang_kemaren_12 = 0;
-                    updateKurangDisplay();
-                    return;
-                }
-
-                let totalTargetPrev11 = 0;
-                let totalTargetPrev12 = 0;
-                let totalActualPrev = 0;
-
-                data.forEach(row => {
-                    if (id_log_sedang_diedit !== null && row.id === id_log_sedang_diedit) return;
-
-                    const rowLiter = parseFloat(row.liter) || 0;
-                    const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
-
-                    totalTargetPrev11 += (rowLiter * 11); // Target 1:11
-                    totalTargetPrev12 += (rowLiter * 12); // Target 1:12
-                    totalActualPrev += rowJarak;
-                });
-
-                let selisihPrev11 = totalTargetPrev11 - totalActualPrev;
-                val_kurang_kemaren = selisihPrev11 > 0 ? Math.round(selisihPrev11 * 10) / 10 : 0;
-
-                let selisihPrev12 = totalTargetPrev12 - totalActualPrev;
-                val_kurang_kemaren_12 = selisihPrev12 > 0 ? Math.round(selisihPrev12 * 10) / 10 : 0;
-            } catch (e) {
-                console.error("Error fetching akumulasi kemaren:", e);
-                val_kurang_kemaren = 0;
-                val_kurang_kemaren_12 = 0;
-            }
-            updateKurangDisplay();
-        }
-
-        function updateApprovalLabel() {
-            const lastApproved = localStorage.getItem('last_bbm_approval_time');
-            const lbl = document.getElementById("label_last_approved");
-            if (lastApproved) {
-                lbl.innerText = `Last Approved: ${lastApproved}`;
-            } else {
-                lbl.innerText = `Last Approved: -`;
-            }
-        }
-
-        function handleApprovalChange(isTrue) {
-            const textIndicator = document.getElementById("text_approval_slide");
-            if (isTrue) {
-                textIndicator.innerText = "YES";
-                textIndicator.style.color = "#ffffff";
-                textIndicator.style.right = "auto";
-                textIndicator.style.left = "0.5rem";
-            } else {
-                textIndicator.innerText = "NO";
-                textIndicator.style.color = "#a0a5b5";
-                textIndicator.style.left = "auto";
-                textIndicator.style.right = "0.5rem";
-            }
-            if (data_siap_simpan !== null) {
-                data_siap_simpan.is_approved = isTrue;
-            }
-        }
-
-        function toggleMafiaMode(isTrue) {
-            const mainCard = document.getElementById("main_card");
-            const boxMafia = document.getElementById("box_mafia");
-            const titleMafia = document.getElementById("title_mafia");
-            const marquee = document.getElementById("marquee_mafia");
-
-            if(isTrue) {
-                boxMafia.style.backgroundColor = "#7f1d1d"; 
-                titleMafia.style.color = "#fca5a5"; 
-                marquee.classList.remove("hidden");
-                mainCard.style.borderColor = "#ef4444";
-            } else {
-                boxMafia.style.backgroundColor = "#2d323f";
-                titleMafia.style.color = "#a0a5b5";
-                marquee.classList.add("hidden");
-                mainCard.style.borderColor = "#374151";
-            }
-            if (data_siap_simpan !== null) data_siap_simpan.is_mafia = isTrue;
-        }
-
-        function setGpsStatus(status) {
-            currentGpsStatusValue = status;
-            const boxGps = document.getElementById("box_gps");
-            const titleGps = document.getElementById("title_gps");
-            const btnCopasGps = document.getElementById("btn_copas_gps");
-
-            const btnAktif = document.getElementById("btn_gps_aktif");
-            const btnMati = document.getElementById("btn_gps_mati");
-            const btnNotfound = document.getElementById("btn_gps_notfound");
-
-            [btnAktif, btnMati, btnNotfound].forEach(b => {
-                b.className = "py-1 rounded text-[10px] font-bold text-white/70 hover:text-white transition";
-            });
-
-            if (status === 'AKTIF') {
-                boxGps.style.backgroundColor = "#16a34a";
-                titleGps.innerText = "STATUS GPS: AKTIF";
-                btnCopasGps.classList.add("hidden");
-                btnAktif.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
-            } else if (status === 'MATI') {
-                boxGps.style.backgroundColor = "#dc2626";
-                titleGps.innerText = "STATUS GPS: MATI";
-                btnCopasGps.classList.remove("hidden");
-                btnMati.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
-            } else if (status === 'NOTFOUNDAROB') {
-                boxGps.style.backgroundColor = "#7c3aed";
-                titleGps.innerText = "STATUS GPS: NOTFOUNDAROB";
-                btnCopasGps.classList.remove("hidden");
-                btnNotfound.className = "py-1 rounded text-[10px] font-bold bg-black/40 text-white shadow";
-            }
-
-            if (data_siap_simpan !== null) {
-                data_siap_simpan.is_gps = (status === 'AKTIF');
-                data_siap_simpan.gps_detail = status;
-            }
-        }
-
-        function copasGpsMati(btn) {
-            let pesan = "Gps tidak aktif, Mohon hubungi koordinator mobil untuk aktivasi gps";
-            if (currentGpsStatusValue === 'NOTFOUNDAROB') {
-                pesan = "Gps Belum terpasang, Mohon segera hubungi koordinator mobil untuk aktivasi gps";
-            }
-            navigator.clipboard.writeText(pesan).then(() => {
-                const innerSpan = btn.querySelector("span");
-                innerSpan.innerText = "Disalin!";
-                setTimeout(() => {
-                    innerSpan.innerText = "Copas Pesan Kendala GPS";
-                }, 1200);
-            }).catch(err => alert("Gagal menyalin teks otomatis."));
-        }
-
-        function copasPesanMap(btn) {
-            const pesan = document.getElementById("label_map_warning").innerText.trim();
-            navigator.clipboard.writeText(pesan).then(() => {
-                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        async function autoPaste(inputElement, hanyaAngka) {
-            if (inputElement.value.trim() !== "") return;
-            try {
-                let text = await navigator.clipboard.readText();
-                text = text.trim();
-                if (hanyaAngka) {
-                    let angkaMurni = text.replace(/[^0-9]/g, '');
-                    if (angkaMurni) inputElement.value = angkaMurni;
-                } else {
-                    inputElement.value = text.toUpperCase();
-                }
-            } catch (err) { console.log("Akses clipboard ditangani browser"); }
-        }
-
-        function handleFileSelect(input) {
-            const files = input.files;
-            if (!files) return;
-
-            for (let i = 0; i < files.length; i++) {
-                let slotKosong = array_foto_base64.indexOf(null);
-                if (slotKosong === -1) {
-                    alert("Maksimal hanya bisa menampung 3 Foto Map!");
-                    break;
-                }
-
-                const file = files[i];
-                const reader = new FileReader();
-                const currentTimestamp = Date.now() + i; 
-                const targetSlot = slotKosong + 1;
-
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        const MAX_WIDTH = 800;
-                        const MAX_HEIGHT = 800;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
-                        } else {
-                            if (height > MAX_HEIGHT) {
-                                width *= MAX_HEIGHT / height;
-                                height = MAX_HEIGHT;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                        array_foto_timestamps[targetSlot - 1] = currentTimestamp;
-                        renderFotoSlot(targetSlot, compressedBase64);
-                    };
-                };
-                reader.readAsDataURL(file);
-            }
-            input.value = "";
-        }
-
-        function renderFotoSlot(indexSlot, srcData) {
-            array_foto_base64[indexSlot - 1] = srcData;
-            if (!srcData) {
-                array_foto_timestamps[indexSlot - 1] = 0;
-            }
-            
-            const img = document.getElementById(`prev_img_${indexSlot}`);
-            const placeholder = document.getElementById(`placeholder_${indexSlot}`);
-            const btnDel = document.getElementById(`btn_del_${indexSlot}`);
-
-            if (srcData) {
-                img.src = srcData;
-                img.classList.remove("hidden");
-                placeholder.classList.add("hidden");
-                btnDel.classList.remove("hidden");
-            } else {
-                img.src = "";
-                img.classList.add("hidden");
-                placeholder.classList.remove("hidden");
-                btnDel.classList.add("hidden");
-            }
-            
-            updateFotoCounter();
-            recalculateBorderColors();
-        }
-
-        function recalculateBorderColors() {
-            let activeSlots = [];
-            for (let i = 0; i < 3; i++) {
-                if (array_foto_timestamps[i] > 0 && array_foto_base64[i] !== null) {
-                    activeSlots.push({ index: i + 1, ts: array_foto_timestamps[i] });
-                } else {
-                    const el = document.getElementById(`slot_border_${i + 1}`);
-                    el.className = "relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
-                }
-            }
-
-            activeSlots.sort((a, b) => a.ts - b.ts);
-
-            activeSlots.forEach((slot, orderIndex) => {
-                const el = document.getElementById(`slot_border_${slot.index}`);
-                el.className = "relative group bg-[#13161c] border-2 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100";
-
-                if (activeSlots.length === 1) {
-                    el.classList.add("border-green-500", "solid");
-                } else if (activeSlots.length === 2) {
-                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
-                    if (orderIndex === 1) el.classList.add("border-green-500", "solid"); 
-                } else if (activeSlots.length === 3) {
-                    if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
-                    if (orderIndex === 1) el.classList.add("border-yellow-500", "solid"); 
-                    if (orderIndex === 2) el.classList.add("border-green-500", "solid"); 
-                }
-            });
-        }
-
-        function hapusFoto(indexSlot) { renderFotoSlot(indexSlot, null); }
-        function clearAllPhotos() { for(let i=1; i<=3; i++) renderFotoSlot(i, null); }
-
-        function updateFotoCounter() {
-            let total = array_foto_base64.filter(x => x !== null).length;
-            document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
-        }
-
-        async function loadMiniLog(plat) {
-            const container = document.getElementById("mini_log_container");
-            document.getElementById("log_plat_badge").innerText = plat;
-            
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(5);
-
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    container.innerHTML = `<div class="text-center text-gray-600 py-6 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
-                    return;
-                }
-
-                container.innerHTML = "";
-                data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
-                    
-                    let colorClass = "text-white";
-                    if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
-                    else if(r.status === "CUKUP") colorClass = "text-[#ff9f0a]";
-                    else if(r.status === "KURANG") colorClass = "text-[#ff3b30]";
-
-                    const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
-                    
-                    const row = document.createElement("div");
-                    row.className = "flex items-center justify-between border-b border-gray-900 pb-1.5 last:border-0 hover:bg-gray-800/20 p-1 rounded transition-all";
-                    row.innerHTML = `
-                        <div class="flex-1 leading-tight pr-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400 font-bold">${tgl}</span>
-                                <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
-                            </div>
-                            <div class="text-gray-300 mt-0.5">
-                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
-                            </div>
-                        </div>
-                        <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
-                            EDIT
-                        </button>
-                    `;
-                    container.appendChild(row);
-                });
-
-            } catch(e) {
-                container.innerHTML = `<div class="text-center text-red-400 py-4 italic">Gagal memuat mini log.</div>`;
-            }
-        }
-
-        async function cekPlat() {
-            id_log_sedang_diedit = null; 
-            document.getElementById("btn_save").innerText = "SAVE";
-            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
-            clearAllPhotos();
-
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
-            
-            const btnCek = document.getElementById("btn_cek");
-            btnCek.innerText = ".."; btnCek.disabled = true;
-
-            try {
-                loadMiniLog(plat);
-                await cekRequestor(plat);
-                await hitungKurangKemaren(plat);
-
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(1);
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const lastData = data[0];
-                    document.getElementById("entry_start").value = lastData.km_akhir;
-                    document.getElementById("entry_akhir").value = "";
-                    document.getElementById("entry_liter").value = lastData.liter || "";
-                    document.getElementById("entry_remark").value = lastData.remark || "";
-                    
-                    document.getElementById("entry_site_id").value = lastData.site_id || "";
-                    document.getElementById("entry_site_lat").value = lastData.site_lat || "";
-                    document.getElementById("entry_site_lng").value = lastData.site_lng || "";
-                    document.getElementById("entry_start_lat").value = lastData.start_lat || "";
-                    document.getElementById("entry_start_lng").value = lastData.start_lng || "";
-
-                    if (lastData.site_lat && lastData.site_lng && lastData.start_lat && lastData.start_lng) {
-                        generateMapRoute();
-                    }
-
-                    toggleMafiaMode(lastData.is_mafia === true);
-                    document.getElementById("toggle_mafia").checked = lastData.is_mafia === true;
-
-                    let gpsVal = lastData.gps_detail ? lastData.gps_detail : (lastData.is_gps ? 'AKTIF' : 'MATI');
-                    setGpsStatus(gpsVal);
-
-                    if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
-                        lastData.foto_urls.forEach((url, index) => {
-                            if (index < 3) {
-                                array_foto_timestamps[index] = Date.now() + index;
-                                renderFotoSlot(index + 1, url);
-                            }
-                        });
-                    }
-
-                    const rem = lastData.remark || "-";
-                    document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
-                    
-                    document.getElementById("box_approval").classList.add("hidden");
-                    document.getElementById("toggle_approval").checked = false;
-                    handleApprovalChange(false);
-                    
-                    document.getElementById("entry_akhir").focus();
-                } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
-                    resetForm();
-                    document.getElementById("entry_plat").value = plat;
-                    await cekRequestor(plat);
-                }
-            } catch (err) {
-                alert("Gagal mengecek data:\n" + err.message);
-            } finally {
-                btnCek.innerText = "CEK"; btnCek.disabled = false;
-            }
-        }
-
-        async function cekRequestor(plat) {
-            const elNama = document.getElementById("txt_nama_req");
-            const elSn = document.getElementById("txt_sn_gps");
-            const elAktif = document.getElementById("label_aktif_terakhir");
-            
-            elNama.innerText = "Loading...";
-            elSn.innerText = "SN: ...";
-            elAktif.classList.add("hidden");
-
-            try {
-                const [resReq, resGpsStatus] = await Promise.all([
-                    _supabase.from('plat_requestor').select('nama_requestor').eq('plat_nomor', plat).maybeSingle(),
-                    _supabase.from('plat_gps_status').select('*').eq('plat_nomor', plat).maybeSingle()
-                ]);
-
-                if (resReq.data && resReq.data.nama_requestor) {
-                    elNama.innerText = resReq.data.nama_requestor;
-                    elNama.classList.remove("text-red-400", "underline");
-                } else {
-                    elNama.innerText = "+ Input Req";
-                    elNama.classList.add("text-red-400", "underline");
-                }
-
-                if (resGpsStatus.data) {
-                    const gpsData = resGpsStatus.data;
-                    elSn.innerText = gpsData.sn_gps ? `SN: ${gpsData.sn_gps}` : "SN: -";
-                    
-                    if (gpsData.status_gps) {
-                        setGpsStatus(gpsData.status_gps);
-                    }
-
-                    if (gpsData.aktif_terakhir) {
-                        elAktif.innerText = `Aktif: ${gpsData.aktif_terakhir}`;
-                        elAktif.classList.remove("hidden");
-                    }
-                } else {
-                    elSn.innerText = "SN: -";
-                }
-
-            } catch (err) {
-                console.log("Error fetch requestor/SN:", err.message);
-                elNama.innerText = "Unknown";
-                elSn.innerText = "SN: Error";
-            }
-        }
-
-        async function tambahAtauEditRequestor() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Silakan isi dan cek Plat Nomor terlebih dahulu!");
-
-            const elNama = document.getElementById("txt_nama_req");
-            const currentReq = elNama.innerText;
-            const defaultVal = (currentReq === "+ Input Req" || currentReq === "No Name" || currentReq === "Unknown" || currentReq === "- Requestor -") ? "" : currentReq;
-            
-            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`, defaultVal);
-            if (namaBaru === null) return; 
-            
-            const namaTrimmed = namaBaru.trim();
-            if (!namaTrimmed) return alert("Nama Requestor tidak boleh kosong!");
-
-            try {
-                const { error } = await _supabase
-                    .from('plat_requestor')
-                    .upsert({
-                        plat_nomor: plat,
-                        nama_requestor: namaTrimmed
-                    }, { onConflict: 'plat_nomor' });
-
-                if (error) throw error;
-
-                elNama.innerText = namaTrimmed;
-                elNama.classList.remove("text-red-400", "underline");
-                alert(`Berhasil menyimpan Requestor "${namaTrimmed}" untuk plat ${plat}!`);
-            } catch (err) {
-                alert("Gagal menyimpan Requestor:\n" + err.message);
-            }
-        }
-
-        async function hitungRasio() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            const km_start = parseFloat(document.getElementById("entry_start").value);
-            const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
-            let literRaw = document.getElementById("entry_liter").value.replace(',', '.');
-            const liter = parseFloat(literRaw);
-            const isMafiaActive = document.getElementById("toggle_mafia").checked;
-            const isApprovalActive = document.getElementById("toggle_approval").checked;
-
-            if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
-                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
-            }
-            if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
-            if (liter <= 0) return alert("BBM harus lebih dari 0!");
-
-            // HITUNG AKUMULASI KKM KEMARIN UNTUK DUA RASIO
-            await hitungKurangKemaren(plat);
-
-            const jarak = km_akhir - km_start;
-            const rasio = jarak / liter;
-
-            document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
-            document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
-
-            // HITUNG KEKURANGAN RASIO 1:11
-            const targetKmSekarang11 = liter * 11;
-            const selisihSekarang11 = targetKmSekarang11 - jarak;
-            val_kurang_sekarang = selisihSekarang11 > 0 ? Math.round(selisihSekarang11 * 10) / 10 : 0;
-
-            const totalSelisih11 = val_kurang_kemaren + val_kurang_sekarang;
-            val_total_kurang = totalSelisih11 > 0 ? Math.round(totalSelisih11 * 10) / 10 : 0;
-
-            // HITUNG KEKURANGAN RASIO 1:12
-            const targetKmSekarang12 = liter * 12;
-            const selisihSekarang12 = targetKmSekarang12 - jarak;
-            val_kurang_sekarang_12 = selisihSekarang12 > 0 ? Math.round(selisihSekarang12 * 10) / 10 : 0;
-
-            const totalSelisih12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
-            val_total_kurang_12 = totalSelisih12 > 0 ? Math.round(totalSelisih12 * 10) / 10 : 0;
-
-            updateKurangDisplay();
-
-            let kesimpulan, bgWarna;
-            if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
-            else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
-            else { kesimpulan = "JOSJIS"; bgWarna = "#34c759"; }
-
-            const lblStatus = document.getElementById("label_status");
-            lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
-
-            const boxApproval = document.getElementById("box_approval");
-            if (kesimpulan === "KURANG") {
-                boxApproval.classList.remove("hidden");
-            } else {
-                boxApproval.classList.add("hidden");
-                document.getElementById("toggle_approval").checked = false;
-                handleApprovalChange(false);
-            }
-
-            let textKurangInfo = [];
-            if (val_total_kurang > 0) textKurangInfo.push(`Defisit 1:11: ${formatKm(val_total_kurang)}`);
-            if (val_total_kurang_12 > 0) textKurangInfo.push(`Defisit 1:12: ${formatKm(val_total_kurang_12)}`);
-
-            if (textKurangInfo.length > 0) {
-                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. (${textKurangInfo.join(' | ')})`;
-            } else {
-                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
-            }
-
-            data_siap_simpan = { 
-                plat_nomor: plat, 
-                km_start: km_start, 
-                km_akhir: km_akhir, 
-                jarak: jarak, 
-                liter: liter, 
-                rasio: parseFloat(rasio.toFixed(2)), 
-                status: kesimpulan,
-                is_mafia: isMafiaActive,
-                is_gps: (currentGpsStatusValue === 'AKTIF'),
-                gps_detail: currentGpsStatusValue,
-                is_approved: isApprovalActive,
-                foto_urls: array_foto_base64.filter(x => x !== null),
-                site_id: document.getElementById("entry_site_id").value.trim() || null,
-                site_lat: parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.')) || null,
-                site_lng: parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.')) || null,
-                start_lat: parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.')) || null,
-                start_lng: parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.')) || null
-            };
-
-            const btnSave = document.getElementById("btn_save");
-            if (id_log_sedang_diedit !== null) {
-                btnSave.style.backgroundColor = "#ff9f0a"; btnSave.innerText = "UPDATE";
-            } else {
-                btnSave.style.backgroundColor = "#0a84ff"; btnSave.innerText = "SAVE";
-            }
-        }
-
-        async function simpanKeCloud() {
-            if (!data_siap_simpan) return alert("Hitung rasio terlebih dahulu sebelum menekan SAVE/UPDATE!");
-            
-            const btnSave = document.getElementById("btn_save");
-            const remark_text = document.getElementById("entry_remark").value.trim();
-            data_siap_simpan["remark"] = remark_text ? remark_text : null;
-            data_siap_simpan["foto_urls"] = array_foto_base64.filter(x => x !== null);
-            
-            btnSave.disabled = true;
-            const textAwal = btnSave.innerText;
-            btnSave.innerText = "...";
-
-            try {
-                let isAutoUpdated = false;
-
-                if (id_log_sedang_diedit === null) {
-                    const { data: lastLogData, error: fetchErr } = await _supabase
-                        .from('log_bbm')
-                        .select('id, created_at')
-                        .eq('plat_nomor', data_siap_simpan.plat_nomor)
-                        .order('id', { ascending: false })
-                        .limit(1);
-
-                    if (!fetchErr && lastLogData && lastLogData.length > 0) {
-                        const logTerakhir = lastLogData[0];
-                        if (logTerakhir.created_at) {
-                            const selisihJam = (new Date() - new Date(logTerakhir.created_at)) / (1000 * 60 * 60);
-                            
-                            if (selisihJam < 1) {
-                                id_log_sedang_diedit = logTerakhir.id;
-                                isAutoUpdated = true;
-                            }
-                        }
-                    }
-                }
-
-                if (id_log_sedang_diedit !== null) {
-                    const { error } = await _supabase
-                        .from('log_bbm')
-                        .update(data_siap_simpan)
-                        .eq('id', id_log_sedang_diedit);
-                    if (error) throw error;
-
-                    if (isAutoUpdated) {
-                        alert(`Data ${data_siap_simpan.plat_nomor} otomatis memperbarui Log ID #${id_log_sedang_diedit} karena disimpan dalam kurun < 1 jam!`);
-                    } else {
-                        alert(`Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) Berhasil Diperbarui!`);
-                    }
-                } else {
-                    const { error } = await _supabase
-                        .from('log_bbm')
-                        .insert([data_siap_simpan]);
-                    if (error) throw error;
-                    alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
-                }
-
-                if (data_siap_simpan.is_approved) {
-                    const sekarang = new Date();
-                    const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
-                    localStorage.setItem('last_bbm_approval_time', waktuString);
-                    updateApprovalLabel();
-                }
-
-                btnSave.style.backgroundColor = "#3a3f4d"; 
-                btnSave.innerText = "SAVE";
-                loadMiniLog(data_siap_simpan.plat_nomor);
-                await hitungKurangKemaren(data_siap_simpan.plat_nomor);
-            } catch (err) {
-                alert("Gagal memproses data ke Cloud:\n" + err.message);
-                btnSave.innerText = textAwal;
-            } finally {
-                btnSave.disabled = false;
-            }
-        }
-
-        async function lemparKeForm(encodedData) {
-            const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
-            id_log_sedang_diedit = dataObj.id; 
-
-            document.getElementById("entry_plat").value = dataObj.plat_nomor;
-            document.getElementById("entry_start").value = dataObj.km_start;
-            document.getElementById("entry_akhir").value = dataObj.km_akhir;
-            document.getElementById("entry_liter").value = dataObj.liter;
-            document.getElementById("entry_remark").value = dataObj.remark || "";
-
-            document.getElementById("entry_site_id").value = dataObj.site_id || "";
-            document.getElementById("entry_site_lat").value = dataObj.site_lat || "";
-            document.getElementById("entry_site_lng").value = dataObj.site_lng || "";
-            document.getElementById("entry_start_lat").value = dataObj.start_lat || "";
-            document.getElementById("entry_start_lng").value = dataObj.start_lng || "";
-
-            if (dataObj.site_lat && dataObj.site_lng && dataObj.start_lat && dataObj.start_lng) {
-                generateMapRoute();
-            }
-
-            await hitungKurangKemaren(dataObj.plat_nomor);
-            await hitungRasio(); 
-
-            document.getElementById("toggle_mafia").checked = dataObj.is_mafia === true;
-            toggleMafiaMode(dataObj.is_mafia === true);
-
-            let gpsVal = dataObj.gps_detail ? dataObj.gps_detail : (dataObj.is_gps ? 'AKTIF' : 'MATI');
-            setGpsStatus(gpsVal);
-
-            if (dataObj.status === "KURANG") {
-                document.getElementById("box_approval").classList.remove("hidden");
-                document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
-                handleApprovalChange(dataObj.is_approved === true);
-            }
-            
-            clearAllPhotos();
-            if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
-                dataObj.foto_urls.forEach((url, i) => {
-                    if(i < 3) {
-                        array_foto_timestamps[i] = Date.now() + i;
-                        renderFotoSlot(i + 1, url);
-                    }
-                });
-            }
-
-            loadMiniLog(dataObj.plat_nomor);
-            cekRequestor(dataObj.plat_nomor);
-        }
-
-        function copasTeks(btn) {
-            const text = document.getElementById("label_rekues").innerText;
-            if(text.includes("...")) return alert("Hitung rasio terlebih dahulu!");
-            navigator.clipboard.writeText(text).then(() => {
-                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        function copasPilihan(btn) {
-            const val = document.getElementById("menu_var").value;
-            if(!val || val === "-- Pilih Teks Tambahan --") return alert("Silakan pilih teks terlebih dahulu!");
-            navigator.clipboard.writeText(val).then(() => {
-                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        function resetForm() {
-            data_siap_simpan = null;
-            id_log_sedang_diedit = null;
-            val_kurang_kemaren = 0;
-            val_kurang_sekarang = 0;
-            val_total_kurang = 0;
-            val_kurang_kemaren_12 = 0;
-            val_kurang_sekarang_12 = 0;
-            val_total_kurang_12 = 0;
-            updateKurangDisplay();
-
-            array_foto_timestamps = [0, 0, 0];
-            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark', 'entry_site_id', 'entry_site_lat', 'entry_site_lng', 'entry_start_lat', 'entry_start_lng', 'entry_scan_input'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = "";
-            });
-            
-            if (mapFeatureGroup) {
-                mapFeatureGroup.clearLayers();
-            }
-            document.getElementById("label_map_distance").innerText = "- Km";
-
-            const statusEl = document.getElementById("label_autoscan_status");
-            if (statusEl) statusEl.classList.add("hidden");
-
-            document.getElementById("label_jarak").innerText = "Jarak: -";
-            document.getElementById("label_hasil").innerText = "- KM/L";
-            document.getElementById("label_status").innerText = "-";
-            document.getElementById("label_status").style.color = "#ffffff";
-            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-            document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
-            document.getElementById("txt_nama_req").innerText = "- Requestor -";
-            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
-            document.getElementById("txt_sn_gps").innerText = "SN: -";
-            document.getElementById("label_aktif_terakhir").classList.add("hidden");
-            
-            document.getElementById("toggle_mafia").checked = false;
-            toggleMafiaMode(false);
-
-            setGpsStatus("MATI");
-
-            document.getElementById("box_approval").classList.add("hidden");
-            document.getElementById("toggle_approval").checked = false;
-            handleApprovalChange(false);
-
-            clearAllPhotos();
-            document.getElementById("log_plat_badge").innerText = "";
-            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
-
-            const btnSave = document.getElementById("btn_save");
-            btnSave.style.backgroundColor = "#3a3f4d";
-            btnSave.innerText = "SAVE";
-        }
-
-        function downloadTemplateRequestor() {
-            const templateData = [
-                { "Plat Nomor": "B 1209 DZU", "Nama Requestor": "Budi Santoso" },
-                { "Plat Nomor": "D 8365 FN", "Nama Requestor": "Ahmad Yani" }
-            ];
-            const worksheet = XLSX.utils.json_to_sheet(templateData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Master Requestor");
-            XLSX.writeFile(workbook, "Template_Update_Requestor.xlsx");
-        }
-
-        async function handleExcelRequestorUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const txtBtn = document.getElementById("txt_btn_gen_req");
-            input.disabled = true;
-            txtBtn.innerText = "Membaca File Excel...";
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                    if (!jsonRows || jsonRows.length === 0) {
-                        alert("File Excel kosong atau format tidak sesuai!");
-                        return;
-                    }
-
-                    txtBtn.innerText = "Memproses Data Requestor...";
-
-                    const recordsToUpsert = [];
-                    const processedPlats = new Set();
-
-                    for (let row of jsonRows) {
-                        let platRaw = "";
-                        let namaReq = "";
-
-                        for (let k in row) {
-                            const kLower = k.toLowerCase();
-                            if (kLower.includes('plat') || kLower.includes('registrasi') || kLower.includes('kendaraan')) {
-                                if (row[k]) platRaw = String(row[k]).trim();
-                            }
-                            if (kLower.includes('requestor') || kLower.includes('nama')) {
-                                if (row[k]) namaReq = String(row[k]).trim();
-                            }
-                        }
-
-                        const cleanedPlat = cleanPlatString(platRaw);
-                        if (cleanedPlat && namaReq) {
-                            if (!processedPlats.has(cleanedPlat)) {
-                                processedPlats.add(cleanedPlat);
-                                recordsToUpsert.push({
-                                    plat_nomor: cleanedPlat,
-                                    nama_requestor: namaReq
-                                });
-                            }
-                        }
-                    }
-
-                    if (recordsToUpsert.length === 0) {
-                        alert("Tidak ada pasangan Plat Nomor dan Nama Requestor yang valid ditemukan di file!");
-                        return;
-                    }
-
-                    txtBtn.innerText = `Mengupdate Database (${recordsToUpsert.length} data)...`;
-
-                    let successCount = 0;
-                    for (let i = 0; i < recordsToUpsert.length; i += 500) {
-                        const chunk = recordsToUpsert.slice(i, i + 500);
-                        const { error } = await _supabase
-                            .from('plat_requestor')
-                            .upsert(chunk, { onConflict: 'plat_nomor' });
-
-                        if (error) throw error;
-                        successCount += chunk.length;
-                    }
-
-                    alert(`Berhasil Mengupdate Nama Requestor secara Massal!\n` +
-                          `Total Data Diperbarui/Disimpan: ${successCount} Plat Kendaraan.`);
-
-                    const currentPlat = document.getElementById("entry_plat").value.trim().toUpperCase();
-                    if (currentPlat) {
-                        cekRequestor(currentPlat);
-                    }
-
-                } catch (err) {
-                    alert("Gagal mengupdate Requestor massal:\n" + err.message);
-                } finally {
-                    input.value = "";
-                    txtBtn.innerText = "📂 Upload Excel Requestor & Update Massal";
-                    input.disabled = false;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function cleanPlatString(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/^TOTAL\s+/i, '')
-                .split('(')[0]
-                .replace(/[^A-Z0-9]/gi, '')
-                .toUpperCase();
-        }
-
-        function downloadTemplateGps() {
-            const templateData = [
-                { "Nomor plat registrasi": "B 1209 DZU", "Nama kendaraan": "B1209DZU ( SN : 1140167302 )", "Tanggal mulai": "02/09/2026 08.30.28" },
-                { "Nomor plat registrasi": "D8365FN", "Nama kendaraan": "D8365FN ( SN : 1146283065 )", "Tanggal mulai": "02/09/2026 08.30.27" }
-            ];
-            const worksheet = XLSX.utils.json_to_sheet(templateData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Mengemudi");
-            XLSX.writeFile(workbook, "Template_AROBS_GPS.xlsx");
-        }
-
-        async function fetchAllPlatsFromDb() {
-            const platMap = new Map();
-            const tables = ['log_bbm', 'plat_requestor', 'plat_gps_status'];
-            const pageSize = 1000;
-
-            for (const table of tables) {
-                let page = 0;
-                let hasMore = true;
-                while (hasMore) {
-                    let from = page * pageSize;
-                    let to = from + pageSize - 1;
-
-                    const { data, error } = await _supabase
-                        .from(table)
-                        .select('plat_nomor')
-                        .range(from, to);
-
-                    if (error) {
-                        console.error(`Error fetch plat dari ${table}:`, error);
-                        break;
-                    }
-
-                    if (data && data.length > 0) {
-                        data.forEach(r => {
-                            if (r.plat_nomor) {
-                                const cleaned = cleanPlatString(r.plat_nomor);
-                                if (cleaned && !platMap.has(cleaned)) {
-                                    platMap.set(cleaned, r.plat_nomor.trim().toUpperCase());
-                                }
-                            }
-                        });
-                        if (data.length < pageSize) hasMore = false;
-                        else page++;
-                    } else {
-                        hasMore = false;
-                    }
-                }
-            }
-
-            return platMap;
-        }
-
-        async function handleExcelGpsUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const txtBtn = document.getElementById("txt_btn_gen_gps");
-            input.disabled = true;
-            txtBtn.innerText = "Membaca Excel...";
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                    if (!jsonRows || jsonRows.length === 0) {
-                        alert("File Excel kosong atau format tidak sesuai!");
-                        return;
-                    }
-
-                    txtBtn.innerText = "Membaca seluruh master plat dari Database (tanpa limit)...";
-
-                    const dbPlatMap = await fetchAllPlatsFromDb();
-
-                    txtBtn.innerText = "Memproses & Mencocokkan Data...";
-
-                    const excelDataMap = new Map();
-
-                    for (let row of jsonRows) {
-                        let platRaw = "";
-                        for (let k in row) {
-                            const kLower = k.toLowerCase();
-                            if (kLower.includes('registrasi') || kLower.includes('plat') || kLower.includes('kendaraan')) {
-                                if (row[k]) { platRaw = String(row[k]); break; }
-                            }
-                        }
-
-                        const cleanedPlat = cleanPlatString(platRaw);
-                        if (!cleanedPlat) continue;
-
-                        let actualDbPlat = dbPlatMap.get(cleanedPlat);
-                        if (!actualDbPlat) {
-                            actualDbPlat = platRaw.replace(/^TOTAL\s+/i, '').split('(')[0].trim().toUpperCase();
-                            dbPlatMap.set(cleanedPlat, actualDbPlat);
-                        }
-
-                        let extractedSn = null;
-                        for (let k in row) {
-                            const valStr = String(row[k]);
-                            const match = valStr.match(/SN\s*:\s*([A-Za-z0-9]+)/i);
-                            if (match && match[1]) {
-                                extractedSn = match[1].trim();
-                                break;
-                            }
-                        }
-
-                        let tglMulai = null;
-                        for (let k in row) {
-                            if (k.toLowerCase().includes('tanggal mulai') || k.toLowerCase().includes('tgl mulai')) {
-                                if (row[k]) { tglMulai = String(row[k]).trim(); break; }
-                            }
-                        }
-
-                        if (!excelDataMap.has(actualDbPlat) || (tglMulai && !excelDataMap.get(actualDbPlat).tglMulai)) {
-                            excelDataMap.set(actualDbPlat, {
-                                sn: extractedSn,
-                                tglMulai: tglMulai
-                            });
-                        }
-                    }
-
-                    txtBtn.innerText = `Mengupdate Database (${dbPlatMap.size} Plat)...`;
-                    let countAktif = 0, countMati = 0, countNotFound = 0;
-                    const statusRecords = [];
-
-                    for (let [cleanedPlat, actualDbPlat] of dbPlatMap.entries()) {
-                        const excelItem = excelDataMap.get(actualDbPlat);
-
-                        let statusGps = "MATI";
-                        let snGps = null;
-                        let tglAktif = null;
-
-                        if (excelItem) {
-                            snGps = excelItem.sn;
-                            tglAktif = excelItem.tglMulai;
-
-                            if (!snGps) {
-                                statusGps = "NOTFOUNDAROB";
-                                countNotFound++;
-                            } else if (tglAktif) {
-                                statusGps = "AKTIF";
-                                countAktif++;
-                            } else {
-                                statusGps = "MATI";
-                                countMati++;
-                            }
-                        } else {
-                            statusGps = "MATI";
-                            countMati++;
-                        }
-
-                        statusRecords.push({
-                            plat_nomor: actualDbPlat,
-                            sn_gps: snGps,
-                            aktif_terakhir: tglAktif,
-                            status_gps: statusGps,
-                            updated_at: new Date().toISOString()
-                        });
-                    }
-
-                    for (let i = 0; i < statusRecords.length; i += 500) {
-                        const chunk = statusRecords.slice(i, i + 500);
-                        const { error: errBatch } = await _supabase
-                            .from('plat_gps_status')
-                            .upsert(chunk, { onConflict: 'plat_nomor' });
-                        if (errBatch) console.error("Error batch upsert GPS status:", errBatch);
-                    }
-
-                    for (let i = 0; i < statusRecords.length; i += 50) {
-                        const chunk = statusRecords.slice(i, i + 50);
-                        await Promise.all(chunk.map(item => 
-                            _supabase
-                                .from('log_bbm')
-                                .update({ is_gps: (item.status_gps === 'AKTIF'), gps_detail: item.status_gps })
-                                .eq('plat_nomor', item.plat_nomor)
-                        ));
-                    }
-
-                    alert(`Berhasil Generate Update Massal GPS!\n` +
-                          `Total Plat Diproses: ${dbPlatMap.size} plat\n` +
-                          `🟢 GPS AKTIF: ${countAktif} plat\n` +
-                          `🔴 GPS MATI: ${countMati} plat\n` +
-                          `🟣 GPS NOTFOUNDAROB: ${countNotFound} plat`);
-
-                } catch (err) {
-                    alert("Gagal memproses file Excel:\n" + err.message);
-                } finally {
-                    input.value = "";
-                    txtBtn.innerText = "📂 Pilih File Excel AROBS & Generate Update";
-                    input.disabled = false;
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        async function downloadStatusGpsMaster(btn) {
-            const txtEl = document.getElementById("txt_btn_gps_master");
-            btn.disabled = true;
-            const originalText = txtEl.innerText;
-
-            try {
-                txtEl.innerText = "Mengambil master GPS...";
-                
-                let allGpsRows = [];
-                let pageSize = 1000;
-                let page = 0;
-                let hasMore = true;
-
-                while (hasMore) {
-                    let from = page * pageSize;
-                    let to = from + pageSize - 1;
-                    const { data, error } = await _supabase
-                        .from('plat_gps_status')
-                        .select('*')
-                        .range(from, to);
-
-                    if (error) throw error;
-                    if (data && data.length > 0) {
-                        allGpsRows.push(...data);
-                        if (data.length < pageSize) hasMore = false;
-                        else page++;
-                    } else {
-                        hasMore = false;
-                    }
-                }
-
-                if (allGpsRows.length === 0) {
-                    alert("Tidak ada data status GPS.");
-                    return;
-                }
-
-                txtEl.innerText = "Membaca data Requestor...";
-                const { data: reqData } = await _supabase.from('plat_requestor').select('plat_nomor, nama_requestor');
-                const reqMap = new Map();
-                if (reqData) {
-                    reqData.forEach(r => reqMap.set(r.plat_nomor, r.nama_requestor));
-                }
-
-                const excelRows = allGpsRows.map(row => ({
-                    "Plat Nomor": row.plat_nomor || "",
-                    "Nama Requestor": reqMap.get(row.plat_nomor) || "-",
-                    "SN GPS": row.sn_gps || "-",
-                    "Status GPS": row.status_gps || "MATI",
-                    "Aktif Terakhir": row.aktif_terakhir || "-",
-                    "Terakhir Disinkron": row.updated_at ? new Date(row.updated_at).toLocaleString('id-ID') : "-"
-                }));
-
-                const worksheet = XLSX.utils.json_to_sheet(excelRows);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Status GPS Master");
-                XLSX.writeFile(workbook, `Status_GPS_Master_${new Date().toISOString().slice(0,10)}.xlsx`);
-
-            } catch (err) {
-                alert("Gagal mengunduh Status GPS Master:\n" + err.message);
-            } finally {
-                btn.disabled = false;
-                txtEl.innerText = originalText;
-            }
-        }
-
-        async function downloadAllLog(btn) {
-            const txtEl = document.getElementById("txt_btn_1");
-            btn.disabled = true;
-            const orig = txtEl.innerText;
-            try {
-                txtEl.innerText = "Mengambil data log...";
-                let allLogs = [];
-                let pageSize = 1000;
-                let page = 0;
-                let hasMore = true;
-                while (hasMore) {
-                    let from = page * pageSize;
-                    let to = from + pageSize - 1;
-                    const { data, error } = await _supabase
-                        .from('log_bbm')
-                        .select('*')
-                        .range(from, to)
-                        .order('id', { ascending: false });
-                    if (error) throw error;
-                    if (data && data.length > 0) {
-                        allLogs.push(...data);
-                        if (data.length < pageSize) hasMore = false;
-                        else page++;
-                    } else {
-                        hasMore = false;
-                    }
-                }
-                if (allLogs.length === 0) return alert("Belum ada data log.");
-                const ws = XLSX.utils.json_to_sheet(allLogs);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "All Log BBM");
-                XLSX.writeFile(wb, `All_Log_BBM_${new Date().toISOString().slice(0,10)}.xlsx`);
-            } catch(e) {
-                alert("Gagal download log: " + e.message);
-            } finally {
-                btn.disabled = false;
-                txtEl.innerText = orig;
-            }
-        }
-
-        async function downloadMafiaLog(btn) {
-            const txtEl = document.getElementById("txt_btn_2");
-            btn.disabled = true;
-            const orig = txtEl.innerText;
-            try {
-                txtEl.innerText = "Mengambil data mafia...";
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('is_mafia', true)
-                    .order('id', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) return alert("Tidak ada log mafia.");
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Plat Mafia");
-                XLSX.writeFile(wb, `Log_Plat_Mafia_${new Date().toISOString().slice(0,10)}.xlsx`);
-            } catch(e) {
-                alert("Gagal download: " + e.message);
-            } finally {
-                btn.disabled = false;
-                txtEl.innerText = orig;
-            }
-        }
-
-        async function downloadKurang3of5Log(btn) {
-            const txtEl = document.getElementById("txt_btn_3");
-            btn.disabled = true;
-            const orig = txtEl.innerText;
-            try {
-                txtEl.innerText = "Analisis 5 log terakhir...";
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('plat_nomor, status, created_at')
-                    .order('id', { ascending: false });
-                if (error) throw error;
-
-                const platGroups = new Map();
-                data.forEach(r => {
-                    if (!platGroups.has(r.plat_nomor)) platGroups.set(r.plat_nomor, []);
-                    if (platGroups.get(r.plat_nomor).length < 5) {
-                        platGroups.get(r.plat_nomor).push(r.status);
-                    }
-                });
-
-                const flagged = [];
-                platGroups.forEach((statuses, plat) => {
-                    const countKurang = statuses.filter(s => s === 'KURANG').length;
-                    if (countKurang >= 3) {
-                        flagged.push({
-                            "Plat Nomor": plat,
-                            "Jumlah Log Evaluasi": statuses.length,
-                            "Jumlah Status KURANG": countKurang,
-                            "Detail Status (5 Terakhir)": statuses.join(", ")
-                        });
-                    }
-                });
-
-                if (flagged.length === 0) return alert("Tidak ada plat dengan 3+ status KURANG di 5 rekues terakhir.");
-
-                const ws = XLSX.utils.json_to_sheet(flagged);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Plat Warning Kurang");
-                XLSX.writeFile(wb, `Plat_Kurang_3of5_${new Date().toISOString().slice(0,10)}.xlsx`);
-            } catch(e) {
-                alert("Gagal download: " + e.message);
-            } finally {
-                btn.disabled = false;
-                txtEl.innerText = orig;
-            }
-        }
-    </script>
+          } catch (err) {
+            reject(err);
+          }
+        };
+
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+  </script>
 </body>
 </html>
