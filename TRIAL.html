@@ -255,6 +255,12 @@
 
                     <!-- Container Map -->
                     <div id="map_container" class="w-full h-48 rounded-lg border border-gray-700 z-10 mt-1"></div>
+
+                    <!-- INFO JARAK RUTE DI BAWAH MAP -->
+                    <div class="bg-[#13161c] border border-gray-800 rounded px-2.5 py-1.5 flex items-center justify-between text-[10px]">
+                        <span class="text-gray-400 font-medium">📏 Jarak Rute (Mobil Real):</span>
+                        <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
+                    </div>
                 </div>
 
             </div>
@@ -446,7 +452,7 @@
             updateKurangDisplay();
         });
 
-        function generateMapRoute() {
+        async function generateMapRoute() {
             const siteId = document.getElementById("entry_site_id").value.trim();
             const siteLat = parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.'));
             const siteLng = parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.'));
@@ -454,7 +460,10 @@
             const startLat = parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.'));
             const startLng = parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.'));
 
+            const distLabel = document.getElementById("label_map_distance");
+
             if (isNaN(siteLat) || isNaN(siteLng) || isNaN(startLat) || isNaN(startLng)) {
+                distLabel.innerText = "- Km";
                 return alert("Mohon lengkapi Latitude & Longitude untuk Titik Awal maupun Site ID!");
             }
 
@@ -476,20 +485,66 @@
 
             const startMarker = L.marker(startCoords).bindPopup("<b>🚩 Titik Awal Perjalanan</b>");
             const siteMarker = L.marker(siteCoords).bindPopup(`<b>🎯 Site ID:</b> ${siteId || 'Tanpa ID'}`);
-
-            const routeLine = L.polyline([startCoords, siteCoords], {
-                color: '#ff9f0a',
-                weight: 4,
-                opacity: 0.8,
-                dashArray: '5, 10'
-            });
-
             mapFeatureGroup.addLayer(startMarker);
             mapFeatureGroup.addLayer(siteMarker);
-            mapFeatureGroup.addLayer(routeLine);
 
-            const bounds = L.latLngBounds([startCoords, siteCoords]);
-            myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
+            distLabel.innerText = "Mencari rute jalan...";
+
+            try {
+                // Fetch Driving Route dari OSRM API (Rute Jalan Mobil Aktual)
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${siteLng},${siteLat}?overview=full&geometries=geojson`;
+                const response = await fetch(osrmUrl);
+                const routeData = await response.json();
+
+                if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
+                    const route = routeData.routes[0];
+                    const distanceKm = (route.distance / 1000).toFixed(2);
+                    
+                    distLabel.innerText = `${distanceKm} Km`;
+
+                    // Render Garis Rute Jalan Real di Leaflet (Warna Biru ala Google Maps)
+                    const routeLayer = L.geoJSON(route.geometry, {
+                        style: {
+                            color: '#0a84ff',
+                            weight: 5,
+                            opacity: 0.85
+                        }
+                    });
+
+                    mapFeatureGroup.addLayer(routeLayer);
+                    myLeafletMap.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+                } else {
+                    throw new Error("Rute jalan tidak ditemukan");
+                }
+            } catch (err) {
+                console.warn("Gagal mengambil rute OSRM, fallback ke garis lurus:", err);
+
+                // Fallback: Garis Lurus + Hitung Jarak Haversine jika koneksi OSRM error/offline
+                const fallbackLine = L.polyline([startCoords, siteCoords], {
+                    color: '#ff9f0a',
+                    weight: 4,
+                    dashArray: '5, 10'
+                });
+                mapFeatureGroup.addLayer(fallbackLine);
+
+                const fallbackDist = calculateHaversineDistance(startLat, startLng, siteLat, siteLng).toFixed(2);
+                distLabel.innerText = `${fallbackDist} Km (Garis Lurus)`;
+
+                const bounds = L.latLngBounds([startCoords, siteCoords]);
+                myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+
+        // Fungsi Hitung Jarak Garis Lurus (Haversine Formula) untuk Fallback
+        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius Bumi dalam KM
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
 
         async function cariSiteIdAuto() {
@@ -1392,6 +1447,7 @@
             if (mapFeatureGroup) {
                 mapFeatureGroup.clearLayers();
             }
+            document.getElementById("label_map_distance").innerText = "- Km";
 
             document.getElementById("label_jarak").innerText = "Jarak: -";
             document.getElementById("label_hasil").innerText = "- KM/L";
@@ -1415,7 +1471,7 @@
 
             clearAllPhotos();
             document.getElementById("log_plat_badge").innerText = "";
-            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
+            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk meilhat log...</div>`;
 
             const btnSave = document.getElementById("btn_save");
             btnSave.style.backgroundColor = "#3a3f4d";
