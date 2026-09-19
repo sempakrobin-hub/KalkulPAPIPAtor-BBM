@@ -513,7 +513,7 @@
             }
         }
 
-        // PREPROCESSING CANVAS DENGAN KONTRAST TINGGI & SKALA RINGAN
+        // PREPROCESSING KHUSUS MENJARING TEKS MERAH WATERMARK DI DASHBOARD GELAP
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -521,11 +521,11 @@
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    const scale = 1.8;
+                    const scale = 2.0;
                     canvas.width = img.width * scale;
                     canvas.height = img.height * scale;
 
-                    ctx.imageSmoothingEnabled = false;
+                    ctx.imageSmoothingEnabled = true;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -535,12 +535,15 @@
                         const r = data[i];
                         const g = data[i + 1];
                         const b = data[i + 2];
+
+                        // Deteksi warna merah mendominasi
+                        const isRedText = (r > 80 && r > g + 20 && r > b + 20);
                         const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
 
-                        if (brightness > 75 || r > 110) {
-                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
+                        if (isRedText || brightness > 150) {
+                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; // Teks diubah menjadi Hitam
                         } else {
-                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
+                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Latar belakang menjadi Putih
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
@@ -551,7 +554,7 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS (KILAT & CERDAS ENKRIPSI ANGKA DESIMAL)
+        // PROSES SCAN OCR TESSERACT.JS (KILAT & ACCURATE EXTRACTION)
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -562,7 +565,6 @@
             try {
                 const processedCanvas = await preprocessImageForOCR(imageFile);
 
-                // Whitelist khusus angka, koma, titik, minus, dan spasi untuk mempercepat OCR
                 const result = await Tesseract.recognize(processedCanvas, 'eng', {
                     tessedit_char_whitelist: '0123456789.,- :'
                 });
@@ -595,16 +597,17 @@
             }
         }
 
-        // EXTRACTION LONGLAT (SANGAT AKURAT KANAN-KIRI, 4 DESIMAL & MINUS OTOMATIS)
+        // EXTRACTION LONGLAT (SANGAT AKURAT FONT PIXELATED & DASHBOARD GELAP)
         function extractLongLatFromText(rawText) {
             if (!rawText) return null;
 
             let cleaned = rawText
                 .replace(/[Oo]/g, '0')
+                .replace(/[Iil]/g, '1')
                 .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u207B\u208B~_`'"]/g, '-')
-                .replace(/-\s+(\d)/g, '-$1');
+                .replace(/-\s+(\d)/g, '-$1')
+                .replace(/(\d)[':;\s](\d{2,})/g, '$1.$2');
 
-            // Tangkap SEMUA angka yang berbentuk desimal (punya koma/titik desimal)
             const allDecimals = cleaned.match(/-?\d+[.,]\d{2,}/g);
 
             if (!allDecimals || allDecimals.length < 2) return null;
@@ -612,28 +615,22 @@
             let latVal = null;
             let lngVal = null;
 
-            // Cari nilai Longitude (Indonesia berada di 95-142) dan Latitude (-12 sampai 12)
             for (let i = 0; i < allDecimals.length; i++) {
                 let numStr = allDecimals[i].replace(',', '.');
                 let num = parseFloat(numStr);
 
                 if (num >= 90 && num <= 145 && !lngVal) {
                     lngVal = numStr;
-                    if (i > 0 && !latVal) {
-                        latVal = allDecimals[i - 1].replace(',', '.');
-                    }
+                    if (i > 0 && !latVal) latVal = allDecimals[i - 1].replace(',', '.');
                 } else if (Math.abs(num) <= 15 && !latVal) {
                     latVal = numStr;
                     if (i + 1 < allDecimals.length && !lngVal) {
                         let nextNum = parseFloat(allDecimals[i + 1].replace(',', '.'));
-                        if (nextNum >= 90 && nextNum <= 145) {
-                            lngVal = allDecimals[i + 1].replace(',', '.');
-                        }
+                        if (nextNum >= 90 && nextNum <= 145) lngVal = allDecimals[i + 1].replace(',', '.');
                     }
                 }
             }
 
-            // Fallback jika tidak terdeteksi via batas wilayah: ambil 2 angka desimal pertama
             if (!latVal || !lngVal) {
                 latVal = allDecimals[0].replace(',', '.');
                 lngVal = allDecimals[1].replace(',', '.');
@@ -642,7 +639,6 @@
             let latNum = parseFloat(latVal);
             let lngNum = parseFloat(lngVal);
 
-            // Paksa minus jika berada di koordinat Indonesia Selatan Khatulistiwa
             if (latNum > 0 && latNum <= 11 && lngNum >= 90 && lngNum <= 145) {
                 latNum = -Math.abs(latNum);
             }
@@ -692,7 +688,6 @@
             distLabel.innerText = "Mencari rute jalan...";
 
             try {
-                // Fetch Driving Route dari OSRM API (Rute Jalan Mobil Aktual)
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${siteLng},${siteLat}?overview=full&geometries=geojson`;
                 const response = await fetch(osrmUrl);
                 const routeData = await response.json();
@@ -703,7 +698,6 @@
                     
                     distLabel.innerText = `${distanceKm} Km`;
 
-                    // Render Garis Rute Jalan Real di Leaflet (Warna Biru ala Google Maps)
                     const routeLayer = L.geoJSON(route.geometry, {
                         style: {
                             color: '#0a84ff',
@@ -720,7 +714,6 @@
             } catch (err) {
                 console.warn("Gagal mengambil rute OSRM, fallback ke garis lurus:", err);
 
-                // Fallback: Garis Lurus + Hitung Jarak Haversine jika koneksi OSRM error/offline
                 const fallbackLine = L.polyline([startCoords, siteCoords], {
                     color: '#ff9f0a',
                     weight: 4,
@@ -736,9 +729,8 @@
             }
         }
 
-        // Fungsi Hitung Jarak Garis Lurus (Haversine Formula) untuk Fallback
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius Bumi dalam KM
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -883,12 +875,10 @@
         }
 
         function updateKurangDisplay() {
-            // Label Rasio 1:11
             document.getElementById("label_kurang_kemaren").innerText = formatKm(val_kurang_kemaren);
             document.getElementById("label_kurang_sekarang").innerText = formatKm(val_kurang_sekarang);
             document.getElementById("label_total_kurang").innerText = formatKm(val_total_kurang);
 
-            // Label Rasio 1:12
             document.getElementById("label_kurang_kemaren_12").innerText = formatKm(val_kurang_kemaren_12);
             document.getElementById("label_kurang_sekarang_12").innerText = formatKm(val_kurang_sekarang_12);
             document.getElementById("label_total_kurang_12").innerText = formatKm(val_total_kurang_12);
@@ -924,8 +914,8 @@
                     const rowLiter = parseFloat(row.liter) || 0;
                     const rowJarak = parseFloat(row.jarak) || ((parseFloat(row.km_akhir) - parseFloat(row.km_start)) || 0);
 
-                    totalTargetPrev11 += (rowLiter * 11); // Target 1:11
-                    totalTargetPrev12 += (rowLiter * 12); // Target 1:12
+                    totalTargetPrev11 += (rowLiter * 11);
+                    totalTargetPrev12 += (rowLiter * 12);
                     totalActualPrev += rowJarak;
                 });
 
@@ -1407,7 +1397,6 @@
             if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
             if (liter <= 0) return alert("BBM harus lebih dari 0!");
 
-            // HITUNG AKUMULASI KKM KEMARIN UNTUK DUA RASIO
             await hitungKurangKemaren(plat);
 
             const jarak = km_akhir - km_start;
@@ -1416,7 +1405,6 @@
             document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
             document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
 
-            // HITUNG KEKURANGAN RASIO 1:11
             const targetKmSekarang11 = liter * 11;
             const selisihSekarang11 = targetKmSekarang11 - jarak;
             val_kurang_sekarang = selisihSekarang11 > 0 ? Math.round(selisihSekarang11 * 10) / 10 : 0;
@@ -1424,7 +1412,6 @@
             const totalSelisih11 = val_kurang_kemaren + val_kurang_sekarang;
             val_total_kurang = totalSelisih11 > 0 ? Math.round(totalSelisih11 * 10) / 10 : 0;
 
-            // HITUNG KEKURANGAN RASIO 1:12
             const targetKmSekarang12 = liter * 12;
             const selisihSekarang12 = targetKmSekarang12 - jarak;
             val_kurang_sekarang_12 = selisihSekarang12 > 0 ? Math.round(selisihSekarang12 * 10) / 10 : 0;
