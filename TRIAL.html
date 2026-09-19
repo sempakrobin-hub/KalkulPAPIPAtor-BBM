@@ -237,7 +237,7 @@
 
                     <!-- Input Site ID & Koordinat Tujuan -->
                     <div class="grid grid-cols-3 gap-1.5">
-                        <input type="text" id="entry_site_id" placeholder="Site ID" onchange="cariSiteIdAuto()" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <input type="text" id="entry_site_id" placeholder="Site ID" onkeyup="cariSiteIdAuto()" onchange="cariSiteIdAuto()" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500 uppercase">
                         <input type="text" id="entry_site_lat" placeholder="Lat Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
                         <input type="text" id="entry_site_lng" placeholder="Long Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
                     </div>
@@ -334,6 +334,21 @@
                 </div>
                 <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
                     <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
+                </div>
+            </div>
+
+            <!-- FITUR: PANEL GENERATE UPDATE MASTER SITE MASSAL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#a855f7] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
+                    <span>📍 Master Site ID Massal (Excel)</span>
+                    <button onclick="downloadTemplateSite()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
+                </div>
+                <div class="flex flex-col gap-1.5 text-[10px]">
+                    <input type="file" id="excel_site_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelSiteUpload(this)">
+                    <button onclick="document.getElementById('excel_site_uploader').click()" class="bg-[#a855f7]/20 hover:bg-[#a855f7]/30 border border-purple-500/50 text-purple-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
+                        <span id="txt_btn_gen_site">📂 Upload Excel Master Site & Import Massal</span>
+                        <span class="text-xs">🗺️</span>
+                    </button>
                 </div>
             </div>
 
@@ -478,7 +493,7 @@
         }
 
         async function cariSiteIdAuto() {
-            const siteIdInput = document.getElementById("entry_site_id").value.trim();
+            const siteIdInput = document.getElementById("entry_site_id").value.trim().toUpperCase();
             if (!siteIdInput) return;
 
             try {
@@ -495,6 +510,114 @@
             } catch (err) {
                 console.log("Site ID belum terdaftar di master_site:", err);
             }
+        }
+
+        function downloadTemplateSite() {
+            const templateData = [
+                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ" },
+                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub" }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Master Site");
+            XLSX.writeFile(workbook, "Template_Master_Site.xlsx");
+        }
+
+        async function handleExcelSiteUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const txtBtn = document.getElementById("txt_btn_gen_site");
+            input.disabled = true;
+            txtBtn.innerText = "Membaca File Excel...";
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                    if (!jsonRows || jsonRows.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        return;
+                    }
+
+                    txtBtn.innerText = "Memproses Data Master Site...";
+
+                    const recordsToUpsert = [];
+                    const processedSites = new Set();
+
+                    for (let row of jsonRows) {
+                        let siteIdRaw = "";
+                        let latVal = null;
+                        let lngVal = null;
+                        let namaSite = "";
+
+                        for (let k in row) {
+                            const kLower = k.toLowerCase().trim();
+                            if (kLower.includes('site') && (kLower.includes('id') || kLower.includes('kode'))) {
+                                if (row[k]) siteIdRaw = String(row[k]).trim();
+                            }
+                            if (kLower.includes('lat')) {
+                                if (row[k] !== "") latVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
+                            if (kLower.includes('long') || kLower.includes('lng')) {
+                                if (row[k] !== "") lngVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
+                            if (kLower.includes('nama')) {
+                                if (row[k]) namaSite = String(row[k]).trim();
+                            }
+                        }
+
+                        if (!siteIdRaw && row["Site ID"]) siteIdRaw = String(row["Site ID"]).trim();
+
+                        if (siteIdRaw && !isNaN(latVal) && !isNaN(lngVal) && latVal !== null && lngVal !== null) {
+                            const cleanedSiteId = siteIdRaw.toUpperCase();
+                            if (!processedSites.has(cleanedSiteId)) {
+                                processedSites.add(cleanedSiteId);
+                                recordsToUpsert.push({
+                                    site_id: cleanedSiteId,
+                                    latitude: latVal,
+                                    longitude: lngVal,
+                                    nama_site: namaSite || null
+                                });
+                            }
+                        }
+                    }
+
+                    if (recordsToUpsert.length === 0) {
+                        alert("Tidak ada data Site ID dan Koordinat (Lat/Long) yang valid ditemukan!");
+                        return;
+                    }
+
+                    txtBtn.innerText = `Mengupdate Database (${recordsToUpsert.length} site)...`;
+
+                    let successCount = 0;
+                    for (let i = 0; i < recordsToUpsert.length; i += 500) {
+                        const chunk = recordsToUpsert.slice(i, i + 500);
+                        const { error } = await _supabase
+                            .from('master_site')
+                            .upsert(chunk, { onConflict: 'site_id' });
+
+                        if (error) throw error;
+                        successCount += chunk.length;
+                    }
+
+                    alert(`Berhasil Import Master Site secara Massal!\n` +
+                          `Total Site ID Diperbarui/Disimpan: ${successCount} Site.`);
+
+                } catch (err) {
+                    alert("Gagal mengupdate Master Site massal:\n" + err.message);
+                } finally {
+                    input.value = "";
+                    txtBtn.innerText = "📂 Upload Excel Master Site & Import Massal";
+                    input.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function formatKm(num) {
