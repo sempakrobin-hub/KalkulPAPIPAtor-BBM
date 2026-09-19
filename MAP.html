@@ -264,14 +264,33 @@
                         <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
                     </div>
 
-                    <!-- FITUR SCAN FOTO LONGLAT (LANGSUNG TAMPIL PERMANEN) -->
-                    <div class="bg-[#13161c] border border-gray-800 rounded p-2 flex flex-col space-y-2 mt-1">
+                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW HASIL FILTER OCR) -->
+                    <div class="bg-[#13161c] border border-gray-800 rounded p-2.5 flex flex-col space-y-2 mt-1">
                         <span class="text-[10px] font-bold text-[#ff9f0a] uppercase">📷 Scan Foto LongLat (Klik Paste)</span>
 
-                        <!-- Area Paste Gambar (Klik / Ctrl+V) -->
-                        <div id="paste_area_longlat" tabindex="0" onclick="clickToPasteScanImage()" onpaste="handlePasteScanImage(event)" class="border-2 border-dashed border-gray-600 hover:border-amber-500 rounded p-3 text-center cursor-pointer bg-[#14161d] transition focus:outline-none focus:border-amber-500 select-none">
+                        <!-- Area Paste Gambar -->
+                        <div id="paste_area_longlat" tabindex="0" onclick="clickToPasteScanImage()" onpaste="handlePasteScanImage(event)" class="border-2 border-dashed border-gray-600 hover:border-amber-500 rounded p-2.5 text-center cursor-pointer bg-[#14161d] transition focus:outline-none focus:border-amber-500 select-none">
                             <p class="text-[10px] text-amber-400 font-bold">📋 Klik di sini untuk Paste Gambar</p>
                             <p class="text-[8px] text-gray-400 mt-0.5">atau gunakan tombol Ctrl + V setelah copy foto</p>
+                        </div>
+
+                        <!-- PREVIEW GAMBAR ASLI VS HASIL FILTER OCR (CANVAS) -->
+                        <div id="preview_ocr_container" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-gray-800">
+                            <div class="flex flex-col space-y-1">
+                                <span class="text-[8px] font-bold text-gray-400 text-center uppercase">Gambar Asli</span>
+                                <div class="w-full h-24 bg-black rounded border border-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img id="img_ocr_original" class="max-w-full max-h-full object-contain">
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-1">
+                                <div class="flex items-center justify-center gap-1">
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hasil Filter OCR</span>
+                                    <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">Hitam Putih</span>
+                                </div>
+                                <div id="canvas_ocr_wrapper" class="w-full h-24 bg-white rounded border border-gray-700 flex items-center justify-center overflow-hidden">
+                                    <!-- Canvas Hitam Putih dimasukkan secara dinamis via JS -->
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Indikator Loading Scan -->
@@ -412,7 +431,6 @@
                 </div>
             </div>
 
-
             <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
@@ -513,7 +531,7 @@
             }
         }
 
-        // PREPROCESSING KHUSUS MENJARING TEKS MERAH WATERMARK DI DASHBOARD GELAP
+        // PREPROCESSING & PEMBUATAN CANVAS HITAM-PUTIH (PREVIEW OCR FILTER)
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -536,36 +554,47 @@
                         const g = data[i + 1];
                         const b = data[i + 2];
 
-                        // Deteksi warna merah mendominasi
                         const isRedText = (r > 80 && r > g + 20 && r > b + 20);
                         const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
 
                         if (isRedText || brightness > 150) {
-                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; // Teks diubah menjadi Hitam
+                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
                         } else {
-                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Latar belakang menjadi Putih
+                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
-                    resolve(canvas);
+                    resolve({ canvas, originalUrl: URL.createObjectURL(file) });
                 };
                 img.onerror = (err) => reject(err);
                 img.src = URL.createObjectURL(file);
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS (KILAT & ACCURATE EXTRACTION)
+        // PROSES SCAN OCR TESSERACT.JS (DENGAN TAMPILAN VISUAL PREVIEW DUAL CANVAS)
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
-            
+            const previewContainer = document.getElementById("preview_ocr_container");
+            const imgOriginal = document.getElementById("img_ocr_original");
+            const canvasWrapper = document.getElementById("canvas_ocr_wrapper");
+
             loadingEl.classList.remove("hidden");
             labelHasil.innerText = "Membaca koordinat (Mode Cepat)...";
 
             try {
-                const processedCanvas = await preprocessImageForOCR(imageFile);
+                // 1. Olah gambar menjadi Canvas Hitam Putih
+                const { canvas, originalUrl } = await preprocessImageForOCR(imageFile);
 
-                const result = await Tesseract.recognize(processedCanvas, 'eng', {
+                // 2. Tampilkan Preview Gambar Asli & Canvas Filter Hitam Putih
+                imgOriginal.src = originalUrl;
+                canvasWrapper.innerHTML = "";
+                canvas.className = "max-w-full max-h-full object-contain";
+                canvasWrapper.appendChild(canvas);
+                previewContainer.classList.remove("hidden");
+
+                // 3. OCR Tesseract membaca Canvas Hitam Putih
+                const result = await Tesseract.recognize(canvas, 'eng', {
                     tessedit_char_whitelist: '0123456789.,- :'
                 });
                 const text = result.data.text;
@@ -597,7 +626,7 @@
             }
         }
 
-        // EXTRACTION LONGLAT (SANGAT AKURAT FONT PIXELATED & DASHBOARD GELAP)
+        // EXTRACTION LONGLAT
         function extractLongLatFromText(rawText) {
             if (!rawText) return null;
 
@@ -1634,6 +1663,9 @@
             
             if (document.getElementById("label_hasil_ocr")) {
                 document.getElementById("label_hasil_ocr").innerText = "-";
+            }
+            if (document.getElementById("preview_ocr_container")) {
+                document.getElementById("preview_ocr_container").classList.add("hidden");
             }
 
             if (mapFeatureGroup) {
