@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Scan LongLat Watermark Merah</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; background-color: #f4f6f8; }
+    .container { max-width: 650px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+    .drop-zone { border: 2px dashed #007bff; padding: 25px; border-radius: 8px; background: #eef5ff; cursor: pointer; margin-bottom: 20px; }
+    .preview-flex { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
+    .preview-box { flex: 1; min-width: 180px; text-align: center; }
+    .preview-box img, .preview-box canvas { max-width: 100%; max-height: 180px; border-radius: 6px; border: 1px solid #ccc; }
+    .result-box { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-weight: bold; text-align: left; border: 1px solid #ddd; }
+    .raw-text { font-size: 12px; color: #555; background: #eee; padding: 8px; border-radius: 4px; margin-top: 10px; white-space: pre-wrap; }
+    .badge { background: #28a745; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+    a { color: #007bff; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>📍 Auto Scan LongLat (Watermark Merah)</h2>
+  <p style="color: #666; font-size: 14px;">Paste (<b>Ctrl + V</b>) gambar timestamp/watermark di sini</p>
+  
+  <div class="drop-zone" id="dropZone">
+    <p>Klik di sini, upload, atau langsung tekan <b>Ctrl + V</b> (Paste Gambar)</p>
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+  </div>
+
+  <div class="preview-flex">
+    <div class="preview-box">
+      <small>Gambar Asli</small><br>
+      <img id="imagePreview" alt="Preview Asli" style="display:none;">
+    </div>
+    <div class="preview-box">
+      <small>Hasil Filter OCR <span class="badge">Hitam Putih</span></small><br>
+      <canvas id="croppedCanvas" style="display:none;"></canvas>
+    </div>
+  </div>
+  
+  <div id="result" class="result-box">
+    Status: Menunggu gambar dipaste...
+  </div>
+</div>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const resultDiv = document.getElementById('result');
+  const imgPreview = document.getElementById('imagePreview');
+  const croppedCanvas = document.getElementById('croppedCanvas');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+  window.addEventListener('paste', (e) => {
+    const items = e.clipboardData.items;
+    for (let item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        handleFile(item.getAsFile());
+        break;
+      }
+    }
+  });
+
+  function handleFile(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        imgPreview.src = e.target.result;
+        imgPreview.style.display = 'block';
+
+        const ctx = croppedCanvas.getContext('2d');
+        const cropWidth = img.width * 0.55;   
+        const cropHeight = img.height * 0.35; 
+        const startX = img.width - cropWidth;
+        const startY = img.height - cropHeight;
+
+        croppedCanvas.width = cropWidth;
+        croppedCanvas.height = cropHeight;
+
+        // Draw potongan gambar
+        ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+        // FILTER WARNA: Mengisolasi teks merah agar jadi hitam pekat & background putih
+        const imgData = ctx.getImageData(0, 0, cropWidth, cropHeight);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          let r = data[i], g = data[i+1], b = data[i+2];
+          // Deteksi piksel berwarna merah/oranye dari watermark
+          if (r > 100 && r > g * 1.15 && r > b * 1.15) {
+            data[i] = data[i+1] = data[i+2] = 0; // Ubah teks merah jadi HITAM
+          } else {
+            data[i] = data[i+1] = data[i+2] = 255; // Ubah background jadi PUTIH
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        croppedCanvas.style.display = 'block';
+
+        resultDiv.innerHTML = `⏳ Membaca koordinat...`;
+
+        Tesseract.recognize(croppedCanvas, 'eng')
+          .then(({ data: { text } }) => {
+            parseCoordinates(text);
+          })
+          .catch(err => {
+            resultDiv.innerHTML = `<span style="color:red;">❌ Gagal scan: ${err.message}</span>`;
+          });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function parseCoordinates(rawText) {
+    // 1. Pembersihan Teks dari kesalahan umum OCR
+    let cleanedText = rawText
+      .replace(/[=\~_`|]/g, '')     // Hapus karakter sampah seperti = _ ~ |
+      .replace(/\.,/g, '.')        // Kategori kesalahan -3.,9207 -> -3.9207
+      .replace(/,\./g, '.')        // Kategori kesalahan ,. -> .
+      .replace(/,,/g, ',')         // Koma ganda
+      .replace(/O/g, '0')
+      .replace(/o/g, '0');
+
+    // 2. Regex pencarian Latitude & Longitude
+    let latMatch = cleanedText.match(/(-?\d{1,2}\.\d{3,})/);
+    let longMatch = cleanedText.match(/(\d{2,3}\.\d{3,})/);
+
+    let latitude = latMatch ? latMatch[1] : null;
+    let longitude = longMatch ? longMatch[1] : null;
+
+    // 3. Fallback jika titik Longitude terlewat OCR (contoh 119787384 -> 119.787384)
+    if (!longitude) {
+      let longNoDot = cleanedText.match(/\b(1\d{2})(\d{5,7})\b/);
+      if (longNoDot) {
+        longitude = `${longNoDot[1]}.${longNoDot[2]}`;
+      }
+    }
+
+    if (latitude && longitude) {
+      const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+      resultDiv.innerHTML = `
+        <div style="color:#28a745; font-size:18px;">✅ LongLat Berhasil Ditemukan!</div><br>
+        <p><b>Latitude:</b> ${latitude}</p>
+        <p><b>Longitude:</b> ${longitude}</p>
+        <p><b>Format LongLat:</b> <span style="background:#eef5ff; padding: 4px 8px; border-radius:4px; font-size:16px;">${latitude}, ${longitude}</span></p>
+        <p><a href="${mapsUrl}" target="_blank">📍 Buka di Google Maps</a></p>
+        <div class="raw-text"><b>Teks Hasil Scan (Setelah Cleaned):</b><br>${cleanedText}</div>
+      `;
+    } else {
+      resultDiv.innerHTML = `
+        <span style="color:red;">⚠️ Tidak dapat mendeteksi angka koordinat secara presisi.</span>
+        <div class="raw-text"><b>Teks Terbaca:</b><br>${rawText || "(Kosong)"}</div>
+      `;
+    }
+  }
+</script>
+
+</body>
+</html>
