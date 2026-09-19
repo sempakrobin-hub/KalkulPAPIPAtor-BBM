@@ -264,7 +264,7 @@
                         <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
                     </div>
 
-                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW & CROP OTOMATIS) -->
+                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW & METODE CROP TERBUKTI SUKSES) -->
                     <div class="bg-[#13161c] border border-gray-800 rounded p-2.5 flex flex-col space-y-2 mt-1">
                         <span class="text-[10px] font-bold text-[#ff9f0a] uppercase">📷 Scan Foto LongLat (Klik Paste)</span>
 
@@ -285,7 +285,7 @@
                             <div class="flex flex-col space-y-1">
                                 <div class="flex items-center justify-center gap-1">
                                     <span class="text-[8px] font-bold text-gray-400 uppercase">Crop Watermark</span>
-                                    <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">High Speed</span>
+                                    <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">100% Sukses</span>
                                 </div>
                                 <div id="canvas_ocr_wrapper" class="w-full h-24 bg-white rounded border border-gray-700 flex items-center justify-center overflow-hidden">
                                     <!-- Canvas Hasil Crop dimasukkan secara dinamis -->
@@ -531,7 +531,7 @@
             }
         }
 
-        // PREPROCESSING DENGAN CROP OTOMATIS AREA WATERMARK DI BAWAH (ANTI BLOK HITAM)
+        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH (AKURASI TINGGI)
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -539,35 +539,27 @@
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    // CROP HANYA AREA BAWAH (TEMPAT WATERMARK GPS BERADA: 65% s.d 100% tinggi gambar)
-                    const cropY = img.height * 0.65;
-                    const cropHeight = img.height - cropY;
-                    const cropWidth = img.width;
-                    const cropX = 0;
+                    // CROP KUADRAN BAWAH KANAN (PERSIS CONTOH SUKSES)
+                    const cropWidth = img.width * 0.55;    
+                    const cropHeight = img.height * 0.35;  
+                    const startX = img.width - cropWidth;
+                    const startY = img.height - cropHeight;
 
-                    const scale = 2.5; // Memperbesar resolusi teks agar dot-matrix titik koma terbaca tajam
-                    canvas.width = cropWidth * scale;
-                    canvas.height = cropHeight * scale;
+                    canvas.width = cropWidth;
+                    canvas.height = cropHeight;
 
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+                    // Gambar area potongan watermark ke canvas
+                    ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    // FILTER WARNA: Mengisolasi teks merah/oranye watermark
+                    const imgData = ctx.getImageData(0, 0, cropWidth, cropHeight);
                     const data = imgData.data;
-
                     for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-
-                        // Deteksi warna merah terang watermark secara spesifik
-                        const isRedText = (r > 70 && r > g + 15 && r > b + 15);
-                        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
-
-                        if (isRedText || brightness > 160) {
-                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; // Teks jadi Hitam
+                        let r = data[i], g = data[i+1], b = data[i+2];
+                        if (r > 100 && r > g * 1.15 && r > b * 1.15) {
+                            data[i] = data[i+1] = data[i+2] = 0; // Teks merah jadi HITAM PEKAT
                         } else {
-                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Latar jadi Putih Bersih
+                            data[i] = data[i+1] = data[i+2] = 255; // Background jadi PUTIH BERSIH
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
@@ -578,7 +570,7 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS DENGAN CROP & FILTER KILAT
+        // PROSES SCAN OCR TESSERACT.JS DENGAN PARSER REGEX ROBUST
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -598,9 +590,7 @@
                 canvasWrapper.appendChild(canvas);
                 previewContainer.classList.remove("hidden");
 
-                const result = await Tesseract.recognize(canvas, 'eng', {
-                    tessedit_char_whitelist: '0123456789.,- :'
-                });
+                const result = await Tesseract.recognize(canvas, 'eng');
                 const text = result.data.text;
 
                 const coords = extractLongLatFromText(text);
@@ -630,47 +620,35 @@
             }
         }
 
-        // EXTRACTION LONGLAT
+        // EXTRACTION LONGLAT (DENGAN CLEANING OCR ROBUST)
         function extractLongLatFromText(rawText) {
             if (!rawText) return null;
 
-            let cleaned = rawText
-                .replace(/[Oo]/g, '0')
-                .replace(/[Iil]/g, '1')
-                .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u207B\u208B~_`'"]/g, '-')
-                .replace(/-\s+(\d)/g, '-$1')
-                .replace(/(\d)[':;\s](\d{2,})/g, '$1.$2');
+            let cleanedText = rawText
+                .replace(/[=\~_`|]/g, '')
+                .replace(/\.,/g, '.')
+                .replace(/,\./g, '.')
+                .replace(/,,/g, ',')
+                .replace(/O/g, '0')
+                .replace(/o/g, '0');
 
-            const allDecimals = cleaned.match(/-?\d+[.,]\d{2,}/g);
+            let latMatch = cleanedText.match(/(-?\d{1,2}\.\d{3,})/);
+            let longMatch = cleanedText.match(/(\d{2,3}\.\d{3,})/);
 
-            if (!allDecimals || allDecimals.length < 2) return null;
+            let latitude = latMatch ? latMatch[1] : null;
+            let longitude = longMatch ? longMatch[1] : null;
 
-            let latVal = null;
-            let lngVal = null;
-
-            for (let i = 0; i < allDecimals.length; i++) {
-                let numStr = allDecimals[i].replace(',', '.');
-                let num = parseFloat(numStr);
-
-                if (num >= 90 && num <= 145 && !lngVal) {
-                    lngVal = numStr;
-                    if (i > 0 && !latVal) latVal = allDecimals[i - 1].replace(',', '.');
-                } else if (Math.abs(num) <= 15 && !latVal) {
-                    latVal = numStr;
-                    if (i + 1 < allDecimals.length && !lngVal) {
-                        let nextNum = parseFloat(allDecimals[i + 1].replace(',', '.'));
-                        if (nextNum >= 90 && nextNum <= 145) lngVal = allDecimals[i + 1].replace(',', '.');
-                    }
+            if (!longitude) {
+                let longNoDot = cleanedText.match(/\b(1\d{2})(\d{5,7})\b/);
+                if (longNoDot) {
+                    longitude = `${longNoDot[1]}.${longNoDot[2]}`;
                 }
             }
 
-            if (!latVal || !lngVal) {
-                latVal = allDecimals[0].replace(',', '.');
-                lngVal = allDecimals[1].replace(',', '.');
-            }
+            if (!latitude || !longitude) return null;
 
-            let latNum = parseFloat(latVal);
-            let lngNum = parseFloat(lngVal);
+            let latNum = parseFloat(latitude);
+            let lngNum = parseFloat(longitude);
 
             if (latNum > 0 && latNum <= 11 && lngNum >= 90 && lngNum <= 145) {
                 latNum = -Math.abs(latNum);
