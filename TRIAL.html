@@ -346,14 +346,29 @@
             <!-- FITUR: PANEL GENERATE UPDATE MASTER SITE MASSAL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#a855f7] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>📍 Master Site ID Massal (Excel)</span>
+                    <span>📍 Master Site ID </span>
                     <button onclick="downloadTemplateSite()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
                 </div>
                 <div class="flex flex-col gap-1.5 text-[10px]">
                     <input type="file" id="excel_site_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelSiteUpload(this)">
                     <button onclick="document.getElementById('excel_site_uploader').click()" class="bg-[#a855f7]/20 hover:bg-[#a855f7]/30 border border-purple-500/50 text-purple-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_site">📂 Upload Excel Master Site & Import Massal</span>
+                        <span id="txt_btn_gen_site">📂 Upload Excel Master Site Massal</span>
                         <span class="text-xs">🗺️</span>
+                    </button>
+                </div>
+            </div>
+			
+			        <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
+                <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
+                    <span>👤 Maseter Requestor (Excel)</span>
+                    <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
+                </div>
+                <div class="flex flex-col gap-1.5 text-[10px]">
+                    <input type="file" id="excel_req_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelRequestorUpload(this)">
+                    <button onclick="document.getElementById('excel_req_uploader').click()" class="bg-[#0a84ff]/20 hover:bg-[#0a84ff]/30 border border-blue-500/50 text-blue-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
+                        <span id="txt_btn_gen_req">📂 Upload Excel Master Requestor </span>
+                        <span class="text-xs">👥</span>
                     </button>
                 </div>
             </div>
@@ -367,26 +382,12 @@
                 <div class="flex flex-col gap-1.5 text-[10px]">
                     <input type="file" id="excel_gps_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelGpsUpload(this)">
                     <button onclick="document.getElementById('excel_gps_uploader').click()" class="bg-[#34c759]/20 hover:bg-[#34c759]/30 border border-green-500/50 text-green-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_gps">📂 Pilih File Excel AROBS & Generate Update</span>
+                        <span id="txt_btn_gen_gps">📂 Upload Excel GPS AROBS Update </span>
                         <span class="text-xs">⚡</span>
                     </button>
                 </div>
             </div>
 
-            <!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>👤 Update Requestor Massal (Excel)</span>
-                    <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
-                </div>
-                <div class="flex flex-col gap-1.5 text-[10px]">
-                    <input type="file" id="excel_req_uploader" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelRequestorUpload(this)">
-                    <button onclick="document.getElementById('excel_req_uploader').click()" class="bg-[#0a84ff]/20 hover:bg-[#0a84ff]/30 border border-blue-500/50 text-blue-300 py-2 px-3 rounded font-bold flex items-center justify-between transition">
-                        <span id="txt_btn_gen_req">📂 Upload Excel Requestor & Update Massal</span>
-                        <span class="text-xs">👥</span>
-                    </button>
-                </div>
-            </div>
 
             <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
