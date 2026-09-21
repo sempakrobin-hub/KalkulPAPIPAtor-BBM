@@ -1235,6 +1235,7 @@
             document.getElementById("label_total_kurang_12").innerText = formatKm(val_total_kurang_12);
         }
 
+        // OPTIMASI: Query dibatasi maksimal 20 log terakhir per plat nomor agar super cepat
         async function hitungKurangKemaren(plat) {
             if (!plat) {
                 val_kurang_kemaren = 0;
@@ -1243,13 +1244,12 @@
                 return;
             }
             try {
-                // Dioptimasi dengan .limit(100) agar query ringan dan tidak hang
                 const { data, error } = await _supabase
                     .from('log_bbm')
                     .select('id, km_start, km_akhir, jarak, liter')
                     .eq('plat_nomor', plat)
                     .order('id', { ascending: false })
-                    .limit(100);
+                    .limit(20);
 
                 if (error || !data) {
                     val_kurang_kemaren = 0;
@@ -1579,6 +1579,7 @@
             }
         }
 
+        // OPTIMASI UTAMA: Menggunakan Promise.all untuk menjalankan pengecekan secara paralel dan instan
         async function cekPlat() {
             id_log_sedang_diedit = null; 
             document.getElementById("btn_save").innerText = "SAVE";
@@ -1592,9 +1593,12 @@
             btnCek.innerText = ".."; btnCek.disabled = true;
 
             try {
-                loadMiniLog(plat);
-                await cekRequestor(plat);
-                await hitungKurangKemaren(plat);
+                // Menjalankan load mini log, cek requestor, hitung kurang, dan fetch log terakhir secara bersamaan (Paralel)
+                await Promise.all([
+                    loadMiniLog(plat),
+                    cekRequestor(plat),
+                    hitungKurangKemaren(plat)
+                ]);
 
                 const { data, error } = await _supabase
                     .from('log_bbm')
