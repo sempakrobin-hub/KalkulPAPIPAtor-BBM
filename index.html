@@ -20,7 +20,7 @@
             font-family: 'Arial', sans-serif;
         }
         .dot {
-            transition: all 0.3s ease-in-out;
+            transition: all 0.2s ease-in-out;
         }
         input:checked ~ .dot {
             transform: translateX(100%);
@@ -40,7 +40,7 @@
     <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start justify-center">
         
         <!-- PANEL KIRI: FORM UTAMA -->
-        <div id="main_card" class="w-full lg:w-[440px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
+        <div id="main_card" class="w-full lg:w-[440px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-200 flex-shrink-0">
             
             <div class="p-4 flex flex-col space-y-3.5 flex-1">
                 
@@ -135,7 +135,7 @@
                 </div>
 
                 <!-- BOX MAFIA MODE -->
-                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-300">
+                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-200">
                     <div class="flex flex-col flex-1 overflow-hidden">
                         <span class="text-[11px] font-bold text-[#a0a5b5]" id="title_mafia">STATUS KENDARAAN</span>
                         <div id="marquee_mafia" class="hidden text-[10px] font-black tracking-widest text-white uppercase overflow-hidden whitespace-nowrap pt-0.5">
@@ -152,7 +152,7 @@
                 </div>
 
                 <!-- STATUS GPS (3 PILIHAN + TANGGAL AKTIF TERAKHIR) -->
-                <div id="box_gps" class="flex flex-col bg-[#dc2626] rounded p-2.5 transition-all duration-300 space-y-2">
+                <div id="box_gps" class="flex flex-col bg-[#dc2626] rounded p-2.5 transition-all duration-200 space-y-2">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-[11px] font-bold text-white uppercase" id="title_gps">STATUS GPS: MATI</span>
                         <span id="label_aktif_terakhir" class="text-[9px] font-mono text-white/90 bg-black/30 px-1.5 py-0.5 rounded hidden truncate" title="Tanggal Aktif Terakhir">
@@ -308,7 +308,7 @@
             <div class="grid grid-cols-3 gap-2 w-full">
                 <!-- Slot 1 -->
                 <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-200 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
@@ -317,7 +317,7 @@
                 </div>
                 <!-- Slot 2 -->
                 <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-200 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
@@ -326,7 +326,7 @@
                 </div>
                 <!-- Slot 3 -->
                 <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-200 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
@@ -358,7 +358,7 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (DIUBAH FORMAT TANGGALNYA) -->
+            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
@@ -513,7 +513,7 @@
                 const parts = isoString.split("T");
                 if (parts.length < 2) return isoString;
                 const tgl = parts[0];
-                const jam = parts[1].split(".")[0]; // Membuang milidetik dan zona waktu
+                const jam = parts[1].split(".")[0];
                 return `${tgl} / ${jam}`;
             } catch (e) {
                 return isoString;
@@ -556,7 +556,7 @@
             }
         }
 
-        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH (AKURASI TINGGI)
+        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -592,7 +592,7 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS DENGAN PARSER REGEX ROBUST
+        // PROSES SCAN OCR TESSERACT.JS
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -938,9 +938,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR MASTER REQUESTOR UPLOAD & TEMPLATE
-        // ==========================================
         function downloadTemplateRequestor() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad", "Latitude": -6.2088, "Longitude": 106.8456 },
@@ -1048,9 +1045,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR GPS AROBS UPLOAD & TEMPLATE
-        // ==========================================
         function downloadTemplateGps() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "SN GPS": "SN987654321", "Status GPS": "AKTIF", "Aktif Terakhir": "2026-06-01" },
@@ -1159,9 +1153,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR DOWNLOAD DATA / EXPORT EXCEL
-        // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
             try {
@@ -1251,9 +1242,6 @@
             }
         }
 
-        // ==========================================
-        // FUNGSI UTAMA KALKULATOR & TAMPILAN
-        // ==========================================
         function formatKm(num) {
             if (!num || num <= 0) return "0 Km";
             let formatted = Math.round(num * 10) / 10;
@@ -1322,11 +1310,7 @@
             const lastApproved = localStorage.getItem('last_bbm_approval_time');
             const lbl = document.getElementById("label_last_approved");
             if (lbl) {
-                if (lastApproved) {
-                    lbl.innerText = `Last Approved: ${lastApproved}`;
-                } else {
-                    lbl.innerText = `Last Approved: -`;
-                }
+                lbl.innerText = lastApproved ? `Last Approved: ${lastApproved}` : `Last Approved: -`;
             }
         }
 
@@ -1563,7 +1547,6 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI LOAD MINI LOG DENGAN FORMAT TANGGAL YANG DIPERMUDAH
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1628,7 +1611,6 @@
             }
         }
 
-        // FUNGSI HAPUS/DELETE SATU DATA LOG BBM BERDASARKAN ID
         async function hapusLogItem(idLog, plat) {
             if (!confirm(`Apakah Anda yakin ingin menghapus log BBM (ID: ${idLog}) ini?`)) return;
 
@@ -1899,7 +1881,6 @@
                 foto_urls: fotoUrlsValid
             };
 
-            // Format teks rekues baru sesuai permintaan
             let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
             document.getElementById("label_rekues").innerText = pesanRekues;
         }
@@ -1944,12 +1925,18 @@
             }
         }
 
+        // ==========================================
+        // FUNGSI RESET FORM YANG DIOPTIMASI & BERFUNGSI CEPAT
+        // ==========================================
         function resetForm() {
             id_log_sedang_diedit = null;
             data_siap_simpan = null;
-            document.getElementById("btn_save").innerText = "SAVE";
-            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+            
+            const btnSave = document.getElementById("btn_save");
+            btnSave.innerText = "SAVE";
+            btnSave.style.backgroundColor = "#3a3f4d";
 
+            // Kosongkan nilai form utama (Plat dibiarkan agar tidak perlu ketik ulang dari awal, tapi bisa di-clear manual jika mau)
             document.getElementById("entry_start").value = "";
             document.getElementById("entry_akhir").value = "";
             document.getElementById("entry_liter").value = "";
@@ -1960,17 +1947,22 @@
             document.getElementById("entry_start_lat").value = "";
             document.getElementById("entry_start_lng").value = "";
 
+            // Reset label kalkulasi
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_jarak").innerText = "Jarak: -";
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = "-";
             lblStatus.style.backgroundColor = "transparent";
 
+            // Reset UI pendukung secara cepat tanpa lag
             toggleMafiaMode(false);
-            document.getElementById("toggle_mafia").checked = false;
+            const toggleMafiaEl = document.getElementById("toggle_mafia");
+            if (toggleMafiaEl) toggleMafiaEl.checked = false;
+
             setGpsStatus("MATI");
             clearAllPhotos();
 
+            // Reset nilai variabel defisit
             val_kurang_kemaren = 0;
             val_kurang_sekarang = 0;
             val_total_kurang = 0;
@@ -1978,6 +1970,16 @@
             val_kurang_sekarang_12 = 0;
             val_total_kurang_12 = 0;
             updateKurangDisplay();
+
+            // Reset teks rekues default
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+            
+            // Bersihkan layer peta jika ada untuk menghemat memori
+            if (mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+            const distLabel = document.getElementById("label_map_distance");
+            if (distLabel) distLabel.innerText = "- Km";
         }
 
         function copasTeks(btn) {
