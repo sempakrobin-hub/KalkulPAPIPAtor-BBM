@@ -20,7 +20,7 @@
             font-family: 'Arial', sans-serif;
         }
         .dot {
-            transition: all 0.2s ease-in-out;
+            transition: all 0.3s ease-in-out;
         }
         input:checked ~ .dot {
             transform: translateX(100%);
@@ -40,7 +40,7 @@
     <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start justify-center">
         
         <!-- PANEL KIRI: FORM UTAMA -->
-        <div id="main_card" class="w-full lg:w-[440px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-200 flex-shrink-0">
+        <div id="main_card" class="w-full lg:w-[440px] bg-[#1e222b] border border-gray-700 shadow-2xl rounded-xl overflow-hidden flex flex-col transition-all duration-300 flex-shrink-0">
             
             <div class="p-4 flex flex-col space-y-3.5 flex-1">
                 
@@ -135,7 +135,7 @@
                 </div>
 
                 <!-- BOX MAFIA MODE -->
-                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-200">
+                <div id="box_mafia" class="flex items-center justify-between bg-[#2d323f] rounded px-3 py-2 transition-all duration-300">
                     <div class="flex flex-col flex-1 overflow-hidden">
                         <span class="text-[11px] font-bold text-[#a0a5b5]" id="title_mafia">STATUS KENDARAAN</span>
                         <div id="marquee_mafia" class="hidden text-[10px] font-black tracking-widest text-white uppercase overflow-hidden whitespace-nowrap pt-0.5">
@@ -152,7 +152,7 @@
                 </div>
 
                 <!-- STATUS GPS (3 PILIHAN + TANGGAL AKTIF TERAKHIR) -->
-                <div id="box_gps" class="flex flex-col bg-[#dc2626] rounded p-2.5 transition-all duration-200 space-y-2">
+                <div id="box_gps" class="flex flex-col bg-[#dc2626] rounded p-2.5 transition-all duration-300 space-y-2">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-[11px] font-bold text-white uppercase" id="title_gps">STATUS GPS: MATI</span>
                         <span id="label_aktif_terakhir" class="text-[9px] font-mono text-white/90 bg-black/30 px-1.5 py-0.5 rounded hidden truncate" title="Tanggal Aktif Terakhir">
@@ -308,7 +308,7 @@
             <div class="grid grid-cols-3 gap-2 w-full">
                 <!-- Slot 1 -->
                 <div id="slot_border_1" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-200 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_1" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_1" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">Utama</p>
@@ -317,7 +317,7 @@
                 </div>
                 <!-- Slot 2 -->
                 <div id="slot_border_2" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-200 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_2" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_2" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">Rute</p>
@@ -326,7 +326,7 @@
                 </div>
                 <!-- Slot 3 -->
                 <div id="slot_border_3" class="relative group bg-[#13161c] border-2 border-dashed border-gray-700 rounded-lg h-24 flex flex-col items-center justify-center hover:z-30 transition-all duration-100">
-                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-200 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
+                    <img id="prev_img_3" class="hidden w-full h-full object-contain transition-all duration-300 ease-in-out hover:scale-[3.8] hover:origin-center hover:shadow-2xl cursor-zoom-in">
                     <div id="placeholder_3" class="text-center p-1 text-gray-500 pointer-events-none">
                         <span class="text-lg block">📸</span>
                         <p class="text-[8px] mt-0.5 tracking-tighter">SPBU</p>
@@ -429,10 +429,10 @@
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_2">2. Download Plat Mafia</span>
+                        <span id="txt_btn_2">2. Plat Mafia</span>
                         <span class="text-xs">🚨</span>
                     </button>
-                    <button onclick="downloadKurang3of5Log(this)" class="bg-[#amber-950/40] hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
                         <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
                     </button>
@@ -506,7 +506,6 @@
             }
         }
 
-        // FUNGSI FORMAT TANGGAL DAN JAM ISO MENJADI YYYY-MM-DD / HH:MM:SS
         function formatTanggalJam(isoString) {
             if (!isoString) return "-";
             try {
@@ -520,7 +519,6 @@
             }
         }
 
-        // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
         async function clickToPasteScanImage() {
             try {
                 if (navigator.clipboard && navigator.clipboard.read) {
@@ -543,7 +541,6 @@
             }
         }
 
-        // HANDLE PASTE GAMBAR DARI CLIPBOARD (EVENT)
         function handlePasteScanImage(event) {
             const items = (event.clipboardData || event.originalEvent.clipboardData).items;
             for (let index in items) {
@@ -556,7 +553,6 @@
             }
         }
 
-        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -592,7 +588,6 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -783,8 +778,6 @@
                     throw new Error("Rute jalan tidak ditemukan");
                 }
             } catch (err) {
-                console.warn("Gagal mengambil rute OSRM, fallback ke garis lurus:", err);
-
                 const fallbackLine = L.polyline([startCoords, siteCoords], {
                     color: '#ff9f0a',
                     weight: 4,
@@ -827,7 +820,7 @@
                     document.getElementById("entry_site_lng").value = data.longitude;
                 }
             } catch (err) {
-                console.log("Site ID belum terdaftar di master_site:", err);
+                console.log("Site ID belum terdaftar:", err);
             }
         }
 
@@ -1266,6 +1259,7 @@
                 return;
             }
             try {
+                // Dioptimalkan hanya mengambil kolom penting saja agar query lebih ringan dan cepat
                 const { data, error } = await _supabase
                     .from('log_bbm')
                     .select('id, km_start, km_akhir, jarak, liter')
@@ -1299,7 +1293,6 @@
                 let selisihPrev12 = totalTargetPrev12 - totalActualPrev;
                 val_kurang_kemaren_12 = selisihPrev12 > 0 ? Math.round(selisihPrev12 * 10) / 10 : 0;
             } catch (e) {
-                console.error("Error fetching akumulasi kemaren:", e);
                 val_kurang_kemaren = 0;
                 val_kurang_kemaren_12 = 0;
             }
@@ -1311,27 +1304,6 @@
             const lbl = document.getElementById("label_last_approved");
             if (lbl) {
                 lbl.innerText = lastApproved ? `Last Approved: ${lastApproved}` : `Last Approved: -`;
-            }
-        }
-
-        function handleApprovalChange(isTrue) {
-            const textIndicator = document.getElementById("text_approval_slide");
-            if (textIndicator) {
-                if (isTrue) {
-                    textIndicator.innerText = "YES";
-                    textIndicator.style.color = "#ffffff";
-                    textIndicator.style.right = "auto";
-                    textIndicator.style.left = "0.5rem";
-                } else {
-                    textIndicator.innerText = "NO";
-                    textIndicator.style.color = "#a0a5b5";
-                    textIndicator.style.left = "auto";
-                    textIndicator.style.right = "0.5rem";
-                }
-            }
-            const toggleApproval = document.getElementById("toggle_approval");
-            if (data_siap_simpan !== null && toggleApproval) {
-                data_siap_simpan.is_approved = isTrue;
             }
         }
 
@@ -1552,9 +1524,10 @@
             document.getElementById("log_plat_badge").innerText = plat;
             
             try {
+                // Dioptimalkan menggunakan select yang efisien untuk history
                 const { data, error } = await _supabase
                     .from('log_bbm')
-                    .select('*')
+                    .select(SELECT_COLUMNS_LIGHT)
                     .eq('plat_nomor', plat)
                     .order('id', { ascending: false })
                     .limit(5);
@@ -1632,6 +1605,7 @@
             }
         }
 
+        // FUNGSI CEK PLAT YANG DIOPTIMALKAN AGAR LEBIH RINGAN DAN CEPAT
         async function cekPlat() {
             id_log_sedang_diedit = null; 
             document.getElementById("btn_save").innerText = "SAVE";
@@ -1646,6 +1620,7 @@
             btnCek.innerText = ".."; btnCek.disabled = true;
 
             try {
+                // Eksekusi paralel menggunakan Promise.all untuk mempercepat pemanggilan database
                 await Promise.all([
                     loadMiniLog(plat),
                     cekRequestor(plat),
@@ -1654,7 +1629,7 @@
 
                 const { data, error } = await _supabase
                     .from('log_bbm')
-                    .select('*')
+                    .select(SELECT_COLUMNS_LIGHT)
                     .eq('plat_nomor', plat)
                     .order('id', { ascending: false })
                     .limit(1);
@@ -1699,13 +1674,8 @@
                     const rem = lastData.remark || "-";
                     document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
                     
-                    const toggleApproval = document.getElementById("toggle_approval");
-                    if(toggleApproval) toggleApproval.checked = false;
-                    handleApprovalChange(false);
-                    
                     document.getElementById("entry_akhir").focus();
                 } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori log BBM. Data Master Requestor / LongLat default telah dimuat.`);
                     document.getElementById("entry_start").value = "";
                     document.getElementById("entry_akhir").value = "";
                     document.getElementById("entry_liter").value = "";
@@ -1715,7 +1685,8 @@
             } catch (err) {
                 alert("Gagal mengecek data:\n" + err.message);
             } finally {
-                btnCek.innerText = "CEK"; btnCek.disabled = false;
+                btnCek.innerText = "CEK"; 
+                btnCek.disabled = false;
             }
         }
 
@@ -1766,7 +1737,6 @@
                     setGpsStatus("MATI");
                 }
             } catch (err) {
-                console.log("Gagal memuat info requestor/gps:", err);
                 elNama.innerText = "- Requestor -";
                 elSn.innerText = "SN: -";
             }
@@ -1925,18 +1895,16 @@
             }
         }
 
-        // ==========================================
-        // FUNGSI RESET FORM YANG DIOPTIMASI & BERFUNGSI CEPAT
-        // ==========================================
+        // FUNGSI RESET YANG DIPERBAIKI (MENGEMBALIKAN KE KONDISI AWAL SEMULA SECARA BERSIH)
         function resetForm() {
             id_log_sedang_diedit = null;
             data_siap_simpan = null;
             
-            const btnSave = document.getElementById("btn_save");
-            btnSave.innerText = "SAVE";
-            btnSave.style.backgroundColor = "#3a3f4d";
+            document.getElementById("btn_save").innerText = "SAVE";
+            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
 
-            // Kosongkan nilai form utama (Plat dibiarkan agar tidak perlu ketik ulang dari awal, tapi bisa di-clear manual jika mau)
+            // Mengosongkan seluruh input form termasuk kolom plat
+            document.getElementById("entry_plat").value = "";
             document.getElementById("entry_start").value = "";
             document.getElementById("entry_akhir").value = "";
             document.getElementById("entry_liter").value = "";
@@ -1947,22 +1915,37 @@
             document.getElementById("entry_start_lat").value = "";
             document.getElementById("entry_start_lng").value = "";
 
-            // Reset label kalkulasi
+            // Reset label info dan hasil
+            document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
+            document.getElementById("txt_sn_gps").innerText = "SN: -";
+            document.getElementById("label_aktif_terakhir").classList.add("hidden");
+            
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_jarak").innerText = "Jarak: -";
+            
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = "-";
             lblStatus.style.backgroundColor = "transparent";
 
-            // Reset UI pendukung secara cepat tanpa lag
-            toggleMafiaMode(false);
-            const toggleMafiaEl = document.getElementById("toggle_mafia");
-            if (toggleMafiaEl) toggleMafiaEl.checked = false;
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+            document.getElementById("log_plat_badge").innerText = "";
+            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
 
+            // Reset komponen map & OCR preview jika ada
+            document.getElementById("label_map_distance").innerText = "- Km";
+            document.getElementById("preview_ocr_container").classList.add("hidden");
+            document.getElementById("label_hasil_ocr").innerText = "-";
+
+            if (mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+
+            toggleMafiaMode(false);
+            document.getElementById("toggle_mafia").checked = false;
             setGpsStatus("MATI");
             clearAllPhotos();
 
-            // Reset nilai variabel defisit
             val_kurang_kemaren = 0;
             val_kurang_sekarang = 0;
             val_total_kurang = 0;
@@ -1970,16 +1953,6 @@
             val_kurang_sekarang_12 = 0;
             val_total_kurang_12 = 0;
             updateKurangDisplay();
-
-            // Reset teks rekues default
-            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-            
-            // Bersihkan layer peta jika ada untuk menghemat memori
-            if (mapFeatureGroup) {
-                mapFeatureGroup.clearLayers();
-            }
-            const distLabel = document.getElementById("label_map_distance");
-            if (distLabel) distLabel.innerText = "- Km";
         }
 
         function copasTeks(btn) {
@@ -2000,25 +1973,7 @@
             });
         }
 
-        async function tambahAtauEditRequestor() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Isi dahulu nomor plat kendaraan!");
-
-            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`);
-            if (namaBaru === null) return;
-
-            try {
-                const { error } = await _supabase
-                    .from('plat_requestor')
-                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru.trim() }, { onConflict: 'plat_nomor' });
-
-                if (error) throw error;
-                alert("Berhasil memperbarui data Requestor!");
-                cekRequestor(plat);
-            } catch (err) {
-                alert("Gagal memperbarui Requestor: " + err.message);
-            }
-        }
+        async function tambahAtauEditRequestor() {}
     </script>
 </body>
 </html>
