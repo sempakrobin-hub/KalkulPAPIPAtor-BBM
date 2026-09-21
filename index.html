@@ -536,25 +536,36 @@
             labelStatus.innerText = status;
             labelStatus.style.backgroundColor = statusBg;
 
+            // Mengubah string kosong pada input koordinat/angka menjadi null agar tidak error type numeric di Supabase
+            const parseVal = (id) => {
+                const val = document.getElementById(id).value.trim().replace(',', '.');
+                return val === "" ? null : parseFloat(val);
+            };
+
+            const parseStr = (id) => {
+                const val = document.getElementById(id).value.trim();
+                return val === "" ? null : val;
+            };
+
             // Menyiapkan data untuk tombol SAVE
             data_siap_simpan = {
                 plat_nomor: document.getElementById("entry_plat").value.trim().toUpperCase(),
-                km_start: start,
-                km_akhir: akhir,
+                km_start: parseVal("entry_start"),
+                km_akhir: parseVal("entry_akhir"),
                 jarak: jarak,
-                liter: liter,
+                liter: parseVal("entry_liter"),
                 rasio: rasioRounded,
                 status: status,
                 is_mafia: document.getElementById("toggle_mafia").checked,
                 is_gps: currentGpsStatusValue === 'AKTIF',
                 gps_detail: currentGpsStatusValue,
                 is_approved: document.getElementById("toggle_approval").checked,
-                remark: document.getElementById("entry_remark").value.trim(),
-                site_id: document.getElementById("entry_site_id").value.trim().toUpperCase(),
-                site_lat: document.getElementById("entry_site_lat").value.trim(),
-                site_lng: document.getElementById("entry_site_lng").value.trim(),
-                start_lat: document.getElementById("entry_start_lat").value.trim(),
-                start_lng: document.getElementById("entry_start_lng").value.trim(),
+                remark: parseStr("entry_remark"),
+                site_id: parseStr("entry_site_id") ? parseStr("entry_site_id").toUpperCase() : null,
+                site_lat: parseVal("entry_site_lat"),
+                site_lng: parseVal("entry_site_lng"),
+                start_lat: parseVal("entry_start_lat"),
+                start_lng: parseVal("entry_start_lng"),
                 foto_urls: array_foto_base64.filter(x => x !== null)
             };
 
