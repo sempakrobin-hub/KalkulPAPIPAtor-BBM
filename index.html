@@ -495,6 +495,77 @@
             updateKurangDisplay();
         });
 
+        // FUNGSI HITUNG RASIO YANG SEBELUMNYA HILANG
+        function hitungRasio() {
+            const start = parseFloat(document.getElementById("entry_start").value);
+            const akhir = parseFloat(document.getElementById("entry_akhir").value);
+            const liter = parseFloat(document.getElementById("entry_liter").value);
+
+            if (isNaN(start) || isNaN(akhir) || isNaN(liter) || liter <= 0) {
+                alert("Mohon isi KM Start, KM Akhir, dan Liter dengan benar!");
+                return;
+            }
+
+            if (akhir < start) {
+                alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
+                return;
+            }
+
+            const jarak = akhir - start;
+            const rasio = jarak / liter;
+            const rasioRounded = Math.round(rasio * 100) / 100;
+
+            document.getElementById("label_hasil").innerText = `${rasioRounded} KM/L`;
+            document.getElementById("label_jarak").innerText = `Jarak: ${jarak} Km`;
+
+            const labelStatus = document.getElementById("label_status");
+            let status = "KURANG";
+            let statusBg = "#ff3b30";
+
+            if (rasioRounded >= 12) {
+                status = "JOSJIS";
+                statusBg = "#34c759";
+            } else if (rasioRounded >= 11) {
+                status = "CUKUP";
+                statusBg = "#ff9f0a";
+            } else {
+                status = "KURANG";
+                statusBg = "#ff3b30";
+            }
+
+            labelStatus.innerText = status;
+            labelStatus.style.backgroundColor = statusBg;
+
+            // Menyiapkan data untuk tombol SAVE
+            data_siap_simpan = {
+                plat_nomor: document.getElementById("entry_plat").value.trim().toUpperCase(),
+                km_start: start,
+                km_akhir: akhir,
+                jarak: jarak,
+                liter: liter,
+                rasio: rasioRounded,
+                status: status,
+                is_mafia: document.getElementById("toggle_mafia").checked,
+                is_gps: currentGpsStatusValue === 'AKTIF',
+                gps_detail: currentGpsStatusValue,
+                is_approved: document.getElementById("toggle_approval").checked,
+                remark: document.getElementById("entry_remark").value.trim(),
+                site_id: document.getElementById("entry_site_id").value.trim().toUpperCase(),
+                site_lat: document.getElementById("entry_site_lat").value.trim(),
+                site_lng: document.getElementById("entry_site_lng").value.trim(),
+                start_lat: document.getElementById("entry_start_lat").value.trim(),
+                start_lng: document.getElementById("entry_start_lng").value.trim(),
+                foto_urls: array_foto_base64.filter(x => x !== null)
+            };
+
+            // Hitung defisit sekarang
+            val_kurang_sekarang = Math.max(0, (liter * 11) - jarak);
+            val_kurang_sekarang_12 = Math.max(0, (liter * 12) - jarak);
+            val_total_kurang = val_kurang_kemaren + val_kurang_sekarang;
+            val_total_kurang_12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
+            updateKurangDisplay();
+        }
+
         // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
         async function clickToPasteScanImage() {
             try {
@@ -646,9 +717,12 @@
             let latNum = parseFloat(latitude);
             let lngNum = parseFloat(longitude);
 
+            // PEMAKSAAN MINUS DIHAPUS AGAR MENGIKUTI HASIL ASLI TEKS FOTO
+            /*
             if (latNum > 0 && latNum <= 11 && lngNum >= 90 && lngNum <= 145) {
                 latNum = -Math.abs(latNum);
             }
+            */
 
             return {
                 lat: latNum.toFixed(4),
@@ -1511,7 +1585,6 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI HAPUS LOG BERDASARKAN ID DI DATABASE SUPABASE
         async function hapusLogBbm(idLog, platNomor) {
             if (!confirm(`Apakah Anda yakin ingin menghapus log ID #${idLog} ini?`)) return;
             
@@ -1562,7 +1635,6 @@
                     const rmkText = r.remark ? r.remark : "-";
                     
                     const row = document.createElement("div");
-                    // Mengubah container log agar memanjang ke bawah tanpa scroll, remark otomatis wrap ke bawah
                     row.className = "flex flex-col border-b border-gray-900 pb-2 mb-2 last:border-0 last:mb-0 hover:bg-gray-800/30 p-2 rounded transition-all";
                     row.innerHTML = `
                         <div class="flex items-center justify-between mb-0.5">
