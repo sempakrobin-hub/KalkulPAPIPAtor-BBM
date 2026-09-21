@@ -1014,7 +1014,7 @@
         }
 
         // ==========================================
-        // FITUR GPS AROBS UPLOAD & TEMPLATE (DIPERBAIKI)
+        // FITUR GPS AROBS UPLOAD & TEMPLATE
         // ==========================================
         function downloadTemplateGps() {
             const templateData = [
@@ -1243,10 +1243,13 @@
                 return;
             }
             try {
+                // Dioptimasi dengan .limit(100) agar query ringan dan tidak hang
                 const { data, error } = await _supabase
                     .from('log_bbm')
                     .select('id, km_start, km_akhir, jarak, liter')
-                    .eq('plat_nomor', plat);
+                    .eq('plat_nomor', plat)
+                    .order('id', { ascending: false })
+                    .limit(100);
 
                 if (error || !data) {
                     val_kurang_kemaren = 0;
