@@ -375,7 +375,7 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (TANPA SCROLL, MEMANJANG KE BAWAH, REMARK KEBAWAH JIKA PANJANG) -->
+            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
@@ -495,7 +495,7 @@
             updateKurangDisplay();
         });
 
-        // 1. FUNGSI HITUNG RASIO
+        // 1. FUNGSI HITUNG RASIO & UPDATE TEKS REKUES MENGGUNAKAN MAP
         function hitungRasio() {
             const start = parseFloat(document.getElementById("entry_start").value);
             const akhir = parseFloat(document.getElementById("entry_akhir").value);
@@ -546,6 +546,19 @@
                 return val === "" ? null : val;
             };
 
+            // Hitung defisit sekarang
+            val_kurang_sekarang = Math.max(0, (liter * 11) - jarak);
+            val_kurang_sekarang_12 = Math.max(0, (liter * 12) - jarak);
+            val_total_kurang = val_kurang_kemaren + val_kurang_sekarang;
+            val_total_kurang_12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
+            updateKurangDisplay();
+
+            // UPDATE TEKS HASIL REKUES MENGGUNAKAN MAP
+            const defisit11Str = Math.round(val_total_kurang * 10) / 10;
+            const defisit12Str = Math.round(val_total_kurang_12 * 10) / 10;
+            const teksRekuesFinal = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara ${jarak} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${defisit11Str} Km | Defisit 1:12: ${defisit12Str} Km)`;
+            document.getElementById("label_rekues").innerText = teksRekuesFinal;
+
             // Menyiapkan data untuk tombol SAVE
             data_siap_simpan = {
                 plat_nomor: document.getElementById("entry_plat").value.trim().toUpperCase(),
@@ -567,16 +580,40 @@
                 start_lng: parseVal("entry_start_lng"),
                 foto_urls: array_foto_base64.filter(x => x !== null)
             };
-
-            // Hitung defisit sekarang
-            val_kurang_sekarang = Math.max(0, (liter * 11) - jarak);
-            val_kurang_sekarang_12 = Math.max(0, (liter * 12) - jarak);
-            val_total_kurang = val_kurang_kemaren + val_kurang_sekarang;
-            val_total_kurang_12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
-            updateKurangDisplay();
         }
 
-        // 2. FUNGSI SIMPAN KE CLOUD (SUPABASE) - TANPA AUTO RESET FORM
+        // FUNGSI COPAS TEKS REKUES
+        function copasTeks(btn) {
+            const teks = document.getElementById("label_rekues").innerText.trim();
+            navigator.clipboard.writeText(teks).then(() => {
+                btn.innerText = "Disalin!";
+                btn.style.backgroundColor = "#34c759";
+                setTimeout(() => {
+                    btn.innerText = "Copas";
+                    btn.style.backgroundColor = "#3a3f4d";
+                }, 1000);
+            }).catch(err => alert("Gagal menyalin teks!"));
+        }
+
+        // FUNGSI COPAS PILIHAN DROPDOWN TAMBAHAN
+        function copasPilihan(btn) {
+            const selectEl = document.getElementById("menu_var");
+            const val = selectEl.value;
+            if (val === "-- Pilih Teks Tambahan --" || !val) {
+                alert("Silakan pilih teks tambahan terlebih dahulu!");
+                return;
+            }
+            navigator.clipboard.writeText(val).then(() => {
+                btn.innerText = "Disalin!";
+                btn.style.backgroundColor = "#34c759";
+                setTimeout(() => {
+                    btn.innerText = "Copas Pilihan";
+                    btn.style.backgroundColor = "#3a3f4d";
+                }, 1000);
+            }).catch(err => alert("Gagal menyalin pilihan!"));
+        }
+
+        // 2. FUNGSI SIMPAN KE CLOUD (SUPABASE)
         async function simpanKeCloud() {
             if (!data_siap_simpan) {
                 alert("Silakan klik tombol HITUNG terlebih dahulu sebelum melakukan SAVE!");
@@ -612,8 +649,6 @@
 
                 await loadMiniLog(data_siap_simpan.plat_nomor);
                 await hitungKurangKemaren(data_siap_simpan.plat_nomor);
-                
-                // Form tidak lagi otomatis kereset di sini
             } catch (err) {
                 alert("Gagal menyimpan ke cloud: " + err.message);
             } finally {
@@ -666,9 +701,103 @@
             val_total_kurang_12 = 0;
             updateKurangDisplay();
 
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+
             const btnSave = document.getElementById("btn_save");
             btnSave.innerText = "SAVE";
             btnSave.style.backgroundColor = "#3a3f4d";
+        }
+
+        // FUNGSI CEK PLAT & LOAD MINI LOG
+        async function cekPlat() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) {
+                alert("Masukkan nomor plat terlebih dahulu!");
+                return;
+            }
+            await loadMiniLog(plat);
+            await cekRequestor(plat);
+            await hitungKurangKemaren(plat);
+        }
+
+        async function loadMiniLog(plat) {
+            const container = document.getElementById("mini_log_container");
+            const badge = document.getElementById("log_plat_badge");
+            badge.innerText = plat;
+            container.innerHTML = `<div class="text-center text-gray-400 py-4">Memuat log...</div>`;
+
+            try {
+                const { data, error } = await _supabase
+                    .from('log_bbm')
+                    .select(SELECT_COLUMNS_LIGHT)
+                    .eq('plat_nomor', plat)
+                    .order('id', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<div class="text-center text-gray-500 py-4 italic">Belum ada riwayat log untuk plat ${plat}</div>`;
+                    return;
+                }
+
+                let html = "";
+                data.forEach((item, idx) => {
+                    const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(item))));
+                    const badgeColor = item.status === 'JOSJIS' ? 'text-green-400' : (item.status === 'CUKUP' ? 'text-amber-400' : 'text-red-400');
+                    
+                    html += `
+                        <div class="bg-[#1e222b] p-2 rounded border border-gray-800 flex flex-col space-y-1">
+                            <div class="flex justify-between items-center text-[9px]">
+                                <span class="text-gray-400 font-bold">#${item.id} | Liter: <span class="text-white">${item.liter}L</span> | Rasio: <span class="${badgeColor} font-bold">${item.rasio} KM/L</span></span>
+                                <button onclick="lemparKeForm('${encodedData}')" class="bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white px-1.5 py-0.5 rounded text-[8px] font-bold transition">Edit</button>
+                            </div>
+                            <div class="text-gray-300 text-[9px] truncate">Rem: ${item.remark || '-'}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = `<div class="text-center text-red-400 py-4">Gagal memuat log</div>`;
+            }
+        }
+
+        async function cekRequestor(plat) {
+            try {
+                const { data, error } = await _supabase
+                    .from('plat_requestor')
+                    .select('nama_requestor')
+                    .eq('plat_nomor', plat)
+                    .maybeSingle();
+
+                if (data && data.nama_requestor) {
+                    document.getElementById("txt_nama_req").innerText = data.nama_requestor;
+                } else {
+                    document.getElementById("txt_nama_req").innerText = "Unknown Req";
+                }
+
+                const { data: dataGps } = await _supabase
+                    .from('plat_gps_status')
+                    .select('sn_gps, status_gps, aktif_terakhir')
+                    .eq('plat_nomor', plat)
+                    .maybeSingle();
+
+                if (dataGps) {
+                    document.getElementById("txt_sn_gps").innerText = `SN: ${dataGps.sn_gps || '-'}`;
+                    if (dataGps.status_gps) {
+                        setGpsStatus(dataGps.status_gps);
+                    }
+                    if (dataGps.aktif_terakhir) {
+                        const lblAktif = document.getElementById("label_aktif_terakhir");
+                        lblAktif.innerText = `Aktif: ${dataGps.aktif_terakhir}`;
+                        lblAktif.classList.remove("hidden");
+                    }
+                } else {
+                    document.getElementById("txt_sn_gps").innerText = "SN: -";
+                }
+            } catch (e) {
+                console.log("Info requestor tidak ditemukan");
+            }
         }
 
         // FUNGSI LEMPAR DATA KE FORM UNTUK EDIT
@@ -749,7 +878,7 @@
             }
         }
 
-        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH (AKURASI TINGGI)
+        // PREPROCESSING DENGAN CROP KUADRAN KANAN BAWAH & FILTER WARNA MERAH
         function preprocessImageForOCR(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -785,7 +914,7 @@
             });
         }
 
-        // PROSES SCAN OCR TESSERACT.JS DENGAN PARSER REGEX ROBUST
+        // PROSES SCAN OCR TESSERACT.JS
         async function prosesOCRFoto(imageFile) {
             const loadingEl = document.getElementById("scan_ocr_loading");
             const labelHasil = document.getElementById("label_hasil_ocr");
@@ -1687,6 +1816,28 @@
             recalculateBorderColors();
         }
 
+        function hapusFoto(indexSlot) {
+            array_foto_base64[indexSlot - 1] = null;
+            array_foto_timestamps[indexSlot - 1] = 0;
+            renderFotoSlot(indexSlot, null);
+        }
+
+        function clearAllPhotos() {
+            array_foto_base64 = [null, null, null];
+            array_foto_timestamps = [0, 0, 0];
+            for (let i = 1; i <= 3; i++) {
+                renderFotoSlot(i, null);
+            }
+        }
+
+        function updateFotoCounter() {
+            let count = array_foto_base64.filter(x => x !== null).length;
+            document.getElementById("counter_foto").innerText = `${count} / 3 Foto`;
+            if (data_siap_simpan !== null) {
+                data_siap_simpan.foto_urls = array_foto_base64.filter(x => x !== null);
+            }
+        }
+
         function recalculateBorderColors() {
             let activeSlots = [];
             for (let i = 0; i < 3; i++) {
@@ -1711,225 +1862,10 @@
                     if (orderIndex === 1) el.classList.add("border-green-500", "solid"); 
                 } else if (activeSlots.length === 3) {
                     if (orderIndex === 0) el.classList.add("border-red-500", "solid"); 
-                    if (orderIndex === 1) el.classList.add("border-yellow-500", "solid"); 
+                    if (orderIndex === 1) el.classList.add("border-amber-500", "solid"); 
                     if (orderIndex === 2) el.classList.add("border-green-500", "solid"); 
                 }
             });
-        }
-
-        function hapusFoto(indexSlot) { renderFotoSlot(indexSlot, null); }
-        function clearAllPhotos() { for(let i=1; i<=3; i++) renderFotoSlot(i, null); }
-
-        function updateFotoCounter() {
-            let total = array_foto_base64.filter(x => x !== null).length;
-            document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
-        }
-
-        async function hapusLogBbm(idLog, platNomor) {
-            if (!confirm(`Apakah Anda yakin ingin menghapus log ID #${idLog} ini?`)) return;
-            
-            try {
-                const { error } = await _supabase
-                    .from('log_bbm')
-                    .delete()
-                    .eq('id', idLog);
-
-                if (error) throw error;
-                
-                alert(`Log ID #${idLog} berhasil dihapus.`);
-                await loadMiniLog(platNomor);
-                await hitungKurangKemaren(platNomor);
-            } catch (err) {
-                alert("Gagal menghapus log: " + err.message);
-            }
-        }
-
-        async function loadMiniLog(plat) {
-            const container = document.getElementById("mini_log_container");
-            document.getElementById("log_plat_badge").innerText = plat;
-            
-            try {
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(5);
-
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    container.innerHTML = `<div class="text-center text-gray-600 py-6 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
-                    return;
-                }
-
-                container.innerHTML = "";
-                data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
-                    
-                    let colorClass = "text-white";
-                    if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
-                    else if(r.status === "CUKUP") colorClass = "text-[#ff9f0a]";
-                    else if(r.status === "KURANG") colorClass = "text-[#ff3b30]";
-
-                    const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
-                    const rmkText = r.remark ? r.remark : "-";
-                    
-                    const row = document.createElement("div");
-                    row.className = "flex flex-col border-b border-gray-900 pb-2 mb-2 last:border-0 last:mb-0 hover:bg-gray-800/30 p-2 rounded transition-all";
-                    row.innerHTML = `
-                        <div class="flex items-center justify-between mb-0.5">
-                            <span class="text-gray-400 font-bold">${tgl} (ID: ${r.id})</span>
-                            <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
-                        </div>
-                        <div class="text-gray-300 text-[9.5px] mb-1">
-                            KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
-                        </div>
-                        <div class="text-[9.5px] text-amber-300 italic mb-1.5 whitespace-normal break-all leading-tight">
-                            💬 RMK: ${rmkText}
-                        </div>
-                        <div class="flex items-center justify-end gap-1.5 mt-0.5">
-                            <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded transition-all select-none">
-                                EDIT
-                            </button>
-                            <button onclick="hapusLogBbm(${r.id}, '${plat}')" class="bg-red-950/60 border border-red-500/40 hover:bg-red-900 text-red-400 text-[9px] font-bold px-2 py-0.5 rounded transition-all select-none">
-                                DELETE
-                            </button>
-                        </div>
-                    `;
-                    container.appendChild(row);
-                });
-
-            } catch(e) {
-                container.innerHTML = `<div class="text-center text-red-400 py-4 italic">Gagal memuat mini log.</div>`;
-            }
-        }
-
-        async function cekPlat() {
-            id_log_sedang_diedit = null; 
-            document.getElementById("btn_save").innerText = "SAVE";
-            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
-            clearAllPhotos();
-
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
-            
-            document.getElementById("entry_plat").value = plat;
-            const btnCek = document.getElementById("btn_cek");
-            btnCek.innerText = ".."; btnCek.disabled = true;
-
-            try {
-                await Promise.all([
-                    loadMiniLog(plat),
-                    cekRequestor(plat),
-                    hitungKurangKemaren(plat)
-                ]);
-
-                const { data, error } = await _supabase
-                    .from('log_bbm')
-                    .select('*')
-                    .eq('plat_nomor', plat)
-                    .order('id', { ascending: false })
-                    .limit(1);
-
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const lastData = data[0];
-                    document.getElementById("entry_start").value = lastData.km_akhir;
-                    document.getElementById("entry_akhir").value = "";
-                    document.getElementById("entry_liter").value = lastData.liter || "";
-                    document.getElementById("entry_remark").value = lastData.remark || "";
-                    
-                    document.getElementById("entry_site_id").value = lastData.site_id || "";
-                    document.getElementById("entry_site_lat").value = lastData.site_lat || "";
-                    document.getElementById("entry_site_lng").value = lastData.site_lng || "";
-                    document.getElementById("entry_start_lat").value = lastData.start_lat || "";
-                    document.getElementById("entry_start_lng").value = lastData.start_lng || "";
-
-                    if (lastData.site_lat && lastData.site_lng && lastData.start_lat && lastData.start_lng) {
-                        generateMapRoute();
-                    }
-
-                    toggleMafiaMode(lastData.is_mafia === true);
-                    document.getElementById("toggle_mafia").checked = lastData.is_mafia === true;
-
-                    let gpsVal = lastData.gps_detail ? lastData.gps_detail : (lastData.is_gps ? 'AKTIF' : 'MATI');
-                    setGpsStatus(gpsVal);
-
-                    if (lastData.foto_urls && Array.isArray(lastData.foto_urls)) {
-                        lastData.foto_urls.forEach((url, index) => {
-                            if (index < 3) {
-                                array_foto_timestamps[index] = Date.now() + index;
-                                renderFotoSlot(index + 1, url);
-                            }
-                        });
-                    }
-
-                    const rem = lastData.remark || "-";
-                    document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
-                    
-                    document.getElementById("box_approval").classList.add("hidden");
-                    document.getElementById("toggle_approval").checked = false;
-                    handleApprovalChange(false);
-                    
-                    document.getElementById("entry_akhir").focus();
-                } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
-                    resetForm();
-                    document.getElementById("entry_plat").value = plat;
-                    await cekRequestor(plat);
-                }
-            } catch (err) {
-                alert("Gagal mengecek data:\n" + err.message);
-            } finally {
-                btnCek.innerText = "CEK"; btnCek.disabled = false;
-            }
-        }
-
-        async function cekRequestor(plat) {
-            const elNama = document.getElementById("txt_nama_req");
-            const elSn = document.getElementById("txt_sn_gps");
-            const elAktif = document.getElementById("label_aktif_terakhir");
-            
-            elNama.innerText = "Loading...";
-            elSn.innerText = "SN: ...";
-            elAktif.classList.add("hidden");
-
-            try {
-                const [resReq, resGpsStatus] = await Promise.all([
-                    _supabase.from('plat_requestor').select('nama_requestor').eq('plat_nomor', plat).maybeSingle(),
-                    _supabase.from('plat_gps_status').select('*').eq('plat_nomor', plat).maybeSingle()
-                ]);
-
-                if (resReq.data && resReq.data.nama_requestor) {
-                    elNama.innerText = resReq.data.nama_requestor;
-                    elNama.classList.remove("text-red-400", "underline");
-                } else {
-                    elNama.innerText = "+ Input Req";
-                    elNama.classList.add("text-red-400", "underline");
-                }
-
-                if (resGpsStatus.data) {
-                    const gpsData = resGpsStatus.data;
-                    elSn.innerText = gpsData.sn_gps ? `SN: ${gpsData.sn_gps}` : "SN: -";
-                    
-                    if (gpsData.status_gps) {
-                        setGpsStatus(gpsData.status_gps);
-                    }
-
-                    if (gpsData.aktif_terakhir) {
-                        elAktif.innerText = `Aktif: ${gpsData.aktif_terakhir}`;
-                        elAktif.classList.remove("hidden");
-                    }
-                } else {
-                    elSn.innerText = "SN: -";
-                }
-
-            } catch (err) {
-                console.log("Error fetch requestor/SN:", err.message);
-                elNama.innerText = "Unknown";
-                elSn.innerText = "SN: Error";
-            }
         }
     </script>
 </body>
