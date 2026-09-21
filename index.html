@@ -495,7 +495,7 @@
             updateKurangDisplay();
         });
 
-        // FUNGSI HITUNG RASIO YANG SEBELUMNYA HILANG
+        // 1. FUNGSI HITUNG RASIO
         function hitungRasio() {
             const start = parseFloat(document.getElementById("entry_start").value);
             const akhir = parseFloat(document.getElementById("entry_akhir").value);
@@ -564,6 +564,144 @@
             val_total_kurang = val_kurang_kemaren + val_kurang_sekarang;
             val_total_kurang_12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
             updateKurangDisplay();
+        }
+
+        // 2. FUNGSI SIMPAN KE CLOUD (SUPABASE)
+        async function simpanKeCloud() {
+            if (!data_siap_simpan) {
+                alert("Silakan klik tombol HITUNG terlebih dahulu sebelum melakukan SAVE!");
+                return;
+            }
+
+            if (!data_siap_simpan.plat_nomor) {
+                alert("Plat nomor belum diisi!");
+                return;
+            }
+
+            const btnSave = document.getElementById("btn_save");
+            btnSave.innerText = "SAVING...";
+            btnSave.disabled = true;
+
+            try {
+                if (id_log_sedang_diedit !== null) {
+                    // Update data yang ada
+                    const { error } = await _supabase
+                        .from('log_bbm')
+                        .update(data_siap_simpan)
+                        .eq('id', id_log_sedang_diedit);
+
+                    if (error) throw error;
+                    alert(`Log ID #${id_log_sedang_diedit} berhasil diperbarui!`);
+                } else {
+                    // Insert data baru
+                    const { error } = await _supabase
+                        .from('log_bbm')
+                        .insert([data_siap_simpan]);
+
+                    if (error) throw error;
+                    alert("Data BBM berhasil disimpan ke Cloud!");
+                }
+
+                await loadMiniLog(data_siap_simpan.plat_nomor);
+                await hitungKurangKemaren(data_siap_simpan.plat_nomor);
+                resetForm();
+            } catch (err) {
+                alert("Gagal menyimpan ke cloud: " + err.message);
+            } finally {
+                btnSave.innerText = "SAVE";
+                btnSave.disabled = false;
+            }
+        }
+
+        // 3. FUNGSI RESET FORM
+        function resetForm() {
+            id_log_sedang_diedit = null;
+            data_siap_simpan = null;
+
+            document.getElementById("entry_plat").value = "";
+            document.getElementById("entry_start").value = "";
+            document.getElementById("entry_akhir").value = "";
+            document.getElementById("entry_liter").value = "";
+            document.getElementById("entry_remark").value = "";
+            document.getElementById("entry_site_id").value = "";
+            document.getElementById("entry_site_lat").value = "";
+            document.getElementById("entry_site_lng").value = "";
+            document.getElementById("entry_start_lat").value = "";
+            document.getElementById("entry_start_lng").value = "";
+
+            document.getElementById("label_hasil").innerText = "- KM/L";
+            document.getElementById("label_jarak").innerText = "Jarak: -";
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = "-";
+            lblStatus.style.backgroundColor = "transparent";
+
+            document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_sn_gps").innerText = "SN: -";
+            document.getElementById("label_aktif_terakhir").classList.add("hidden");
+
+            document.getElementById("toggle_mafia").checked = false;
+            toggleMafiaMode(false);
+            setGpsStatus("MATI");
+
+            clearAllPhotos();
+            document.getElementById("preview_ocr_container").classList.add("hidden");
+            document.getElementById("label_hasil_ocr").innerText = "-";
+            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
+            document.getElementById("log_plat_badge").innerText = "";
+
+            val_kurang_kemaren = 0;
+            val_kurang_sekarang = 0;
+            val_total_kurang = 0;
+            val_kurang_kemaren_12 = 0;
+            val_kurang_sekarang_12 = 0;
+            val_total_kurang_12 = 0;
+            updateKurangDisplay();
+
+            const btnSave = document.getElementById("btn_save");
+            btnSave.innerText = "SAVE";
+            btnSave.style.backgroundColor = "#3a3f4d";
+        }
+
+        // FUNGSI LEMPAR DATA KE FORM UNTUK EDIT
+        function lemparKeForm(base64String) {
+            try {
+                const r = JSON.parse(decodeURIComponent(escape(atob(base64String))));
+                id_log_sedang_diedit = r.id;
+
+                document.getElementById("entry_plat").value = r.plat_nomor || "";
+                document.getElementById("entry_start").value = r.km_start || "";
+                document.getElementById("entry_akhir").value = r.km_akhir || "";
+                document.getElementById("entry_liter").value = r.liter || "";
+                document.getElementById("entry_remark").value = r.remark || "";
+                document.getElementById("entry_site_id").value = r.site_id || "";
+                document.getElementById("entry_site_lat").value = r.site_lat || "";
+                document.getElementById("entry_site_lng").value = r.site_lng || "";
+                document.getElementById("entry_start_lat").value = r.start_lat || "";
+                document.getElementById("entry_start_lng").value = r.start_lng || "";
+
+                document.getElementById("toggle_mafia").checked = !!r.is_mafia;
+                toggleMafiaMode(!!r.is_mafia);
+
+                let gpsStatusStr = r.gps_detail ? r.gps_detail : (r.is_gps ? 'AKTIF' : 'MATI');
+                setGpsStatus(gpsStatusStr);
+
+                if (r.site_lat && r.site_lng && r.start_lat && r.start_lng) {
+                    generateMapRoute();
+                }
+
+                hitungRasio();
+
+                const btnSave = document.getElementById("btn_save");
+                btnSave.innerText = `UPDATE (#${r.id})`;
+                btnSave.style.backgroundColor = "#0a84ff";
+
+                cekRequestor(r.plat_nomor);
+                hitungKurangKemaren(r.plat_nomor);
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (err) {
+                alert("Gagal memuat data untuk diedit: " + err.message);
+            }
         }
 
         // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
@@ -717,12 +855,7 @@
             let latNum = parseFloat(latitude);
             let lngNum = parseFloat(longitude);
 
-            // PEMAKSAAN MINUS DIHAPUS AGAR MENGIKUTI HASIL ASLI TEKS FOTO
-            /*
-            if (latNum > 0 && latNum <= 11 && lngNum >= 90 && lngNum <= 145) {
-                latNum = -Math.abs(latNum);
-            }
-            */
+            // PEMAKSAAN MINUS DIHAPUS (MENGIKUTI HASIL ASLI FOTO TANPA DITAMBAH MINUS SECARA PAKSA)
 
             return {
                 lat: latNum.toFixed(4),
