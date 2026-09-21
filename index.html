@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - GPS Tracker System</title>
+    <title>KalkulPAPIPAtor BBM SUMAPA - By STAFSUS PAPIPA </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Library SheetJS untuk Export & Import Excel -->
@@ -375,13 +375,13 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (DIPERPANJANG UKURANNYA DAN DITAMBAHKAN REMARK & TOMBOL DELETE) -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-72">
+            <!-- HISTORIS LOG BBM 5 TERAKHIR (TANPA SCROLL, MEMANJANG KE BAWAH, REMARK KEBAWAH JIKA PANJANG) -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
                     <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
                 </div>
-                <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px] pr-1">
+                <div id="mini_log_container" class="space-y-2 font-mono text-[10px]">
                     <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
                 </div>
             </div>
@@ -1524,7 +1524,6 @@
                 if (error) throw error;
                 
                 alert(`Log ID #${idLog} berhasil dihapus.`);
-                // Muat ulang mini log & kalkulasi ulang
                 await loadMiniLog(platNomor);
                 await hitungKurangKemaren(platNomor);
             } catch (err) {
@@ -1563,16 +1562,17 @@
                     const rmkText = r.remark ? r.remark : "-";
                     
                     const row = document.createElement("div");
-                    row.className = "flex flex-col border-b border-gray-900 pb-2 mb-1 last:border-0 hover:bg-gray-800/30 p-1.5 rounded transition-all";
+                    // Mengubah container log agar memanjang ke bawah tanpa scroll, remark otomatis wrap ke bawah
+                    row.className = "flex flex-col border-b border-gray-900 pb-2 mb-2 last:border-0 last:mb-0 hover:bg-gray-800/30 p-2 rounded transition-all";
                     row.innerHTML = `
                         <div class="flex items-center justify-between mb-0.5">
                             <span class="text-gray-400 font-bold">${tgl} (ID: ${r.id})</span>
                             <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
                         </div>
-                        <div class="text-gray-300 text-[9.5s px] mb-1">
+                        <div class="text-gray-300 text-[9.5px] mb-1">
                             KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
                         </div>
-                        <div class="text-[9px] text-amber-300 italic mb-1.5 truncate" title="RMK: ${rmkText}">
+                        <div class="text-[9.5px] text-amber-300 italic mb-1.5 whitespace-normal break-all leading-tight">
                             💬 RMK: ${rmkText}
                         </div>
                         <div class="flex items-center justify-end gap-1.5 mt-0.5">
