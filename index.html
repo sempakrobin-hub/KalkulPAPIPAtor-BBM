@@ -171,24 +171,6 @@
                     </button>
                 </div>
 
-                <!-- PANEL NEED APPROVAL -->
-                <div id="box_approval" class="hidden flex-col bg-[#2d323f] border border-orange-500/40 rounded px-3 py-2 transition-all duration-300 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex flex-col">
-                            <span class="text-[11px] font-bold text-[#ff9f0a]">NEED APPROVAL</span>
-                            <span id="label_last_approved" class="text-[9px] text-gray-400 italic">Last Approved: -</span>
-                        </div>
-                        <label for="toggle_approval" class="flex items-center cursor-pointer select-none">
-                            <div class="relative">
-                                <input type="checkbox" id="toggle_approval" class="sr-only" onchange="handleApprovalChange(this.checked)">
-                                <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors"></div>
-                                <div class="dot absolute left-1 top-1 bg-gray-300 w-4 h-4 rounded-full transition-transform"></div>
-                                <span id="text_approval_slide" class="absolute right-2 top-1 text-[9px] font-bold text-gray-400 pointer-events-none select-none">NO</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
                 <!-- GRID TOMBOL AKSI -->
                 <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold pt-1">
                     <button onclick="hitungRasio()" class="bg-[#34c759] text-white py-2 rounded hover:opacity-80 uppercase">HITUNG</button>
@@ -1339,27 +1321,32 @@
         function updateApprovalLabel() {
             const lastApproved = localStorage.getItem('last_bbm_approval_time');
             const lbl = document.getElementById("label_last_approved");
-            if (lastApproved) {
-                lbl.innerText = `Last Approved: ${lastApproved}`;
-            } else {
-                lbl.innerText = `Last Approved: -`;
+            if (lbl) {
+                if (lastApproved) {
+                    lbl.innerText = `Last Approved: ${lastApproved}`;
+                } else {
+                    lbl.innerText = `Last Approved: -`;
+                }
             }
         }
 
         function handleApprovalChange(isTrue) {
             const textIndicator = document.getElementById("text_approval_slide");
-            if (isTrue) {
-                textIndicator.innerText = "YES";
-                textIndicator.style.color = "#ffffff";
-                textIndicator.style.right = "auto";
-                textIndicator.style.left = "0.5rem";
-            } else {
-                textIndicator.innerText = "NO";
-                textIndicator.style.color = "#a0a5b5";
-                textIndicator.style.left = "auto";
-                textIndicator.style.right = "0.5rem";
+            if (textIndicator) {
+                if (isTrue) {
+                    textIndicator.innerText = "YES";
+                    textIndicator.style.color = "#ffffff";
+                    textIndicator.style.right = "auto";
+                    textIndicator.style.left = "0.5rem";
+                } else {
+                    textIndicator.innerText = "NO";
+                    textIndicator.style.color = "#a0a5b5";
+                    textIndicator.style.left = "auto";
+                    textIndicator.style.right = "0.5rem";
+                }
             }
-            if (data_siap_simpan !== null) {
+            const toggleApproval = document.getElementById("toggle_approval");
+            if (data_siap_simpan !== null && toggleApproval) {
                 data_siap_simpan.is_approved = isTrue;
             }
         }
@@ -1597,7 +1584,6 @@
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    // Menggunakan fungsi formatTanggalJam agar mudah dibaca (YYYY-MM-DD / HH:MM:SS)
                     let rawTime = r.tanggal || r.created_at || "";
                     const tglFormat = formatTanggalJam(rawTime);
                     
@@ -1731,8 +1717,8 @@
                     const rem = lastData.remark || "-";
                     document.getElementById("label_rekues").innerText = `Last Log ${plat} -> Liter: ${lastData.liter}L | Rasio: ${lastData.rasio} KM/L | Rem: ${rem}`;
                     
-                    document.getElementById("box_approval").classList.add("hidden");
-                    document.getElementById("toggle_approval").checked = false;
+                    const toggleApproval = document.getElementById("toggle_approval");
+                    if(toggleApproval) toggleApproval.checked = false;
                     handleApprovalChange(false);
                     
                     document.getElementById("entry_akhir").focus();
@@ -1903,7 +1889,7 @@
                 is_mafia: document.getElementById("toggle_mafia").checked,
                 is_gps: (currentGpsStatusValue === 'AKTIF'),
                 gps_detail: currentGpsStatusValue,
-                is_approved: document.getElementById("toggle_approval").checked,
+                is_approved: false,
                 remark: document.getElementById("entry_remark").value.trim() || "-",
                 site_id: document.getElementById("entry_site_id").value.trim().toUpperCase() || null,
                 site_lat: parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.')) || null,
@@ -1913,13 +1899,9 @@
                 foto_urls: fotoUrlsValid
             };
 
-            if (rasio < 11) {
-                document.getElementById("box_approval").classList.remove("hidden");
-                document.getElementById("label_rekues").innerText = `⚠️ Rasio ${rasio} KM/L (< 11). Status KURANG. Harap geser Need Approval ke YES jika diperlukan.`;
-            } else {
-                document.getElementById("box_approval").classList.add("hidden");
-                document.getElementById("label_rekues").innerText = `✅ Rasio ${rasio} KM/L memenuhi syarat. Silakan klik SAVE untuk menyimpan ke cloud.`;
-            }
+            // Format teks rekues baru sesuai permintaan
+            let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
+            document.getElementById("label_rekues").innerText = pesanRekues;
         }
 
         async function simpanKeCloud() {
@@ -1949,12 +1931,6 @@
 
                 alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM di cloud!" : "Berhasil menyimpan log BBM baru ke cloud!");
                 
-                if (data_siap_simpan.is_approved) {
-                    const nowStr = new Date().toLocaleString();
-                    localStorage.setItem('last_bbm_approval_time', nowStr);
-                    updateApprovalLabel();
-                }
-
                 const platTerkini = data_siap_simpan.plat_nomor;
                 resetForm();
                 document.getElementById("entry_plat").value = platTerkini;
@@ -1989,10 +1965,6 @@
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = "-";
             lblStatus.style.backgroundColor = "transparent";
-
-            document.getElementById("box_approval").classList.add("hidden");
-            document.getElementById("toggle_approval").checked = false;
-            handleApprovalChange(false);
 
             toggleMafiaMode(false);
             document.getElementById("toggle_mafia").checked = false;
