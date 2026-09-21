@@ -375,13 +375,13 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (DITAMPILKAN SEMUA TANPA SCROLL) -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col">
+            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-44">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
                     <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
                 </div>
-                <div id="mini_log_container" class="space-y-2 font-mono text-[10px]">
+                <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
                     <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
                 </div>
             </div>
@@ -404,7 +404,7 @@
 			<!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>👤 Master Requestor </span>
+                    <span>👤 Master Requestor & LongLat Awal</span>
                     <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
                 </div>
                 <div class="flex flex-col gap-1.5 text-[10px]">
@@ -468,14 +468,6 @@
         
         const SELECT_COLUMNS_LIGHT = "id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, is_mafia, is_gps, gps_detail, is_approved, remark, site_id, site_lat, site_lng, start_lat, start_lng";
 
-        // DATABASE DEFAULT LONGLAT AWAL PERJALANAN BERDASARKAN PLAT NOMOR
-        const DEFAULT_START_COORDS = {
-            "B 1234 ABC": { lat: -6.2088, lng: 106.8456 },
-            "L 5678 XYZ": { lat: -7.2575, lng: 112.7521 },
-            "D 9999 DEF": { lat: -6.9175, lng: 107.6191 }
-            // Anda dapat menambahkan plat nomor lainnya di sini
-        };
-
         let data_siap_simpan = null;
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI";
@@ -502,24 +494,6 @@
             setGpsStatus("MATI");
             updateKurangDisplay();
         });
-
-        // FUNGSI FORMAT TANGGAL AGAR LEBIH JELAS (DARI ISO STRING KE FORMAT LOKAL)
-        function formatTanggalJelas(isoString) {
-            if (!isoString) return "-";
-            try {
-                const date = new Date(isoString);
-                if (isNaN(date.getTime())) return isoString.split("T")[0]; // Fallback jika format string biasa
-                return date.toLocaleDateString('id-ID', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            } catch (e) {
-                return isoString;
-            }
-        }
 
         // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
         async function clickToPasteScanImage() {
@@ -940,12 +914,12 @@
         }
 
         // ==========================================
-        // FITUR MASTER REQUESTOR UPLOAD & TEMPLATE
+        // FITUR MASTER REQUESTOR UPLOAD & TEMPLATE (DIPERBARUI)
         // ==========================================
         function downloadTemplateRequestor() {
             const templateData = [
-                { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad" },
-                { "Plat Nomor": "L 5678 XYZ", "Nama Requestor": "Budi" }
+                { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad", "Latitude": -6.2088, "Longitude": 106.8456 },
+                { "Plat Nomor": "L 5678 XYZ", "Nama Requestor": "Budi", "Latitude": -6.9175, "Longitude": 107.6191 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
             const workbook = XLSX.utils.book_new();
@@ -983,6 +957,8 @@
                     for (let row of jsonRows) {
                         let platRaw = "";
                         let namaReq = "";
+                        let latVal = null;
+                        let lngVal = null;
 
                         for (let k in row) {
                             const kLower = k.toLowerCase().trim();
@@ -992,24 +968,32 @@
                             if (kLower.includes('nama') || kLower.includes('requestor')) {
                                 if (row[k]) namaReq = String(row[k]).trim();
                             }
+                            if (kLower.includes('lat')) {
+                                if (row[k] !== "") latVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
+                            if (kLower.includes('long') || kLower.includes('lng')) {
+                                if (row[k] !== "") lngVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
                         }
 
                         if (!platRaw && row["Plat Nomor"]) platRaw = String(row["Plat Nomor"]).trim().toUpperCase();
                         if (!namaReq && row["Nama Requestor"]) namaReq = String(row["Nama Requestor"]).trim();
 
-                        if (platRaw && namaReq) {
+                        if (platRaw) {
                             if (!processedPlats.has(platRaw)) {
                                 processedPlats.add(platRaw);
                                 recordsToUpsert.push({
                                     plat_nomor: platRaw,
-                                    nama_requestor: namaReq
+                                    nama_requestor: namaReq || null,
+                                    start_lat: !isNaN(latVal) ? latVal : null,
+                                    start_lng: !isNaN(lngVal) ? lngVal : null
                                 });
                             }
                         }
                     }
 
                     if (recordsToUpsert.length === 0) {
-                        alert("Tidak ada data Plat Nomor & Nama Requestor yang valid ditemukan!");
+                        alert("Tidak ada data Plat Nomor yang valid ditemukan!");
                         return;
                     }
 
@@ -1040,7 +1024,7 @@
         }
 
         // ==========================================
-        // FITUR GPS AROBS UPLOAD & TEMPLATE (DIPERBAIKI)
+        // FITUR GPS AROBS UPLOAD & TEMPLATE
         // ==========================================
         function downloadTemplateGps() {
             const templateData = [
@@ -1549,9 +1533,6 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // =========================================================================
-        // LOAD MINI LOG & CEK PLAT SERENTAK + AUTO ISI DEFAULT LONGLAT
-        // =========================================================================
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1566,15 +1547,13 @@
 
                 if (error) throw error;
                 if (!data || data.length === 0) {
-                    container.innerHTML = `<div class="text-center text-gray-600 py-4 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
+                    container.innerHTML = `<div class="text-center text-gray-600 py-6 italic">Belum ada riwayat di cloud untuk ${plat}</div>`;
                     return;
                 }
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    // Perbaikan tanggal agar lebih jelas menggunakan format lokal
-                    const rawDate = r.tanggal ? r.tanggal : r.created_at;
-                    const tgl = formatTanggalJelas(rawDate);
+                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
                     
                     let colorClass = "text-white";
                     if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
@@ -1594,7 +1573,6 @@
                             <div class="text-gray-300 mt-0.5">
                                 KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
                             </div>
-                            ${r.remark ? `<div class="text-amber-300/80 text-[9px] mt-0.5 italic">RMK: ${r.remark}</div>` : ''}
                         </div>
                         <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
                             EDIT
@@ -1628,12 +1606,6 @@
                     hitungKurangKemaren(plat)
                 ]);
 
-                // Isi default longlat awal perjalanan jika tersedia pada dictionary
-                if (DEFAULT_START_COORDS[plat]) {
-                    document.getElementById("entry_start_lat").value = DEFAULT_START_COORDS[plat].lat;
-                    document.getElementById("entry_start_lng").value = DEFAULT_START_COORDS[plat].lng;
-                }
-
                 const { data, error } = await _supabase
                     .from('log_bbm')
                     .select('*')
@@ -1654,6 +1626,7 @@
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
                     
+                    // Jika log terakhir memiliki koordinat start tersendiri, gunakan itu, jika tidak, di-handle oleh cekRequestor
                     if (lastData.start_lat && lastData.start_lng) {
                         document.getElementById("entry_start_lat").value = lastData.start_lat;
                         document.getElementById("entry_start_lng").value = lastData.start_lng;
@@ -1687,14 +1660,12 @@
                     
                     document.getElementById("entry_akhir").focus();
                 } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
-                    resetForm();
-                    document.getElementById("entry_plat").value = plat;
-                    if (DEFAULT_START_COORDS[plat]) {
-                        document.getElementById("entry_start_lat").value = DEFAULT_START_COORDS[plat].lat;
-                        document.getElementById("entry_start_lng").value = DEFAULT_START_COORDS[plat].lng;
-                    }
-                    await cekRequestor(plat);
+                    alert(`Plat nomor ${plat} belum memiliki histori log BBM. Data Master Requestor / LongLat default (jika ada) telah dimuat.`);
+                    document.getElementById("entry_start").value = "";
+                    document.getElementById("entry_akhir").value = "";
+                    document.getElementById("entry_liter").value = "";
+                    document.getElementById("entry_remark").value = "";
+                    document.getElementById("entry_akhir").focus();
                 }
             } catch (err) {
                 alert("Gagal mengecek data:\n" + err.message);
@@ -1714,13 +1685,24 @@
 
             try {
                 const [resReq, resGpsStatus] = await Promise.all([
-                    _supabase.from('plat_requestor').select('nama_requestor').eq('plat_nomor', plat).maybeSingle(),
+                    _supabase.from('plat_requestor').select('nama_requestor, start_lat, start_lng').eq('plat_nomor', plat).maybeSingle(),
                     _supabase.from('plat_gps_status').select('*').eq('plat_nomor', plat).maybeSingle()
                 ]);
 
-                if (resReq.data && resReq.data.nama_requestor) {
-                    elNama.innerText = resReq.data.nama_requestor;
-                    elNama.classList.remove("text-red-400", "underline");
+                if (resReq.data) {
+                    if (resReq.data.nama_requestor) {
+                        elNama.innerText = resReq.data.nama_requestor;
+                        elNama.classList.remove("text-red-400", "underline");
+                    } else {
+                        elNama.innerText = "+ Input Req";
+                        elNama.classList.add("text-red-400", "underline");
+                    }
+
+                    // Otomatis isi LongLat awal perjalanan jika tersedia di database plat_requestor
+                    if (resReq.data.start_lat !== null && resReq.data.start_lng !== null) {
+                        document.getElementById("entry_start_lat").value = resReq.data.start_lat;
+                        document.getElementById("entry_start_lng").value = resReq.data.start_lng;
+                    }
                 } else {
                     elNama.innerText = "+ Input Req";
                     elNama.classList.add("text-red-400", "underline");
@@ -1763,19 +1745,24 @@
             const namaTrimmed = namaBaru.trim();
             if (!namaTrimmed) return alert("Nama Requestor tidak boleh kosong!");
 
+            const currentLat = parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.')) || null;
+            const currentLng = parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.')) || null;
+
             try {
                 const { error } = await _supabase
                     .from('plat_requestor')
                     .upsert({
                         plat_nomor: plat,
-                        nama_requestor: namaTrimmed
+                        nama_requestor: namaTrimmed,
+                        start_lat: currentLat,
+                        start_lng: currentLng
                     }, { onConflict: 'plat_nomor' });
 
                 if (error) throw error;
 
                 elNama.innerText = namaTrimmed;
                 elNama.classList.remove("text-red-400", "underline");
-                alert(`Berhasil menyimpan Requestor "${namaTrimmed}" untuk plat ${plat}!`);
+                alert(`Berhasil menyimpan Requestor & LongLat default untuk plat ${plat}!`);
             } catch (err) {
                 alert("Gagal menyimpan Requestor:\n" + err.message);
             }
@@ -1860,7 +1847,6 @@
                 gps_detail: currentGpsStatusValue,
                 is_approved: isApprovalActive,
                 foto_urls: array_foto_base64.filter(x => x !== null),
-                remark: document.getElementById("entry_remark").value.trim() || null,
                 site_id: document.getElementById("entry_site_id").value.trim() || null,
                 site_lat: parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.')) || null,
                 site_lng: parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.')) || null,
@@ -1931,6 +1917,13 @@
                     if (error) throw error;
                     alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
                 }
+
+                // Opsional: Update juga longlat default di Master Requestor secara otomatis saat save
+                await _supabase.from('plat_requestor').upsert({
+                    plat_nomor: data_siap_simpan.plat_nomor,
+                    start_lat: data_siap_simpan.start_lat,
+                    start_lng: data_siap_simpan.start_lng
+                }, { onConflict: 'plat_nomor' });
 
                 if (data_siap_simpan.is_approved) {
                     const sekarang = new Date();
@@ -2019,31 +2012,8 @@
         }
 
         function resetForm() {
+            data_siap_simpan = null;
             id_log_sedang_diedit = null;
-            document.getElementById("entry_plat").value = "";
-            document.getElementById("entry_start").value = "";
-            document.getElementById("entry_akhir").value = "";
-            document.getElementById("entry_liter").value = "";
-            document.getElementById("entry_remark").value = "";
-            document.getElementById("entry_site_id").value = "";
-            document.getElementById("entry_site_lat").value = "";
-            document.getElementById("entry_site_lng").value = "";
-            document.getElementById("entry_start_lat").value = "";
-            document.getElementById("entry_start_lng").value = "";
-
-            document.getElementById("txt_nama_req").innerText = "- Requestor -";
-            document.getElementById("txt_sn_gps").innerText = "SN: -";
-            document.getElementById("label_aktif_terakhir").classList.add("hidden");
-
-            document.getElementById("label_hasil").innerText = "- KM/L";
-            document.getElementById("label_jarak").innerText = "Jarak: -";
-            const lblStatus = document.getElementById("label_status");
-            lblStatus.innerText = "-"; lblStatus.style.color = "white";
-
-            document.getElementById("toggle_mafia").checked = false;
-            toggleMafiaMode(false);
-            setGpsStatus("MATI");
-
             val_kurang_kemaren = 0;
             val_kurang_sekarang = 0;
             val_total_kurang = 0;
@@ -2052,21 +2022,40 @@
             val_total_kurang_12 = 0;
             updateKurangDisplay();
 
-            document.getElementById("box_approval").classList.add("hidden");
-            clearAllPhotos();
+            array_foto_timestamps = [0, 0, 0];
+            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark', 'entry_site_id', 'entry_site_lat', 'entry_site_lng', 'entry_start_lat', 'entry_start_lng'].forEach(id => document.getElementById(id).value = "");
+            
+            if (document.getElementById("label_hasil_ocr")) {
+                document.getElementById("label_hasil_ocr").innerText = "-";
+            }
+            if (document.getElementById("preview_ocr_container")) {
+                document.getElementById("preview_ocr_container").classList.add("hidden");
+            }
 
+            if (mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+            document.getElementById("label_map_distance").innerText = "- Km";
+
+            document.getElementById("label_jarak").innerText = "Jarak: -";
+            document.getElementById("label_hasil").innerText = "- KM/L";
+            document.getElementById("label_status").innerText = "-";
+            document.getElementById("label_status").style.color = "#ffffff";
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+            document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
+            document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
+            document.getElementById("txt_sn_gps").innerText = "SN: -";
+            document.getElementById("label_aktif_terakhir").classList.add("hidden");
+            document.getElementById("box_approval").classList.add("hidden");
+            document.getElementById("toggle_approval").checked = false;
+            handleApprovalChange(false);
+            toggleMafiaMode(false);
+            document.getElementById("toggle_mafia").checked = false;
+            setGpsStatus("MATI");
+            clearAllPhotos();
             document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
             document.getElementById("log_plat_badge").innerText = "";
-            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-            
-            const btnSave = document.getElementById("btn_save");
-            btnSave.innerText = "SAVE"; btnSave.style.backgroundColor = "#3a3f4d";
-            data_siap_simpan = null;
-
-            if (mapFeatureGroup) mapFeatureGroup.clearLayers();
-            document.getElementById("label_map_distance").innerText = "- Km";
-            document.getElementById("label_hasil_ocr").innerText = "-";
-            document.getElementById("preview_ocr_container").classList.add("hidden");
         }
     </script>
 </body>
