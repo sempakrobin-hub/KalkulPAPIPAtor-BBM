@@ -244,10 +244,11 @@
                         <input type="text" id="entry_site_lng" placeholder="Long Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
                     </div>
 
-                    <!-- Input Koordinat Awal Perjalanan -->
-                    <div class="grid grid-cols-2 gap-1.5">
-                        <input type="text" id="entry_start_lat" placeholder="Lat Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                        <input type="text" id="entry_start_lng" placeholder="Long Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                    <!-- Input Koordinat Awal Perjalanan + Tombol Save -->
+                    <div class="grid grid-cols-5 gap-1.5">
+                        <input type="text" id="entry_start_lat" placeholder="Lat Awal" class="col-span-2 bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <input type="text" id="entry_start_lng" placeholder="Long Awal" class="col-span-2 bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <button type="button" onclick="simpanLonglatAwal()" class="col-span-1 bg-[#34c759] hover:opacity-80 text-white text-[10px] font-bold py-1.5 px-1 rounded transition uppercase" title="Simpan / Update LongLat Awal ke Plat Nomor">SAVE</button>
                     </div>
 
                     <!-- Tombol Render Map -->
@@ -375,13 +376,12 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR (DIUBAH TIDAK SCROLL DAN DITAMBAHKAN REMARK MENURUN & FITUR DELETE) -->
+            <!-- HISTORIS LOG BBM 5 TERAKHIR (DIUBAH FORMAT TANGGALNYA) -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
                     <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
                 </div>
-                <!-- Menghilangkan overflow-y-auto agar tidak scroll, serta menambahkan flex-col -->
                 <div id="mini_log_container" class="space-y-2 flex flex-col font-mono text-[10px]">
                     <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
                 </div>
@@ -495,6 +495,48 @@
             setGpsStatus("MATI");
             updateKurangDisplay();
         });
+
+        // FUNGSI SIMPAN/UPDATE LONGLAT AWAL KE DATABASE PLAT_REQUESTOR
+        async function simpanLonglatAwal() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) return alert("Isi nomor plat terlebih dahulu!");
+
+            const startLat = parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.'));
+            const startLng = parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.'));
+
+            if (isNaN(startLat) || isNaN(startLng)) {
+                return alert("Latitude & Longitude Awal harus berupa angka yang valid!");
+            }
+
+            try {
+                const { error } = await _supabase
+                    .from('plat_requestor')
+                    .upsert({ 
+                        plat_nomor: plat, 
+                        start_lat: startLat, 
+                        start_lng: startLng 
+                    }, { onConflict: 'plat_nomor' });
+
+                if (error) throw error;
+                alert(`Berhasil menyimpan LongLat Awal untuk plat ${plat}!`);
+            } catch (err) {
+                alert("Gagal menyimpan LongLat Awal: " + err.message);
+            }
+        }
+
+        // FUNGSI FORMAT TANGGAL DAN JAM ISO MENJADI YYYY-MM-DD / HH:MM:SS
+        function formatTanggalJam(isoString) {
+            if (!isoString) return "-";
+            try {
+                const parts = isoString.split("T");
+                if (parts.length < 2) return isoString;
+                const tgl = parts[0];
+                const jam = parts[1].split(".")[0]; // Membuang milidetik dan zona waktu
+                return `${tgl} / ${jam}`;
+            } catch (e) {
+                return isoString;
+            }
+        }
 
         // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
         async function clickToPasteScanImage() {
@@ -1534,7 +1576,7 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI LOAD MINI LOG DENGAN REMARK MENURUN & TOMBOL HAPUS/DELETE
+        // FUNGSI LOAD MINI LOG DENGAN FORMAT TANGGAL YANG DIPERMUDAH
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1555,7 +1597,9 @@
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
+                    // Menggunakan fungsi formatTanggalJam agar mudah dibaca (YYYY-MM-DD / HH:MM:SS)
+                    let rawTime = r.tanggal || r.created_at || "";
+                    const tglFormat = formatTanggalJam(rawTime);
                     
                     let colorClass = "text-white";
                     if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
@@ -1565,7 +1609,6 @@
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
                     
                     const row = document.createElement("div");
-                    // Menggunakan break-words dan flex-col agar Remark panjang turun ke bawah secara rapi
                     row.className = "flex flex-col border-b border-gray-900 pb-2 mb-2 last:border-0 last:mb-0 hover:bg-gray-800/20 p-1.5 rounded transition-all";
                     
                     let remarkHtml = "";
@@ -1575,7 +1618,7 @@
 
                     row.innerHTML = `
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400 font-bold">${tgl}</span>
+                            <span class="text-gray-400 font-bold">${tglFormat}</span>
                             <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
                         </div>
                         <div class="text-gray-300 mt-0.5">
@@ -1612,7 +1655,6 @@
                 if (error) throw error;
 
                 alert("Log BBM berhasil dihapus.");
-                // Muat ulang mini log dan kalkulasi defisit
                 await Promise.all([
                     loadMiniLog(plat),
                     hitungKurangKemaren(plat)
@@ -1836,7 +1878,6 @@
             lblStatus.style.backgroundColor = color;
             lblStatus.style.color = "#ffffff";
 
-            // Hitung kekurangan sekarang
             let targetKm11 = liter * 11;
             let selisih11 = targetKm11 - jarak;
             val_kurang_sekarang = selisih11 > 0 ? Math.round(selisih11 * 10) / 10 : 0;
