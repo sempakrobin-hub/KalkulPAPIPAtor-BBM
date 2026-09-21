@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - GPS Tracker System</title>
+    <title>KalkulPAPIPAtor BBM SUMAPA - By STAFSUSPAPIPA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Library SheetJS untuk Export & Import Excel -->
@@ -130,7 +130,7 @@
                 </div>
 
                 <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">RMK</span>
+                    <span class="w-12 flex-shrink-0">Remark</span>
                     <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
                 </div>
 
@@ -1613,7 +1613,7 @@
                     
                     let remarkHtml = "";
                     if (r.remark && r.remark.trim() !== "" && r.remark !== "-") {
-                        remarkHtml = `<div class="text-gray-400 mt-1 italic break-words whitespace-normal text-[9.5px] bg-[#1c202a] p-1 rounded border border-gray-800">RMK: ${r.remark}</div>`;
+                        remarkHtml = `<div class="text-gray-400 mt-1 italic break-words whitespace-normal text-[9.5px] bg-[#FFD700] p-1 rounded border border-gray-800">Remark: ${r.remark}</div>`;
                     }
 
                     row.innerHTML = `
