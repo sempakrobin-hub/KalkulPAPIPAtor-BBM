@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator BBM Cloud Pro - GPS Tracker System</title>
+    <title>KalkulPAPIPAtor BBM SUMAPA - By STAFSUSPAPIPA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Library SheetJS untuk Export & Import Excel -->
@@ -130,7 +130,7 @@
                 </div>
 
                 <div class="flex items-center bg-[#2d323f] rounded px-3 py-1.5 text-[11px] font-bold text-[#a0a5b5]">
-                    <span class="w-12 flex-shrink-0">RMK</span>
+                    <span class="w-12 flex-shrink-0">Remark</span>
                     <input type="text" id="entry_remark" class="w-full bg-transparent text-white font-normal outline-none" placeholder="-">
                 </div>
 
@@ -244,10 +244,11 @@
                         <input type="text" id="entry_site_lng" placeholder="Long Site (Tujuan)" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
                     </div>
 
-                    <!-- Input Koordinat Awal Perjalanan -->
-                    <div class="grid grid-cols-2 gap-1.5">
-                        <input type="text" id="entry_start_lat" placeholder="Lat Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
-                        <input type="text" id="entry_start_lng" placeholder="Long Awal Perjalanan" class="bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                    <!-- Input Koordinat Awal Perjalanan + Tombol Save -->
+                    <div class="grid grid-cols-5 gap-1.5">
+                        <input type="text" id="entry_start_lat" placeholder="Lat Awal" class="col-span-2 bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <input type="text" id="entry_start_lng" placeholder="Long Awal" class="col-span-2 bg-[#2d323f] text-white text-[10px] p-1.5 rounded outline-none border border-gray-700 focus:border-blue-500">
+                        <button type="button" onclick="simpanLonglatAwal()" class="col-span-1 bg-[#34c759] hover:opacity-80 text-white text-[10px] font-bold py-1.5 px-1 rounded transition uppercase" title="Simpan / Update LongLat Awal ke Plat Nomor">SAVE</button>
                     </div>
 
                     <!-- Tombol Render Map -->
@@ -375,13 +376,13 @@
                 </button>
             </div>
 
-            <!-- HISTORIS LOG BBM 5 TERAKHIR -->
-            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col h-44">
+            <!-- HISTORIS LOG BBM 5 TERAKHIR (DIUBAH FORMAT TANGGALNYA) -->
+            <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col">
                 <div class="text-[11px] font-bold tracking-wider text-gray-400 uppercase mb-2 border-b border-gray-800 pb-1 flex justify-between items-center">
                     <span>📋 5 Log BBM Terakhir</span>
                     <span id="log_plat_badge" class="text-[10px] text-[#0a84ff] font-mono font-bold uppercase"></span>
                 </div>
-                <div id="mini_log_container" class="space-y-2 flex-1 overflow-y-auto font-mono text-[10px]">
+                <div id="mini_log_container" class="space-y-2 flex flex-col font-mono text-[10px]">
                     <div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>
                 </div>
             </div>
@@ -404,7 +405,7 @@
 			<!-- FITUR: PANEL GENERATE UPDATE REQUESTOR MASSAL -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
                 <div class="text-[11px] font-bold tracking-wider text-[#0a84ff] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
-                    <span>👤 Master Requestor </span>
+                    <span>👤 Master Requestor & LongLat Awal</span>
                     <button onclick="downloadTemplateRequestor()" class="text-[9px] text-blue-400 hover:underline">Unduh Template</button>
                 </div>
                 <div class="flex flex-col gap-1.5 text-[10px]">
@@ -494,6 +495,48 @@
             setGpsStatus("MATI");
             updateKurangDisplay();
         });
+
+        // FUNGSI SIMPAN/UPDATE LONGLAT AWAL KE DATABASE PLAT_REQUESTOR
+        async function simpanLonglatAwal() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) return alert("Isi nomor plat terlebih dahulu!");
+
+            const startLat = parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.'));
+            const startLng = parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.'));
+
+            if (isNaN(startLat) || isNaN(startLng)) {
+                return alert("Latitude & Longitude Awal harus berupa angka yang valid!");
+            }
+
+            try {
+                const { error } = await _supabase
+                    .from('plat_requestor')
+                    .upsert({ 
+                        plat_nomor: plat, 
+                        start_lat: startLat, 
+                        start_lng: startLng 
+                    }, { onConflict: 'plat_nomor' });
+
+                if (error) throw error;
+                alert(`Berhasil menyimpan LongLat Awal untuk plat ${plat}!`);
+            } catch (err) {
+                alert("Gagal menyimpan LongLat Awal: " + err.message);
+            }
+        }
+
+        // FUNGSI FORMAT TANGGAL DAN JAM ISO MENJADI YYYY-MM-DD / HH:MM:SS
+        function formatTanggalJam(isoString) {
+            if (!isoString) return "-";
+            try {
+                const parts = isoString.split("T");
+                if (parts.length < 2) return isoString;
+                const tgl = parts[0];
+                const jam = parts[1].split(".")[0]; // Membuang milidetik dan zona waktu
+                return `${tgl} / ${jam}`;
+            } catch (e) {
+                return isoString;
+            }
+        }
 
         // FUNGSI PASTE DENGAN KLIK SANGAT MUDAH
         async function clickToPasteScanImage() {
@@ -918,8 +961,8 @@
         // ==========================================
         function downloadTemplateRequestor() {
             const templateData = [
-                { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad" },
-                { "Plat Nomor": "L 5678 XYZ", "Nama Requestor": "Budi" }
+                { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad", "Latitude": -6.2088, "Longitude": 106.8456 },
+                { "Plat Nomor": "L 5678 XYZ", "Nama Requestor": "Budi", "Latitude": -6.9175, "Longitude": 107.6191 }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
             const workbook = XLSX.utils.book_new();
@@ -957,6 +1000,8 @@
                     for (let row of jsonRows) {
                         let platRaw = "";
                         let namaReq = "";
+                        let latVal = null;
+                        let lngVal = null;
 
                         for (let k in row) {
                             const kLower = k.toLowerCase().trim();
@@ -966,24 +1011,32 @@
                             if (kLower.includes('nama') || kLower.includes('requestor')) {
                                 if (row[k]) namaReq = String(row[k]).trim();
                             }
+                            if (kLower.includes('lat')) {
+                                if (row[k] !== "") latVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
+                            if (kLower.includes('long') || kLower.includes('lng')) {
+                                if (row[k] !== "") lngVal = parseFloat(String(row[k]).replace(',', '.'));
+                            }
                         }
 
                         if (!platRaw && row["Plat Nomor"]) platRaw = String(row["Plat Nomor"]).trim().toUpperCase();
                         if (!namaReq && row["Nama Requestor"]) namaReq = String(row["Nama Requestor"]).trim();
 
-                        if (platRaw && namaReq) {
+                        if (platRaw) {
                             if (!processedPlats.has(platRaw)) {
                                 processedPlats.add(platRaw);
                                 recordsToUpsert.push({
                                     plat_nomor: platRaw,
-                                    nama_requestor: namaReq
+                                    nama_requestor: namaReq || null,
+                                    start_lat: !isNaN(latVal) ? latVal : null,
+                                    start_lng: !isNaN(lngVal) ? lngVal : null
                                 });
                             }
                         }
                     }
 
                     if (recordsToUpsert.length === 0) {
-                        alert("Tidak ada data Plat Nomor & Nama Requestor yang valid ditemukan!");
+                        alert("Tidak ada data Plat Nomor yang valid ditemukan!");
                         return;
                     }
 
@@ -1014,7 +1067,7 @@
         }
 
         // ==========================================
-        // FITUR GPS AROBS UPLOAD & TEMPLATE (DIPERBAIKI)
+        // FITUR GPS AROBS UPLOAD & TEMPLATE
         // ==========================================
         function downloadTemplateGps() {
             const templateData = [
@@ -1523,9 +1576,7 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // =========================================================================
-        // OPTIMASI: LOAD MINI LOG & CEK PLAT SERENTAK (PARALEL MENGGUNAKAN Promise.all)
-        // =========================================================================
+        // FUNGSI LOAD MINI LOG DENGAN FORMAT TANGGAL YANG DIPERMUDAH
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1546,7 +1597,9 @@
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    const tgl = r.tanggal ? r.tanggal : (r.created_at ? r.created_at.split("T")[0] : `#${r.id}`);
+                    // Menggunakan fungsi formatTanggalJam agar mudah dibaca (YYYY-MM-DD / HH:MM:SS)
+                    let rawTime = r.tanggal || r.created_at || "";
+                    const tglFormat = formatTanggalJam(rawTime);
                     
                     let colorClass = "text-white";
                     if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
@@ -1556,20 +1609,30 @@
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
                     
                     const row = document.createElement("div");
-                    row.className = "flex items-center justify-between border-b border-gray-900 pb-1.5 last:border-0 hover:bg-gray-800/20 p-1 rounded transition-all";
+                    row.className = "flex flex-col border-b border-gray-900 pb-2 mb-2 last:border-0 last:mb-0 hover:bg-gray-800/20 p-1.5 rounded transition-all";
+                    
+                    let remarkHtml = "";
+                    if (r.remark && r.remark.trim() !== "" && r.remark !== "-") {
+                        remarkHtml = `<div class="text-gray-400 mt-1 italic break-words whitespace-normal text-[9.5px] bg-[#1c202a] p-1 rounded border border-gray-800">Remark: ${r.remark}</div>`;
+                    }
+
                     row.innerHTML = `
-                        <div class="flex-1 leading-tight pr-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400 font-bold">${tgl}</span>
-                                <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
-                            </div>
-                            <div class="text-gray-300 mt-0.5">
-                                KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
-                            </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400 font-bold">${tglFormat}</span>
+                            <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
                         </div>
-                        <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-1.5 py-1 rounded transition-all flex-shrink-0 select-none">
-                            EDIT
-                        </button>
+                        <div class="text-gray-300 mt-0.5">
+                            KM: ${r.km_start}➔${r.km_akhir} (${r.liter}L) ${r.is_mafia ? '🔥[M]' : ''} ${r.is_gps ? '📍[G]' : '📍[X]'} ${r.is_approved ? '✅[A]' : ''}
+                        </div>
+                        ${remarkHtml}
+                        <div class="flex items-center justify-end gap-1.5 mt-1.5">
+                            <button onclick="lemparKeForm('${dataString}')" class="bg-[#2d323f] border border-gray-700 hover:border-gray-500 text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded transition-all select-none">
+                                EDIT
+                            </button>
+                            <button onclick="hapusLogItem(${r.id}, '${plat}')" class="bg-red-500/20 border border-red-500/40 hover:bg-red-500/40 text-red-400 text-[9px] font-bold px-2 py-0.5 rounded transition-all select-none">
+                                DELETE
+                            </button>
+                        </div>
                     `;
                     container.appendChild(row);
                 });
@@ -1579,13 +1642,34 @@
             }
         }
 
+        // FUNGSI HAPUS/DELETE SATU DATA LOG BBM BERDASARKAN ID
+        async function hapusLogItem(idLog, plat) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus log BBM (ID: ${idLog}) ini?`)) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('log_bbm')
+                    .delete()
+                    .eq('id', idLog);
+
+                if (error) throw error;
+
+                alert("Log BBM berhasil dihapus.");
+                await Promise.all([
+                    loadMiniLog(plat),
+                    hitungKurangKemaren(plat)
+                ]);
+            } catch (err) {
+                alert("Gagal menghapus log: " + err.message);
+            }
+        }
+
         async function cekPlat() {
             id_log_sedang_diedit = null; 
             document.getElementById("btn_save").innerText = "SAVE";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
             clearAllPhotos();
 
-            // Membuang spasi tersembunyi dengan trim()
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
             if (!plat) return alert("Isi kolom PLAT nomor terlebih dahulu!");
             
@@ -1594,7 +1678,6 @@
             btnCek.innerText = ".."; btnCek.disabled = true;
 
             try {
-                // Menjalankan fetch data secara serentak (paralel) agar proses loading instan & tidak lambat
                 await Promise.all([
                     loadMiniLog(plat),
                     cekRequestor(plat),
@@ -1620,10 +1703,13 @@
                     document.getElementById("entry_site_id").value = lastData.site_id || "";
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
-                    document.getElementById("entry_start_lat").value = lastData.start_lat || "";
-                    document.getElementById("entry_start_lng").value = lastData.start_lng || "";
+                    
+                    if (lastData.start_lat && lastData.start_lng) {
+                        document.getElementById("entry_start_lat").value = lastData.start_lat;
+                        document.getElementById("entry_start_lng").value = lastData.start_lng;
+                    }
 
-                    if (lastData.site_lat && lastData.site_lng && lastData.start_lat && lastData.start_lng) {
+                    if (lastData.site_lat && lastData.site_lng && document.getElementById("entry_start_lat").value) {
                         generateMapRoute();
                     }
 
@@ -1651,10 +1737,12 @@
                     
                     document.getElementById("entry_akhir").focus();
                 } else {
-                    alert(`Plat nomor ${plat} belum memiliki histori di cloud. Silakan isi manual.`);
-                    resetForm();
-                    document.getElementById("entry_plat").value = plat;
-                    await cekRequestor(plat);
+                    alert(`Plat nomor ${plat} belum memiliki histori log BBM. Data Master Requestor / LongLat default telah dimuat.`);
+                    document.getElementById("entry_start").value = "";
+                    document.getElementById("entry_akhir").value = "";
+                    document.getElementById("entry_liter").value = "";
+                    document.getElementById("entry_remark").value = "";
+                    document.getElementById("entry_akhir").focus();
                 }
             } catch (err) {
                 alert("Gagal mengecek data:\n" + err.message);
@@ -1674,312 +1762,243 @@
 
             try {
                 const [resReq, resGpsStatus] = await Promise.all([
-                    _supabase.from('plat_requestor').select('nama_requestor').eq('plat_nomor', plat).maybeSingle(),
+                    _supabase.from('plat_requestor').select('nama_requestor, start_lat, start_lng').eq('plat_nomor', plat).maybeSingle(),
                     _supabase.from('plat_gps_status').select('*').eq('plat_nomor', plat).maybeSingle()
                 ]);
 
-                if (resReq.data && resReq.data.nama_requestor) {
-                    elNama.innerText = resReq.data.nama_requestor;
-                    elNama.classList.remove("text-red-400", "underline");
+                if (resReq.data) {
+                    if (resReq.data.nama_requestor) {
+                        elNama.innerText = resReq.data.nama_requestor;
+                        elNama.classList.remove("text-red-400", "underline");
+                    } else {
+                        elNama.innerText = "+ Input Req";
+                        elNama.classList.add("text-red-400", "underline");
+                    }
+
+                    if (resReq.data.start_lat && resReq.data.start_lng) {
+                        document.getElementById("entry_start_lat").value = resReq.data.start_lat;
+                        document.getElementById("entry_start_lng").value = resReq.data.start_lng;
+                    }
                 } else {
                     elNama.innerText = "+ Input Req";
                     elNama.classList.add("text-red-400", "underline");
                 }
 
                 if (resGpsStatus.data) {
-                    const gpsData = resGpsStatus.data;
-                    elSn.innerText = gpsData.sn_gps ? `SN: ${gpsData.sn_gps}` : "SN: -";
-                    
-                    if (gpsData.status_gps) {
-                        setGpsStatus(gpsData.status_gps);
-                    }
+                    elSn.innerText = resGpsStatus.data.sn_gps ? `SN: ${resGpsStatus.data.sn_gps}` : "SN: -";
+                    const statusGpsDb = resGpsStatus.data.status_gps ? resGpsStatus.data.status_gps : "MATI";
+                    setGpsStatus(statusGpsDb);
 
-                    if (gpsData.aktif_terakhir) {
-                        elAktif.innerText = `Aktif: ${gpsData.aktif_terakhir}`;
+                    if (resGpsStatus.data.aktif_terakhir) {
+                        elAktif.innerText = `Aktif: ${resGpsStatus.data.aktif_terakhir}`;
                         elAktif.classList.remove("hidden");
                     }
                 } else {
                     elSn.innerText = "SN: -";
+                    setGpsStatus("MATI");
+                }
+            } catch (err) {
+                console.log("Gagal memuat info requestor/gps:", err);
+                elNama.innerText = "- Requestor -";
+                elSn.innerText = "SN: -";
+            }
+        }
+
+        function lemparKeForm(encodedData) {
+            try {
+                const r = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
+                
+                id_log_sedang_diedit = r.id;
+                document.getElementById("btn_save").innerText = `UPDATE (#${r.id})`;
+                document.getElementById("btn_save").style.backgroundColor = "#ff9f0a";
+
+                document.getElementById("entry_plat").value = r.plat_nomor || "";
+                document.getElementById("entry_start").value = r.km_start || "";
+                document.getElementById("entry_akhir").value = r.km_akhir || "";
+                document.getElementById("entry_liter").value = r.liter || "";
+                document.getElementById("entry_remark").value = r.remark || "";
+                
+                document.getElementById("entry_site_id").value = r.site_id || "";
+                document.getElementById("entry_site_lat").value = r.site_lat || "";
+                document.getElementById("entry_site_lng").value = r.site_lng || "";
+                document.getElementById("entry_start_lat").value = r.start_lat || "";
+                document.getElementById("entry_start_lng").value = r.start_lng || "";
+
+                toggleMafiaMode(r.is_mafia === true);
+                document.getElementById("toggle_mafia").checked = r.is_mafia === true;
+
+                let gpsVal = r.gps_detail ? r.gps_detail : (r.is_gps ? 'AKTIF' : 'MATI');
+                setGpsStatus(gpsVal);
+
+                if (r.site_lat && r.site_lng && r.start_lat && r.start_lng) {
+                    generateMapRoute();
                 }
 
+                hitungRasio();
+                hitungKurangKemaren(r.plat_nomor);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (err) {
-                console.log("Error fetch requestor/SN:", err.message);
-                elNama.innerText = "Unknown";
-                elSn.innerText = "SN: Error";
+                alert("Gagal memuat data edit: " + err.message);
             }
         }
 
-        async function tambahAtauEditRequestor() {
+        function hitungRasio() {
+            const start = parseFloat(document.getElementById("entry_start").value);
+            const akhir = parseFloat(document.getElementById("entry_akhir").value);
+            const liter = parseFloat(document.getElementById("entry_liter").value);
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Silakan isi dan cek Plat Nomor terlebih dahulu!");
 
-            const elNama = document.getElementById("txt_nama_req");
-            const currentReq = elNama.innerText;
-            const defaultVal = (currentReq === "+ Input Req" || currentReq === "No Name" || currentReq === "Unknown" || currentReq === "- Requestor -") ? "" : currentReq;
-            
-            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`, defaultVal);
-            if (namaBaru === null) return; 
-            
-            const namaTrimmed = namaBaru.trim();
-            if (!namaTrimmed) return alert("Nama Requestor tidak boleh kosong!");
-
-            try {
-                const { error } = await _supabase
-                    .from('plat_requestor')
-                    .upsert({
-                        plat_nomor: plat,
-                        nama_requestor: namaTrimmed
-                    }, { onConflict: 'plat_nomor' });
-
-                if (error) throw error;
-
-                elNama.innerText = namaTrimmed;
-                elNama.classList.remove("text-red-400", "underline");
-                alert(`Berhasil menyimpan Requestor "${namaTrimmed}" untuk plat ${plat}!`);
-            } catch (err) {
-                alert("Gagal menyimpan Requestor:\n" + err.message);
+            if (isNaN(start) || isNaN(akhir) || isNaN(liter) || liter <= 0) {
+                return alert("Mohon lengkapi KM Start, KM Akhir, dan Liter dengan benar!");
             }
-        }
 
-        async function hitungRasio() {
-            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            const km_start = parseFloat(document.getElementById("entry_start").value);
-            const km_akhir = parseFloat(document.getElementById("entry_akhir").value);
-            let literRaw = document.getElementById("entry_liter").value.replace(',', '.');
-            const liter = parseFloat(literRaw);
-            const isMafiaActive = document.getElementById("toggle_mafia").checked;
-            const isApprovalActive = document.getElementById("toggle_approval").checked;
-
-            if (!plat || isNaN(km_start) || isNaN(km_akhir) || isNaN(liter)) {
-                return alert("Kolom PLAT, START, AKHIR, dan LITER harus diisi!");
+            if (akhir < start) {
+                return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
             }
-            if (km_akhir < km_start) return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
-            if (liter <= 0) return alert("BBM harus lebih dari 0!");
 
-            await hitungKurangKemaren(plat);
+            const jarak = akhir - start;
+            const rasio = Math.round((jarak / liter) * 10) / 10;
 
-            const jarak = km_akhir - km_start;
-            const rasio = jarak / liter;
+            let status = "CUKUP";
+            let color = "#ff9f0a"; 
 
-            document.getElementById("label_jarak").innerText = `Jarak: ${jarak.toFixed(1)}K`;
-            document.getElementById("label_hasil").innerText = `${rasio.toFixed(2)} KM/L`;
+            if (rasio >= 11) {
+                status = "JOSJIS";
+                color = "#34c759"; 
+            } else if (rasio < 10) {
+                status = "KURANG";
+                color = "#ff3b30"; 
+            }
 
-            const targetKmSekarang11 = liter * 11;
-            const selisihSekarang11 = targetKmSekarang11 - jarak;
-            val_kurang_sekarang = selisihSekarang11 > 0 ? Math.round(selisihSekarang11 * 10) / 10 : 0;
+            document.getElementById("label_hasil").innerText = `${rasio} KM/L`;
+            document.getElementById("label_jarak").innerText = `Jarak: ${jarak} Km`;
+            
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = status;
+            lblStatus.style.backgroundColor = color;
+            lblStatus.style.color = "#ffffff";
 
-            const totalSelisih11 = val_kurang_kemaren + val_kurang_sekarang;
-            val_total_kurang = totalSelisih11 > 0 ? Math.round(totalSelisih11 * 10) / 10 : 0;
+            let targetKm11 = liter * 11;
+            let selisih11 = targetKm11 - jarak;
+            val_kurang_sekarang = selisih11 > 0 ? Math.round(selisih11 * 10) / 10 : 0;
+            val_total_kurang = Math.round((val_kurang_kemaren + val_kurang_sekarang) * 10) / 10;
 
-            const targetKmSekarang12 = liter * 12;
-            const selisihSekarang12 = targetKmSekarang12 - jarak;
-            val_kurang_sekarang_12 = selisihSekarang12 > 0 ? Math.round(selisihSekarang12 * 10) / 10 : 0;
-
-            const totalSelisih12 = val_kurang_kemaren_12 + val_kurang_sekarang_12;
-            val_total_kurang_12 = totalSelisih12 > 0 ? Math.round(totalSelisih12 * 10) / 10 : 0;
+            let targetKm12 = liter * 12;
+            let selisih12 = targetKm12 - jarak;
+            val_kurang_sekarang_12 = selisih12 > 0 ? Math.round(selisih12 * 10) / 10 : 0;
+            val_total_kurang_12 = Math.round((val_kurang_kemaren_12 + val_kurang_sekarang_12) * 10) / 10;
 
             updateKurangDisplay();
 
-            let kesimpulan, bgWarna;
-            if (rasio < 11.0) { kesimpulan = "KURANG"; bgWarna = "#ff3b30"; }
-            else if (rasio <= 12.0) { kesimpulan = "CUKUP"; bgWarna = "#ff9f0a"; }
-            else { kesimpulan = "JOSJIS"; bgWarna = "#34c759"; }
+            let fotoUrlsValid = array_foto_base64.filter(x => x !== null);
 
-            const lblStatus = document.getElementById("label_status");
-            lblStatus.innerText = kesimpulan; lblStatus.style.color = bgWarna; 
-
-            const boxApproval = document.getElementById("box_approval");
-            if (kesimpulan === "KURANG") {
-                boxApproval.classList.remove("hidden");
-            } else {
-                boxApproval.classList.add("hidden");
-                document.getElementById("toggle_approval").checked = false;
-                handleApprovalChange(false);
-            }
-
-            let textKurangInfo = [];
-            if (val_total_kurang > 0) textKurangInfo.push(`Defisit 1:11: ${formatKm(val_total_kurang)}`);
-            if (val_total_kurang_12 > 0) textKurangInfo.push(`Defisit 1:12: ${formatKm(val_total_kurang_12)}`);
-
-            if (textKurangInfo.length > 0) {
-                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter. (${textKurangInfo.join(' | ')})`;
-            } else {
-                document.getElementById("label_rekues").innerText = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio.toFixed(1)} Km dari rekues sebelumnya ${liter.toFixed(1)} liter`;
-            }
-
-            data_siap_simpan = { 
-                plat_nomor: plat, 
-                km_start: km_start, 
-                km_akhir: km_akhir, 
-                jarak: jarak, 
-                liter: liter, 
-                rasio: parseFloat(rasio.toFixed(2)), 
-                status: kesimpulan,
-                is_mafia: isMafiaActive,
+            data_siap_simpan = {
+                plat_nomor: plat,
+                km_start: start,
+                km_akhir: akhir,
+                jarak: jarak,
+                liter: liter,
+                rasio: rasio,
+                status: status,
+                is_mafia: document.getElementById("toggle_mafia").checked,
                 is_gps: (currentGpsStatusValue === 'AKTIF'),
                 gps_detail: currentGpsStatusValue,
-                is_approved: isApprovalActive,
-                foto_urls: array_foto_base64.filter(x => x !== null),
-                site_id: document.getElementById("entry_site_id").value.trim() || null,
+                is_approved: document.getElementById("toggle_approval").checked,
+                remark: document.getElementById("entry_remark").value.trim() || "-",
+                site_id: document.getElementById("entry_site_id").value.trim().toUpperCase() || null,
                 site_lat: parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.')) || null,
                 site_lng: parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.')) || null,
                 start_lat: parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.')) || null,
-                start_lng: parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.')) || null
+                start_lng: parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.')) || null,
+                foto_urls: fotoUrlsValid
             };
 
-            const btnSave = document.getElementById("btn_save");
-            if (id_log_sedang_diedit !== null) {
-                btnSave.style.backgroundColor = "#ff9f0a"; btnSave.innerText = "UPDATE";
+            if (rasio < 11) {
+                document.getElementById("box_approval").classList.remove("hidden");
+                document.getElementById("label_rekues").innerText = `⚠️ Rasio ${rasio} KM/L (< 11). Status KURANG. Harap geser Need Approval ke YES jika diperlukan.`;
             } else {
-                btnSave.style.backgroundColor = "#0a84ff"; btnSave.innerText = "SAVE";
+                document.getElementById("box_approval").classList.add("hidden");
+                document.getElementById("label_rekues").innerText = `✅ Rasio ${rasio} KM/L memenuhi syarat. Silakan klik SAVE untuk menyimpan ke cloud.`;
             }
         }
 
         async function simpanKeCloud() {
-            if (!data_siap_simpan) return alert("Hitung rasio terlebih dahulu sebelum menekan SAVE/UPDATE!");
-            
+            if (!data_siap_simpan) {
+                hitungRasio();
+                if (!data_siap_simpan) return;
+            }
+
             const btnSave = document.getElementById("btn_save");
-            const remark_text = document.getElementById("entry_remark").value.trim();
-            data_siap_simpan["remark"] = remark_text ? remark_text : null;
-            data_siap_simpan["foto_urls"] = array_foto_base64.filter(x => x !== null);
-            
+            btnSave.innerText = "MENYIMPAN...";
             btnSave.disabled = true;
-            const textAwal = btnSave.innerText;
-            btnSave.innerText = "...";
 
             try {
-                let isAutoUpdated = false;
-
-                if (id_log_sedang_diedit === null) {
-                    const { data: lastLogData, error: fetchErr } = await _supabase
-                        .from('log_bbm')
-                        .select('id, created_at')
-                        .eq('plat_nomor', data_siap_simpan.plat_nomor)
-                        .order('id', { ascending: false })
-                        .limit(1);
-
-                    if (!fetchErr && lastLogData && lastLogData.length > 0) {
-                        const logTerakhir = lastLogData[0];
-                        if (logTerakhir.created_at) {
-                            const selisihJam = (new Date() - new Date(logTerakhir.created_at)) / (1000 * 60 * 60);
-                            
-                            if (selisihJam < 1) {
-                                id_log_sedang_diedit = logTerakhir.id;
-                                isAutoUpdated = true;
-                            }
-                        }
-                    }
-                }
-
+                let res;
                 if (id_log_sedang_diedit !== null) {
-                    const { error } = await _supabase
+                    res = await _supabase
                         .from('log_bbm')
                         .update(data_siap_simpan)
                         .eq('id', id_log_sedang_diedit);
-                    if (error) throw error;
-
-                    if (isAutoUpdated) {
-                        alert(`Data ${data_siap_simpan.plat_nomor} otomatis memperbarui Log ID #${id_log_sedang_diedit} karena disimpan dalam kurun < 1 jam!`);
-                    } else {
-                        alert(`Data ${data_siap_simpan.plat_nomor} (ID #${id_log_sedang_diedit}) Berhasil Diperbarui!`);
-                    }
                 } else {
-                    const { error } = await _supabase
+                    res = await _supabase
                         .from('log_bbm')
                         .insert([data_siap_simpan]);
-                    if (error) throw error;
-                    alert(`Data ${data_siap_simpan.plat_nomor} berhasil disimpan sebagai Log Baru!`);
                 }
 
+                if (res.error) throw res.error;
+
+                alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM di cloud!" : "Berhasil menyimpan log BBM baru ke cloud!");
+                
                 if (data_siap_simpan.is_approved) {
-                    const sekarang = new Date();
-                    const waktuString = sekarang.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
-                    localStorage.setItem('last_bbm_approval_time', waktuString);
+                    const nowStr = new Date().toLocaleString();
+                    localStorage.setItem('last_bbm_approval_time', nowStr);
                     updateApprovalLabel();
                 }
 
-                btnSave.style.backgroundColor = "#3a3f4d"; 
-                btnSave.innerText = "SAVE";
-                loadMiniLog(data_siap_simpan.plat_nomor);
-                await hitungKurangKemaren(data_siap_simpan.plat_nomor);
+                const platTerkini = data_siap_simpan.plat_nomor;
+                resetForm();
+                document.getElementById("entry_plat").value = platTerkini;
+                cekPlat();
+
             } catch (err) {
-                alert("Gagal memproses data ke Cloud:\n" + err.message);
-                btnSave.innerText = textAwal;
+                alert("Gagal menyimpan ke cloud:\n" + err.message);
             } finally {
+                btnSave.innerText = id_log_sedang_diedit !== null ? "UPDATE" : "SAVE";
                 btnSave.disabled = false;
             }
         }
 
-        async function lemparKeForm(encodedData) {
-            const dataObj = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
-            id_log_sedang_diedit = dataObj.id; 
-
-            document.getElementById("entry_plat").value = dataObj.plat_nomor;
-            document.getElementById("entry_start").value = dataObj.km_start;
-            document.getElementById("entry_akhir").value = dataObj.km_akhir;
-            document.getElementById("entry_liter").value = dataObj.liter;
-            document.getElementById("entry_remark").value = dataObj.remark || "";
-
-            document.getElementById("entry_site_id").value = dataObj.site_id || "";
-            document.getElementById("entry_site_lat").value = dataObj.site_lat || "";
-            document.getElementById("entry_site_lng").value = dataObj.site_lng || "";
-            document.getElementById("entry_start_lat").value = dataObj.start_lat || "";
-            document.getElementById("entry_start_lng").value = dataObj.start_lng || "";
-
-            if (dataObj.site_lat && dataObj.site_lng && dataObj.start_lat && dataObj.start_lng) {
-                generateMapRoute();
-            }
-
-            await hitungKurangKemaren(dataObj.plat_nomor);
-            await hitungRasio(); 
-
-            document.getElementById("toggle_mafia").checked = dataObj.is_mafia === true;
-            toggleMafiaMode(dataObj.is_mafia === true);
-
-            let gpsVal = dataObj.gps_detail ? dataObj.gps_detail : (dataObj.is_gps ? 'AKTIF' : 'MATI');
-            setGpsStatus(gpsVal);
-
-            if (dataObj.status === "KURANG") {
-                document.getElementById("box_approval").classList.remove("hidden");
-                document.getElementById("toggle_approval").checked = dataObj.is_approved === true;
-                handleApprovalChange(dataObj.is_approved === true);
-            }
-            
-            clearAllPhotos();
-            if (dataObj.foto_urls && Array.isArray(dataObj.foto_urls)) {
-                dataObj.foto_urls.forEach((url, i) => {
-                    if(i < 3) {
-                        array_foto_timestamps[i] = Date.now() + i;
-                        renderFotoSlot(i + 1, url);
-                    }
-                });
-            }
-
-            loadMiniLog(dataObj.plat_nomor);
-            cekRequestor(dataObj.plat_nomor);
-        }
-
-        function copasTeks(btn) {
-            const text = document.getElementById("label_rekues").innerText;
-            if(text.includes("...")) return alert("Hitung rasio terlebih dahulu!");
-            navigator.clipboard.writeText(text).then(() => {
-                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
-        function copasPilihan(btn) {
-            const val = document.getElementById("menu_var").value;
-            if(!val || val === "-- Pilih Teks Tambahan --") return alert("Silakan pilih teks terlebih dahulu!");
-            navigator.clipboard.writeText(val).then(() => {
-                btn.innerText = "Suks!"; btn.style.backgroundColor = "#34c759";
-                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
-            });
-        }
-
         function resetForm() {
-            data_siap_simpan = null;
             id_log_sedang_diedit = null;
+            data_siap_simpan = null;
+            document.getElementById("btn_save").innerText = "SAVE";
+            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+
+            document.getElementById("entry_start").value = "";
+            document.getElementById("entry_akhir").value = "";
+            document.getElementById("entry_liter").value = "";
+            document.getElementById("entry_remark").value = "";
+            document.getElementById("entry_site_id").value = "";
+            document.getElementById("entry_site_lat").value = "";
+            document.getElementById("entry_site_lng").value = "";
+            document.getElementById("entry_start_lat").value = "";
+            document.getElementById("entry_start_lng").value = "";
+
+            document.getElementById("label_hasil").innerText = "- KM/L";
+            document.getElementById("label_jarak").innerText = "Jarak: -";
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = "-";
+            lblStatus.style.backgroundColor = "transparent";
+
+            document.getElementById("box_approval").classList.add("hidden");
+            document.getElementById("toggle_approval").checked = false;
+            handleApprovalChange(false);
+
+            toggleMafiaMode(false);
+            document.getElementById("toggle_mafia").checked = false;
+            setGpsStatus("MATI");
+            clearAllPhotos();
+
             val_kurang_kemaren = 0;
             val_kurang_sekarang = 0;
             val_total_kurang = 0;
@@ -1987,41 +2006,44 @@
             val_kurang_sekarang_12 = 0;
             val_total_kurang_12 = 0;
             updateKurangDisplay();
+        }
 
-            array_foto_timestamps = [0, 0, 0];
-            ['entry_plat', 'entry_start', 'entry_akhir', 'entry_liter', 'entry_remark', 'entry_site_id', 'entry_site_lat', 'entry_site_lng', 'entry_start_lat', 'entry_start_lng'].forEach(id => document.getElementById(id).value = "");
-            
-            if (document.getElementById("label_hasil_ocr")) {
-                document.getElementById("label_hasil_ocr").innerText = "-";
-            }
-            if (document.getElementById("preview_ocr_container")) {
-                document.getElementById("preview_ocr_container").classList.add("hidden");
-            }
+        function copasTeks(btn) {
+            const teks = document.getElementById("label_rekues").innerText;
+            navigator.clipboard.writeText(teks).then(() => {
+                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
 
-            if (mapFeatureGroup) {
-                mapFeatureGroup.clearLayers();
-            }
-            document.getElementById("label_map_distance").innerText = "- Km";
+        function copasPilihan(btn) {
+            const select = document.getElementById("menu_var");
+            const val = select.value;
+            if (val.startsWith("--")) return alert("Pilih teks tambahan terlebih dahulu!");
+            navigator.clipboard.writeText(val).then(() => {
+                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
 
-            document.getElementById("label_jarak").innerText = "Jarak: -";
-            document.getElementById("label_hasil").innerText = "- KM/L";
-            document.getElementById("label_status").innerText = "-";
-            document.getElementById("label_status").style.color = "#ffffff";
-            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-            document.getElementById("menu_var").value = "-- Pilih Teks Tambahan --";
-            document.getElementById("txt_nama_req").innerText = "- Requestor -";
-            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
-            document.getElementById("txt_sn_gps").innerText = "SN: -";
-            document.getElementById("label_aktif_terakhir").classList.add("hidden");
-            document.getElementById("box_approval").classList.add("hidden");
-            document.getElementById("toggle_approval").checked = false;
-            handleApprovalChange(false);
-            toggleMafiaMode(false);
-            document.getElementById("toggle_mafia").checked = false;
-            setGpsStatus("MATI");
-            clearAllPhotos();
-            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
-            document.getElementById("log_plat_badge").innerText = "";
+        async function tambahAtauEditRequestor() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) return alert("Isi dahulu nomor plat kendaraan!");
+
+            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`);
+            if (namaBaru === null) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('plat_requestor')
+                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru.trim() }, { onConflict: 'plat_nomor' });
+
+                if (error) throw error;
+                alert("Berhasil memperbarui data Requestor!");
+                cekRequestor(plat);
+            } catch (err) {
+                alert("Gagal memperbarui Requestor: " + err.message);
+            }
         }
     </script>
 </body>
