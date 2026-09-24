@@ -445,7 +445,7 @@
 
     <script>
         const SUPABASE_URL = "https://dvxnpgctebencxsqaoxo.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0setIntAsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eG5wZ2N0ZWJlbmN4c3Fhb3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTU0NTYsImV4cCI6MjA5NzczMTQ1Nn0.bqvbF0eDfkLJhkMh9Uzid5_Or20uGTOehB3UKeecrSs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
@@ -1835,11 +1835,15 @@
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
 
             if (isNaN(start) || isNaN(akhir) || isNaN(liter) || liter <= 0) {
-                return alert("Mohon lengkapi KM Start, KM Akhir, dan Liter dengan benar!");
+                data_siap_simpan = null;
+                alert("Mohon lengkapi KM Start, KM Akhir, dan Liter dengan benar!");
+                return false;
             }
 
             if (akhir < start) {
-                return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
+                data_siap_simpan = null;
+                alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
+                return false;
             }
 
             const jarak = akhir - start;
@@ -1902,13 +1906,14 @@
             // Format teks rekues baru sesuai permintaan
             let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
             document.getElementById("label_rekues").innerText = pesanRekues;
+            
+            return true;
         }
 
         async function simpanKeCloud() {
-            if (!data_siap_simpan) {
-                hitungRasio();
-                if (!data_siap_simpan) return;
-            }
+            // PERBAIKAN PENTING: Wajib panggil ulang fungsi hitungRasio() untuk meng-capture editan terbaru
+            if (hitungRasio() === false) return;
+            if (!data_siap_simpan) return;
 
             const btnSave = document.getElementById("btn_save");
             btnSave.innerText = "MENYIMPAN...";
@@ -1932,7 +1937,6 @@
                 alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM di cloud!" : "Berhasil menyimpan log BBM baru ke cloud!");
                 
                 const platTerkini = data_siap_simpan.plat_nomor;
-                id_log_sedang_diedit = null; // Reset ID edit agar form kembali ke mode normal (insert baru)
                 resetForm();
                 document.getElementById("entry_plat").value = platTerkini;
                 cekPlat();
@@ -1940,7 +1944,7 @@
             } catch (err) {
                 alert("Gagal menyimpan ke cloud:\n" + err.message);
             } finally {
-                btnSave.innerText = "SAVE";
+                btnSave.innerText = id_log_sedang_diedit !== null ? "UPDATE" : "SAVE";
                 btnSave.disabled = false;
             }
         }
