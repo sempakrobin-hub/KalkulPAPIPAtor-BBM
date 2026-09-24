@@ -217,7 +217,10 @@
 
                 <!-- PANEL MAP & RUTE SITE ID -->
                 <div class="flex flex-col space-y-2 pt-3 border-t border-gray-700 mt-3">
-                    <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
+                        <span id="label_site_status" class="hidden text-[9px] font-black px-2 py-0.5 rounded tracking-wider text-white"></span>
+                    </div>
 
                     <!-- Input Site ID & Koordinat Tujuan -->
                     <div class="grid grid-cols-3 gap-1.5">
@@ -513,7 +516,7 @@
                 const parts = isoString.split("T");
                 if (parts.length < 2) return isoString;
                 const tgl = parts[0];
-                const jam = parts[1].split(".")[0]; // Membuang milidetik dan zona waktu
+                const jam = parts[1].split(".")[0]; 
                 return `${tgl} / ${jam}`;
             } catch (e) {
                 return isoString;
@@ -813,28 +816,53 @@
 
         async function cariSiteIdAuto() {
             const siteIdInput = document.getElementById("entry_site_id").value.trim().toUpperCase();
-            if (!siteIdInput) return;
+            const labelStatus = document.getElementById("label_site_status");
+
+            if (!siteIdInput) {
+                labelStatus.classList.add("hidden");
+                labelStatus.innerText = "";
+                return;
+            }
 
             try {
                 const { data, error } = await _supabase
                     .from('master_site')
-                    .select('latitude, longitude')
+                    .select('latitude, longitude, status')
                     .eq('site_id', siteIdInput)
                     .maybeSingle();
 
                 if (data) {
                     document.getElementById("entry_site_lat").value = data.latitude;
                     document.getElementById("entry_site_lng").value = data.longitude;
+                    
+                    if (data.status) {
+                        const stat = data.status.toUpperCase();
+                        labelStatus.innerText = stat;
+                        labelStatus.classList.remove("hidden", "bg-green-600", "bg-red-600", "bg-gray-600");
+                        
+                        if (stat === "INNER") {
+                            labelStatus.classList.add("bg-green-600");
+                        } else if (stat === "OUTER") {
+                            labelStatus.classList.add("bg-red-600");
+                        } else {
+                            labelStatus.classList.add("bg-gray-600");
+                        }
+                    } else {
+                        labelStatus.classList.add("hidden");
+                    }
+                } else {
+                    labelStatus.classList.add("hidden");
                 }
             } catch (err) {
                 console.log("Site ID belum terdaftar di master_site:", err);
+                labelStatus.classList.add("hidden");
             }
         }
 
         function downloadTemplateSite() {
             const templateData = [
-                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ" },
-                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub" }
+                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ", "STATUS": "INNER" },
+                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub", "STATUS": "OUTER" }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
             const workbook = XLSX.utils.book_new();
@@ -874,6 +902,7 @@
                         let latVal = null;
                         let lngVal = null;
                         let namaSite = "";
+                        let statusSite = "";
 
                         for (let k in row) {
                             const kLower = k.toLowerCase().trim();
@@ -889,9 +918,13 @@
                             if (kLower.includes('nama')) {
                                 if (row[k]) namaSite = String(row[k]).trim();
                             }
+                            if (kLower === 'status') {
+                                if (row[k]) statusSite = String(row[k]).trim().toUpperCase();
+                            }
                         }
 
                         if (!siteIdRaw && row["Site ID"]) siteIdRaw = String(row["Site ID"]).trim();
+                        if (!statusSite && row["STATUS"]) statusSite = String(row["STATUS"]).trim().toUpperCase();
 
                         if (siteIdRaw && !isNaN(latVal) && !isNaN(lngVal) && latVal !== null && lngVal !== null) {
                             const cleanedSiteId = siteIdRaw.toUpperCase();
@@ -901,14 +934,15 @@
                                     site_id: cleanedSiteId,
                                     latitude: latVal,
                                     longitude: lngVal,
-                                    nama_site: namaSite || null
+                                    nama_site: namaSite || null,
+                                    status: statusSite || null
                                 });
                             }
                         }
                     }
 
                     if (recordsToUpsert.length === 0) {
-                        alert("Tidak ada data Site ID dan Koordinat (Lat/Long) yang valid ditemukan!");
+                        alert("Tidak ada data Site ID, Koordinat, maupun Status yang valid ditemukan!");
                         return;
                     }
 
@@ -1037,12 +1071,6 @@
 
                     alert(`✅ Berhasil Import Master Requestor secara Massal!\nTotal Diperbarui: ${successCount} Plat.`);
 
-                    // --- [PERBAIKAN] AUTO REFRESH TAMPILAN JIKA PLAT SEDANG DIBUKA ---
-                    const currentPlat = document.getElementById("entry_plat").value.trim().toUpperCase();
-                    if (currentPlat) {
-                        cekRequestor(currentPlat);
-                    }
-                    
                 } catch (err) {
                     alert("❌ Gagal mengupdate Master Requestor:\n" + err.message);
                 } finally {
@@ -1153,12 +1181,6 @@
                     }
 
                     alert(`✅ Berhasil Import Update GPS secara Massal!\nTotal Kendaraan Diperbarui: ${successCount} Plat.`);
-
-                    // --- [PERBAIKAN] AUTO REFRESH TAMPILAN SN JIKA PLAT SEDANG DIBUKA ---
-                    const currentPlat = document.getElementById("entry_plat").value.trim().toUpperCase();
-                    if (currentPlat) {
-                        cekRequestor(currentPlat);
-                    }
 
                 } catch (err) {
                     alert("❌ Gagal mengupdate GPS massal:\n" + err.message);
@@ -1702,6 +1724,11 @@
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
                     
+                    // Panggil fungsi auto untuk memunculkan status INNER/OUTER seketika
+                    if (lastData.site_id) {
+                        cariSiteIdAuto();
+                    }
+
                     if (lastData.start_lat && lastData.start_lng) {
                         document.getElementById("entry_start_lat").value = lastData.start_lat;
                         document.getElementById("entry_start_lng").value = lastData.start_lng;
@@ -1740,6 +1767,10 @@
                     document.getElementById("entry_akhir").value = "";
                     document.getElementById("entry_liter").value = "";
                     document.getElementById("entry_remark").value = "";
+                    document.getElementById("entry_site_id").value = "";
+                    document.getElementById("entry_site_lat").value = "";
+                    document.getElementById("entry_site_lng").value = "";
+                    document.getElementById("label_site_status").classList.add("hidden");
                     document.getElementById("entry_akhir").focus();
                 }
             } catch (err) {
@@ -1819,6 +1850,11 @@
                 document.getElementById("entry_site_id").value = r.site_id || "";
                 document.getElementById("entry_site_lat").value = r.site_lat || "";
                 document.getElementById("entry_site_lng").value = r.site_lng || "";
+                
+                if (r.site_id) {
+                    cariSiteIdAuto();
+                }
+
                 document.getElementById("entry_start_lat").value = r.start_lat || "";
                 document.getElementById("entry_start_lng").value = r.start_lng || "";
 
@@ -1887,13 +1923,13 @@
 
             let targetKm12 = liter * 12;
             let selisih12 = targetKm12 - jarak;
-            
-            // --- [BAGIAN PENYELESAIAN KODE YANG TERPOTONG DARI PROMPT] ---
             val_kurang_sekarang_12 = selisih12 > 0 ? Math.round(selisih12 * 10) / 10 : 0;
             val_total_kurang_12 = Math.round((val_kurang_kemaren_12 + val_kurang_sekarang_12) * 10) / 10;
+
             updateKurangDisplay();
 
-            // Set Data untuk disave
+            let fotoUrlsValid = array_foto_base64.filter(x => x !== null);
+
             data_siap_simpan = {
                 plat_nomor: plat,
                 km_start: start,
@@ -1905,39 +1941,159 @@
                 is_mafia: document.getElementById("toggle_mafia").checked,
                 is_gps: (currentGpsStatusValue === 'AKTIF'),
                 gps_detail: currentGpsStatusValue,
-                is_approved: false, // Default toggle state
+                is_approved: false,
                 remark: document.getElementById("entry_remark").value.trim() || "-",
-                site_id: document.getElementById("entry_site_id").value.trim(),
-                site_lat: document.getElementById("entry_site_lat").value,
-                site_lng: document.getElementById("entry_site_lng").value,
-                start_lat: document.getElementById("entry_start_lat").value,
-                start_lng: document.getElementById("entry_start_lng").value
+                site_id: document.getElementById("entry_site_id").value.trim().toUpperCase() || null,
+                site_lat: parseFloat(document.getElementById("entry_site_lat").value.replace(',', '.')) || null,
+                site_lng: parseFloat(document.getElementById("entry_site_lng").value.replace(',', '.')) || null,
+                start_lat: parseFloat(document.getElementById("entry_start_lat").value.replace(',', '.')) || null,
+                start_lng: parseFloat(document.getElementById("entry_start_lng").value.replace(',', '.')) || null,
+                foto_urls: fotoUrlsValid
             };
+
+            let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
+            document.getElementById("label_rekues").innerText = pesanRekues;
+            
             return true;
         }
-        
+
         async function simpanKeCloud() {
-            if (!data_siap_simpan) {
-                if (!hitungRasio()) return;
+            if (hitungRasio() === false) return;
+            if (!data_siap_simpan) return;
+
+            const btnSave = document.getElementById("btn_save");
+            btnSave.innerText = "MENYIMPAN...";
+            btnSave.disabled = true;
+
+            try {
+                let res;
+                if (id_log_sedang_diedit !== null) {
+                    res = await _supabase
+                        .from('log_bbm')
+                        .update(data_siap_simpan)
+                        .eq('id', id_log_sedang_diedit);
+                } else {
+                    res = await _supabase
+                        .from('log_bbm')
+                        .insert([data_siap_simpan]);
+                }
+
+                if (res.error) throw res.error;
+
+                alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM di cloud!" : "Berhasil menyimpan log BBM baru ke cloud!");
+                
+                const platTerkini = data_siap_simpan.plat_nomor;
+                resetForm();
+                document.getElementById("entry_plat").value = platTerkini;
+                cekPlat();
+
+            } catch (err) {
+                alert("Gagal menyimpan ke cloud:\n" + err.message);
+            } finally {
+                btnSave.innerText = id_log_sedang_diedit !== null ? "UPDATE" : "SAVE";
+                btnSave.disabled = false;
             }
-            alert("Berhasil disimpan. (Implementasikan fitur insert to Supabase di baris ini jika diperlukan.)");
         }
 
         function resetForm() {
+            id_log_sedang_diedit = null;
+            data_siap_simpan = null;
+            document.getElementById("btn_save").innerText = "SAVE";
+            document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
+
             document.getElementById("entry_plat").value = "";
+            document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
+            document.getElementById("txt_sn_gps").innerText = "SN: -";
+            document.getElementById("label_aktif_terakhir").classList.add("hidden");
+
             document.getElementById("entry_start").value = "";
             document.getElementById("entry_akhir").value = "";
             document.getElementById("entry_liter").value = "";
             document.getElementById("entry_remark").value = "";
+            document.getElementById("entry_site_id").value = "";
+            document.getElementById("entry_site_lat").value = "";
+            document.getElementById("entry_site_lng").value = "";
+            document.getElementById("label_site_status").classList.add("hidden");
+            document.getElementById("entry_start_lat").value = "";
+            document.getElementById("entry_start_lng").value = "";
+
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_jarak").innerText = "Jarak: -";
-            document.getElementById("label_status").innerText = "-";
-            document.getElementById("label_status").style.backgroundColor = "transparent";
-            document.getElementById("txt_nama_req").innerText = "- Requestor -";
-            document.getElementById("txt_sn_gps").innerText = "SN: -";
-            data_siap_simpan = null;
-            id_log_sedang_diedit = null;
+            const lblStatus = document.getElementById("label_status");
+            lblStatus.innerText = "-";
+            lblStatus.style.backgroundColor = "transparent";
+
+            document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
+
+            document.getElementById("log_plat_badge").innerText = "";
+            document.getElementById("mini_log_container").innerHTML = '<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>';
+
+            if (mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+            if (myLeafletMap) {
+                myLeafletMap.remove();
+                myLeafletMap = null;
+                mapFeatureGroup = null;
+            }
+            document.getElementById("label_map_distance").innerText = "- Km";
+
+            document.getElementById("preview_ocr_container").classList.add("hidden");
+            document.getElementById("img_ocr_original").src = "";
+            document.getElementById("canvas_ocr_wrapper").innerHTML = "";
+            document.getElementById("label_hasil_ocr").innerText = "-";
+
+            toggleMafiaMode(false);
+            document.getElementById("toggle_mafia").checked = false;
+            setGpsStatus("MATI");
             clearAllPhotos();
+
+            val_kurang_kemaren = 0;
+            val_kurang_sekarang = 0;
+            val_total_kurang = 0;
+            val_kurang_kemaren_12 = 0;
+            val_kurang_sekarang_12 = 0;
+            val_total_kurang_12 = 0;
+            updateKurangDisplay();
+        }
+
+        function copasTeks(btn) {
+            const teks = document.getElementById("label_rekues").innerText;
+            navigator.clipboard.writeText(teks).then(() => {
+                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
+
+        function copasPilihan(btn) {
+            const select = document.getElementById("menu_var");
+            const val = select.value;
+            if (val.startsWith("--")) return alert("Pilih teks tambahan terlebih dahulu!");
+            navigator.clipboard.writeText(val).then(() => {
+                btn.innerText = "Disalin!"; btn.style.backgroundColor = "#34c759";
+                setTimeout(() => { btn.innerText = "Copas Pilihan"; btn.style.backgroundColor = "#3a3f4d"; }, 1000);
+            });
+        }
+
+        async function tambahAtauEditRequestor() {
+            const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
+            if (!plat) return alert("Isi dahulu nomor plat kendaraan!");
+
+            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`);
+            if (namaBaru === null) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('plat_requestor')
+                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru.trim() }, { onConflict: 'plat_nomor' });
+
+                if (error) throw error;
+                alert("Berhasil memperbarui data Requestor!");
+                cekRequestor(plat);
+            } catch (err) {
+                alert("Gagal memperbarui Requestor: " + err.message);
+            }
         }
     </script>
 </body>
