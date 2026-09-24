@@ -217,7 +217,10 @@
 
                 <!-- PANEL MAP & RUTE SITE ID -->
                 <div class="flex flex-col space-y-2 pt-3 border-t border-gray-700 mt-3">
-                    <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
+                        <span id="label_site_status" class="hidden text-[9px] font-black px-2 py-0.5 rounded tracking-wider text-white"></span>
+                    </div>
 
                     <!-- Input Site ID & Koordinat Tujuan -->
                     <div class="grid grid-cols-3 gap-1.5">
@@ -513,7 +516,7 @@
                 const parts = isoString.split("T");
                 if (parts.length < 2) return isoString;
                 const tgl = parts[0];
-                const jam = parts[1].split(".")[0]; // Membuang milidetik dan zona waktu
+                const jam = parts[1].split(".")[0]; 
                 return `${tgl} / ${jam}`;
             } catch (e) {
                 return isoString;
@@ -813,28 +816,53 @@
 
         async function cariSiteIdAuto() {
             const siteIdInput = document.getElementById("entry_site_id").value.trim().toUpperCase();
-            if (!siteIdInput) return;
+            const labelStatus = document.getElementById("label_site_status");
+
+            if (!siteIdInput) {
+                labelStatus.classList.add("hidden");
+                labelStatus.innerText = "";
+                return;
+            }
 
             try {
                 const { data, error } = await _supabase
                     .from('master_site')
-                    .select('latitude, longitude')
+                    .select('latitude, longitude, status')
                     .eq('site_id', siteIdInput)
                     .maybeSingle();
 
                 if (data) {
                     document.getElementById("entry_site_lat").value = data.latitude;
                     document.getElementById("entry_site_lng").value = data.longitude;
+                    
+                    if (data.status) {
+                        const stat = data.status.toUpperCase();
+                        labelStatus.innerText = stat;
+                        labelStatus.classList.remove("hidden", "bg-green-600", "bg-red-600", "bg-gray-600");
+                        
+                        if (stat === "INNER") {
+                            labelStatus.classList.add("bg-green-600");
+                        } else if (stat === "OUTER") {
+                            labelStatus.classList.add("bg-red-600");
+                        } else {
+                            labelStatus.classList.add("bg-gray-600");
+                        }
+                    } else {
+                        labelStatus.classList.add("hidden");
+                    }
+                } else {
+                    labelStatus.classList.add("hidden");
                 }
             } catch (err) {
                 console.log("Site ID belum terdaftar di master_site:", err);
+                labelStatus.classList.add("hidden");
             }
         }
 
         function downloadTemplateSite() {
             const templateData = [
-                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ" },
-                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub" }
+                { "Site ID": "JKT-001", "Latitude": -6.2088, "Longitude": 106.8456, "Nama Site": "Jakarta Pusat HQ", "STATUS": "INNER" },
+                { "Site ID": "BDG-002", "Latitude": -6.9175, "Longitude": 107.6191, "Nama Site": "Bandung Hub", "STATUS": "OUTER" }
             ];
             const worksheet = XLSX.utils.json_to_sheet(templateData);
             const workbook = XLSX.utils.book_new();
@@ -874,6 +902,7 @@
                         let latVal = null;
                         let lngVal = null;
                         let namaSite = "";
+                        let statusSite = "";
 
                         for (let k in row) {
                             const kLower = k.toLowerCase().trim();
@@ -889,9 +918,13 @@
                             if (kLower.includes('nama')) {
                                 if (row[k]) namaSite = String(row[k]).trim();
                             }
+                            if (kLower === 'status') {
+                                if (row[k]) statusSite = String(row[k]).trim().toUpperCase();
+                            }
                         }
 
                         if (!siteIdRaw && row["Site ID"]) siteIdRaw = String(row["Site ID"]).trim();
+                        if (!statusSite && row["STATUS"]) statusSite = String(row["STATUS"]).trim().toUpperCase();
 
                         if (siteIdRaw && !isNaN(latVal) && !isNaN(lngVal) && latVal !== null && lngVal !== null) {
                             const cleanedSiteId = siteIdRaw.toUpperCase();
@@ -901,14 +934,15 @@
                                     site_id: cleanedSiteId,
                                     latitude: latVal,
                                     longitude: lngVal,
-                                    nama_site: namaSite || null
+                                    nama_site: namaSite || null,
+                                    status: statusSite || null
                                 });
                             }
                         }
                     }
 
                     if (recordsToUpsert.length === 0) {
-                        alert("Tidak ada data Site ID dan Koordinat (Lat/Long) yang valid ditemukan!");
+                        alert("Tidak ada data Site ID, Koordinat, maupun Status yang valid ditemukan!");
                         return;
                     }
 
@@ -1690,6 +1724,11 @@
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
                     
+                    // Panggil fungsi auto untuk memunculkan status INNER/OUTER seketika
+                    if (lastData.site_id) {
+                        cariSiteIdAuto();
+                    }
+
                     if (lastData.start_lat && lastData.start_lng) {
                         document.getElementById("entry_start_lat").value = lastData.start_lat;
                         document.getElementById("entry_start_lng").value = lastData.start_lng;
@@ -1728,6 +1767,10 @@
                     document.getElementById("entry_akhir").value = "";
                     document.getElementById("entry_liter").value = "";
                     document.getElementById("entry_remark").value = "";
+                    document.getElementById("entry_site_id").value = "";
+                    document.getElementById("entry_site_lat").value = "";
+                    document.getElementById("entry_site_lng").value = "";
+                    document.getElementById("label_site_status").classList.add("hidden");
                     document.getElementById("entry_akhir").focus();
                 }
             } catch (err) {
@@ -1807,6 +1850,11 @@
                 document.getElementById("entry_site_id").value = r.site_id || "";
                 document.getElementById("entry_site_lat").value = r.site_lat || "";
                 document.getElementById("entry_site_lng").value = r.site_lng || "";
+                
+                if (r.site_id) {
+                    cariSiteIdAuto();
+                }
+
                 document.getElementById("entry_start_lat").value = r.start_lat || "";
                 document.getElementById("entry_start_lng").value = r.start_lng || "";
 
@@ -1835,11 +1883,15 @@
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
 
             if (isNaN(start) || isNaN(akhir) || isNaN(liter) || liter <= 0) {
-                return alert("Mohon lengkapi KM Start, KM Akhir, dan Liter dengan benar!");
+                data_siap_simpan = null;
+                alert("Mohon lengkapi KM Start, KM Akhir, dan Liter dengan benar!");
+                return false;
             }
 
             if (akhir < start) {
-                return alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
+                data_siap_simpan = null;
+                alert("KM Akhir tidak boleh lebih kecil dari KM Start!");
+                return false;
             }
 
             const jarak = akhir - start;
@@ -1899,16 +1951,15 @@
                 foto_urls: fotoUrlsValid
             };
 
-            // Format teks rekues baru sesuai permintaan
             let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
             document.getElementById("label_rekues").innerText = pesanRekues;
+            
+            return true;
         }
 
         async function simpanKeCloud() {
-            if (!data_siap_simpan) {
-                hitungRasio();
-                if (!data_siap_simpan) return;
-            }
+            if (hitungRasio() === false) return;
+            if (!data_siap_simpan) return;
 
             const btnSave = document.getElementById("btn_save");
             btnSave.innerText = "MENYIMPAN...";
@@ -1950,7 +2001,6 @@
             document.getElementById("btn_save").innerText = "SAVE";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
 
-            // PERBAIKAN: Kolom Plat & Info Requestor dibersihkan total kembali ke kondisi awal
             document.getElementById("entry_plat").value = "";
             document.getElementById("txt_nama_req").innerText = "- Requestor -";
             document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
@@ -1964,6 +2014,7 @@
             document.getElementById("entry_site_id").value = "";
             document.getElementById("entry_site_lat").value = "";
             document.getElementById("entry_site_lng").value = "";
+            document.getElementById("label_site_status").classList.add("hidden");
             document.getElementById("entry_start_lat").value = "";
             document.getElementById("entry_start_lng").value = "";
 
@@ -1975,11 +2026,9 @@
 
             document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
 
-            // PERBAIKAN: Bersihkan mini log & badge plat di panel kanan agar tidak berat dan kembali bersih
             document.getElementById("log_plat_badge").innerText = "";
             document.getElementById("mini_log_container").innerHTML = '<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>';
 
-            // PERBAIKAN: Reset Map Leaflet jika sedang aktif agar memori ringan dan tidak lag
             if (mapFeatureGroup) {
                 mapFeatureGroup.clearLayers();
             }
@@ -1990,7 +2039,6 @@
             }
             document.getElementById("label_map_distance").innerText = "- Km";
 
-            // Reset preview OCR scan longlat
             document.getElementById("preview_ocr_container").classList.add("hidden");
             document.getElementById("img_ocr_original").src = "";
             document.getElementById("canvas_ocr_wrapper").innerHTML = "";
