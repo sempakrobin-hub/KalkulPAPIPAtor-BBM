@@ -517,7 +517,7 @@
                 if (parts.length < 2) return isoString;
                 const tgl = parts[0];
                 const jam = parts[1].split(".")[0]; 
-                return `${tgl} / ${jam}`;
+                return `${tgl} /${jam}`;
             } catch (e) {
                 return isoString;
             }
@@ -624,7 +624,7 @@
                     const latDisplay = coords.lat.replace('.', ',');
                     const lngDisplay = coords.lng.replace('.', ',');
 
-                    labelHasil.innerText = `Lat: ${latDisplay} | Long: ${lngDisplay}`;
+                    labelHasil.innerText = `Lat: ${latDisplay} \vert{} Long:${lngDisplay}`;
 
                     document.getElementById("entry_start_lat").value = latDisplay;
                     document.getElementById("entry_start_lng").value = lngDisplay;
@@ -1597,7 +1597,7 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI LOAD MINI LOG DENGAN FORMAT TANGGAL YANG DIPERMUDAH
+        // FUNGSI LOAD MINI LOG DENGAN FORMAT WARNA RASIO (DIBAWAH 11: MERAH, DIBAWAH 12: KUNING, >= 12: HIJAU)
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1621,10 +1621,13 @@
                     let rawTime = r.tanggal || r.created_at || "";
                     const tglFormat = formatTanggalJam(rawTime);
                     
-                    let colorClass = "text-white";
-                    if(r.status === "JOSJIS") colorClass = "text-[#34c759]";
-                    else if(r.status === "CUKUP") colorClass = "text-[#ff9f0a]";
-                    else if(r.status === "KURANG") colorClass = "text-[#ff3b30]";
+                    let rasioVal = parseFloat(r.rasio) || 0;
+                    let colorClass = "text-[#34c759]"; // Hijau (>= 12)
+                    if (rasioVal < 11) {
+                        colorClass = "text-[#ff3b30]"; // Merah (< 11)
+                    } else if (rasioVal < 12) {
+                        colorClass = "text-[#ff9f0a]"; // Kuning (11 s.d < 12)
+                    }
 
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
                     
