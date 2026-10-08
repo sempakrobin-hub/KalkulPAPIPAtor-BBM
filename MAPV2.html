@@ -218,7 +218,7 @@
                 <!-- PANEL MAP & RUTE SITE ID -->
                 <div class="flex flex-col space-y-2 pt-3 border-t border-gray-700 mt-3">
                     <div class="flex items-center gap-2">
-                        <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID</span>
+                        <span class="text-[11px] font-bold text-[#0a84ff] uppercase">📍 Peta Rute Site ID & SPBU</span>
                         <span id="label_site_status" class="hidden text-[9px] font-black px-2 py-0.5 rounded tracking-wider text-white"></span>
                     </div>
 
@@ -238,7 +238,7 @@
 
                     <!-- Tombol Render Map -->
                     <button type="button" onclick="generateMapRoute()" class="bg-[#0a84ff] text-white text-[10px] font-bold py-1.5 rounded hover:opacity-80 transition uppercase">
-                        🚀 Tampilkan Rute di Map
+                        🚀 Tampilkan Rute & SPBU Terdekat
                     </button>
 
                     <!-- Container Map -->
@@ -759,7 +759,7 @@
             mapFeatureGroup.addLayer(startMarker);
             mapFeatureGroup.addLayer(siteMarker);
 
-            distLabel.innerText = "Mencari rute jalan...";
+            distLabel.innerText = "Mencari rute jalan & SPBU terdekat...";
 
             try {
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${siteLng},${siteLat}?overview=full&geometries=geojson`;
@@ -800,6 +800,99 @@
 
                 const bounds = L.latLngBounds([startCoords, siteCoords]);
                 myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+
+            // PENCARIAN AUTOMATIS SPBU / PERTASHOP TERDEKAT DENGAN OPTIMASI AREA LUAS
+            fetchPertaminaStations(startLat, startLng, siteLat, siteLng);
+        }
+
+        async function fetchPertaminaStations(lat1, lon1, lat2, lon2) {
+            // Memperluas Bounding Box (BBOX) dengan margin lebih besar agar daerah sekitar rute tidak kosong marker SPBU-nya
+            const minLat = Math.min(lat1, lat2) - 0.08;
+            const maxLat = Math.max(lat1, lat2) + 0.08;
+            const minLon = Math.min(lon1, lon2) - 0.08;
+            const maxLon = Math.max(lon1, lon2) + 0.08;
+
+            const overpassQuery = `
+                [out:json][timeout:20];
+                (
+                  node["amenity"="fuel"](${minLat},${minLon},${maxLat},${maxLon});
+                  way["amenity"="fuel"](${minLat},${minLon},${maxLat},${maxLon});
+                  relation["amenity"="fuel"](${minLat},${minLon},${maxLat},${maxLon});
+                );
+                out body;
+                >;
+                out skel qt;
+            `;
+
+            const url = "https://overpass-api.de/api/interpreter";
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    body: "data=" + encodeURIComponent(overpassQuery),
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" }
+                });
+
+                if (!response.ok) return;
+                const data = await response.json();
+
+                if (!data.elements || data.elements.length === 0) return;
+
+                const spbuIconHtml = `
+                    <div style="background-color: #eab308; border: 2px solid white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.4);">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 22v-20a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v20"></path>
+                            <path d="M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-2"></path>
+                            <line x1="7" y1="6" x2="11" y2="6"></line>
+                            <line x1="7" y1="10" x2="11" y2="10"></line>
+                        </svg>
+                    </div>
+                `;
+
+                const spbuIcon = L.divIcon({
+                    className: 'custom-spbu-marker',
+                    html: spbuIconHtml,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14],
+                    popupAnchor: [0, -14]
+                });
+
+                data.elements.forEach(element => {
+                    let lat = element.lat;
+                    let lon = element.lon;
+
+                    if (!lat && element.center) {
+                        lat = element.center.lat;
+                        lon = element.center.lon;
+                    }
+
+                    if (lat && lon) {
+                        const tags = element.tags || {};
+                        const name = tags.name || tags.brand || "SPBU / Stasiun Pengisian BBM";
+                        const operator = tags.operator || tags.brand || "-";
+                        const refNumber = tags.ref || tags["addr:housenumber"] || "-";
+                        const address = tags["addr:street"] || tags["addr:village"] || tags["addr:subdistrict"] || tags["addr:city"] || "Area Terdekat Rute";
+
+                        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                        
+                        // Menambahkan keterangan Nama SPBU, Nomor/Ref, dan Alamat lengkap sesuai permintaan
+                        const popupContent = `
+                            <div style="font-family: Arial, sans-serif; font-size: 11px; min-width: 160px; line-height: 1.4;">
+                                <b style="color: #d97706; font-size: 12px;">⛽ ${name}</b><br>
+                                <hr style="border: 0; border-top: 1px solid #ddd; margin: 4px 0;">
+                                <b>No / Ref:</b> ${refNumber}<br>
+                                <b>Operator:</b> ${operator}<br>
+                                <b>Alamat:</b> ${address}<br><br>
+                                <a href="${googleMapsUrl}" target="_blank" style="background: #0a84ff; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; text-align: center; width: 100%;">🗺️ Buka di Google Maps</a>
+                            </div>
+                        `;
+                        const marker = L.marker([lat, lon], { icon: spbuIcon }).bindPopup(popupContent);
+                        mapFeatureGroup.addLayer(marker);
+                    }
+                });
+            } catch (err) {
+                console.warn("Gagal mengambil data SPBU dari Overpass API:", err);
             }
         }
 
@@ -972,9 +1065,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR MASTER REQUESTOR UPLOAD & TEMPLATE
-        // ==========================================
         function downloadTemplateRequestor() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad", "Latitude": -6.2088, "Longitude": 106.8456 },
@@ -1082,9 +1172,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR GPS AROBS UPLOAD & TEMPLATE
-        // ==========================================
         function downloadTemplateGps() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "SN GPS": "SN987654321", "Status GPS": "AKTIF", "Aktif Terakhir": "2026-06-01" },
@@ -1193,9 +1280,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR DOWNLOAD DATA / EXPORT EXCEL
-        // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
             try {
@@ -1285,9 +1369,6 @@
             }
         }
 
-        // ==========================================
-        // FUNGSI UTAMA KALKULATOR & TAMPILAN
-        // ==========================================
         function formatKm(num) {
             if (!num || num <= 0) return "0 Km";
             let formatted = Math.round(num * 10) / 10;
@@ -1597,7 +1678,6 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI LOAD MINI LOG DENGAN FORMAT WARNA RASIO (DIBAWAH 11: MERAH, DIBAWAH 12: KUNING, >= 12: HIJAU)
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1622,11 +1702,11 @@
                     const tglFormat = formatTanggalJam(rawTime);
                     
                     let rasioVal = parseFloat(r.rasio) || 0;
-                    let colorClass = "text-[#34c759]"; // Hijau (>= 12)
+                    let colorClass = "text-[#34c759]"; 
                     if (rasioVal < 11) {
-                        colorClass = "text-[#ff3b30]"; // Merah (< 11)
+                        colorClass = "text-[#ff3b30]"; 
                     } else if (rasioVal < 12) {
-                        colorClass = "text-[#ff9f0a]"; // Kuning (11 s.d < 12)
+                        colorClass = "text-[#ff9f0a]"; 
                     }
 
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
@@ -1665,7 +1745,6 @@
             }
         }
 
-        // FUNGSI HAPUS/DELETE SATU DATA LOG BBM BERDASARKAN ID
         async function hapusLogItem(idLog, plat) {
             if (!confirm(`Apakah Anda yakin ingin menghapus log BBM (ID: ${idLog}) ini?`)) return;
 
@@ -1727,7 +1806,6 @@
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
                     
-                    // Panggil fungsi auto untuk memunculkan status INNER/OUTER seketika
                     if (lastData.site_id) {
                         cariSiteIdAuto();
                     }
@@ -1954,62 +2032,75 @@
                 foto_urls: fotoUrlsValid
             };
 
-            let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
+            let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter`;
             document.getElementById("label_rekues").innerText = pesanRekues;
-            
             return true;
         }
 
         async function simpanKeCloud() {
-            if (hitungRasio() === false) return;
-            if (!data_siap_simpan) return;
+            if (data_siap_simpan === null) {
+                let statusHitung = hitungRasio();
+                if (!statusHitung) return;
+            }
 
             const btnSave = document.getElementById("btn_save");
             btnSave.innerText = "MENYIMPAN...";
             btnSave.disabled = true;
 
             try {
-                let res;
+                let queryResponse;
                 if (id_log_sedang_diedit !== null) {
-                    res = await _supabase
+                    queryResponse = await _supabase
                         .from('log_bbm')
                         .update(data_siap_simpan)
                         .eq('id', id_log_sedang_diedit);
                 } else {
-                    res = await _supabase
+                    queryResponse = await _supabase
                         .from('log_bbm')
                         .insert([data_siap_simpan]);
                 }
 
-                if (res.error) throw res.error;
+                if (queryResponse.error) throw queryResponse.error;
 
-                alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM di cloud!" : "Berhasil menyimpan log BBM baru ke cloud!");
+                alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM!" : "Berhasil menyimpan log BBM ke cloud!");
                 
                 const platTerkini = data_siap_simpan.plat_nomor;
-                resetForm();
-                document.getElementById("entry_plat").value = platTerkini;
-                cekPlat();
-
+                resetFormKeepPlat();
+                await Promise.all([
+                    loadMiniLog(platTerkini),
+                    hitungKurangKemaren(platTerkini)
+                ]);
             } catch (err) {
-                alert("Gagal menyimpan ke cloud:\n" + err.message);
+                alert("Gagal menyimpan ke cloud: " + err.message);
             } finally {
-                btnSave.innerText = id_log_sedang_diedit !== null ? "UPDATE" : "SAVE";
+                btnSave.innerText = id_log_sedang_diedit !== null ? `UPDATE (#${id_log_sedang_diedit})` : "SAVE";
                 btnSave.disabled = false;
             }
         }
 
         function resetForm() {
             id_log_sedang_diedit = null;
-            data_siap_simpan = null;
             document.getElementById("btn_save").innerText = "SAVE";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
 
             document.getElementById("entry_plat").value = "";
             document.getElementById("txt_nama_req").innerText = "- Requestor -";
-            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
             document.getElementById("txt_sn_gps").innerText = "SN: -";
             document.getElementById("label_aktif_terakhir").classList.add("hidden");
 
+            resetFormKeepPlat();
+            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
+            document.getElementById("log_plat_badge").innerText = "";
+            val_kurang_kemaren = 0;
+            val_kurang_sekarang = 0;
+            val_total_kurang = 0;
+            val_kurang_kemaren_12 = 0;
+            val_kurang_sekarang_12 = 0;
+            val_total_kurang_12 = 0;
+            updateKurangDisplay();
+        }
+
+        function resetFormKeepPlat() {
             document.getElementById("entry_start").value = "";
             document.getElementById("entry_akhir").value = "";
             document.getElementById("entry_liter").value = "";
@@ -2023,42 +2114,27 @@
 
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_jarak").innerText = "Jarak: -";
+            
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = "-";
             lblStatus.style.backgroundColor = "transparent";
 
             document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-
-            document.getElementById("log_plat_badge").innerText = "";
-            document.getElementById("mini_log_container").innerHTML = '<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>';
-
-            if (mapFeatureGroup) {
-                mapFeatureGroup.clearLayers();
-            }
-            if (myLeafletMap) {
-                myLeafletMap.remove();
-                myLeafletMap = null;
-                mapFeatureGroup = null;
-            }
-            document.getElementById("label_map_distance").innerText = "- Km";
-
-            document.getElementById("preview_ocr_container").classList.add("hidden");
-            document.getElementById("img_ocr_original").src = "";
-            document.getElementById("canvas_ocr_wrapper").innerHTML = "";
-            document.getElementById("label_hasil_ocr").innerText = "-";
-
+            
             toggleMafiaMode(false);
             document.getElementById("toggle_mafia").checked = false;
             setGpsStatus("MATI");
-            clearAllPhotos();
 
-            val_kurang_kemaren = 0;
-            val_kurang_sekarang = 0;
-            val_total_kurang = 0;
-            val_kurang_kemaren_12 = 0;
-            val_kurang_sekarang_12 = 0;
-            val_total_kurang_12 = 0;
-            updateKurangDisplay();
+            clearAllPhotos();
+            document.getElementById("preview_ocr_container").classList.add("hidden");
+            document.getElementById("label_hasil_ocr").innerText = "-";
+            document.getElementById("label_map_distance").innerText = "- Km";
+
+            if (myLeafletMap && mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+
+            data_siap_simpan = null;
         }
 
         function copasTeks(btn) {
@@ -2081,21 +2157,22 @@
 
         async function tambahAtauEditRequestor() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Isi dahulu nomor plat kendaraan!");
+            if (!plat) return alert("Isi nomor plat terlebih dahulu di kolom PLAT!");
 
-            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`);
+            let namaBaru = prompt(`Masukkan Nama Requestor untuk Plat ${plat}:`);
             if (namaBaru === null) return;
+            namaBaru = namaBaru.trim();
 
             try {
                 const { error } = await _supabase
                     .from('plat_requestor')
-                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru.trim() }, { onConflict: 'plat_nomor' });
+                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru || null }, { onConflict: 'plat_nomor' });
 
                 if (error) throw error;
-                alert("Berhasil memperbarui data Requestor!");
+                alert("Berhasil memperbarui nama Requestor!");
                 cekRequestor(plat);
             } catch (err) {
-                alert("Gagal memperbarui Requestor: " + err.message);
+                alert("Gagal menyimpan requestor: " + err.message);
             }
         }
     </script>
