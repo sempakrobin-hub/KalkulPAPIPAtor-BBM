@@ -435,7 +435,7 @@
                         <span id="txt_btn_2">2. Download Plat Mafia</span>
                         <span class="text-xs">🚨</span>
                     </button>
-                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                    <button onclick="downloadKurang3of5Log(this)" class="bg-[#amber-950/40] hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
                         <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
                     </button>
@@ -1348,22 +1348,31 @@
         async function downloadKurang3of5Log(btn) {
             btn.disabled = true;
             try {
-                const { data, error } = await _supabase.from('log_bbm').select('*').order('id', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) return alert("Belum ada data log.");
+                // Perbaikan: Ambil daftar plat unik terlebih dahulu untuk menghindari timeout query besar
+                const { data: listPlat, error: errPlat } = await _supabase
+                    .from('log_bbm')
+                    .select('plat_nomor');
 
-                let platMap = {};
-                data.forEach(row => {
-                    if (!platMap[row.plat_nomor]) platMap[row.plat_nomor] = [];
-                    platMap[row.plat_nomor].push(row);
-                });
+                if (errPlat) throw errPlat;
+                if (!listPlat || listPlat.length === 0) return alert("Belum ada data log.");
 
+                const unikPlats = [...new Set(listPlat.map(item => item.plat_nomor).filter(Boolean))];
                 let targetPlats = [];
-                for (let plat in platMap) {
-                    let logs = platMap[plat].slice(0, 5);
-                    let kurangCount = logs.filter(l => l.status === "KURANG").length;
-                    if (kurangCount >= 3) {
-                        targetPlats.push(...logs);
+
+                // Periksa setiap plat secara efisien dengan mengambil 5 rekues terakhir per plat
+                for (let plat of unikPlats) {
+                    const { data: logsPlat, error: errLogs } = await _supabase
+                        .from('log_bbm')
+                        .select('*')
+                        .eq('plat_nomor', plat)
+                        .order('id', { ascending: false })
+                        .limit(5);
+
+                    if (!errLogs && logsPlat && logsPlat.length > 0) {
+                        let kurangCount = logsPlat.filter(l => l.status === "KURANG").length;
+                        if (kurangCount >= 3) {
+                            targetPlats.push(...logsPlat);
+                        }
                     }
                 }
 
