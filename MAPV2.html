@@ -802,19 +802,19 @@
                 myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
             }
 
-            // PENCARIAN AUTOMATIS SPBU / PERTASHOP TERDEKAT DENGAN OPTIMASI AREA LUAS
+            // PENCARIAN AUTOMATIS SPBU PERTAMINA / PERTASHOP TERDEKAT MENGGUNAKAN OVERPASS API OSM
             fetchPertaminaStations(startLat, startLng, siteLat, siteLng);
         }
 
         async function fetchPertaminaStations(lat1, lon1, lat2, lon2) {
-            // Memperluas Bounding Box (BBOX) dengan margin lebih besar agar daerah sekitar rute tidak kosong marker SPBU-nya
-            const minLat = Math.min(lat1, lat2) - 0.08;
-            const maxLat = Math.max(lat1, lat2) + 0.08;
-            const minLon = Math.min(lon1, lon2) - 0.08;
-            const maxLon = Math.max(lon1, lon2) + 0.08;
+            // Hitung Bounding Box (BBOX) di sekitar rute dengan margin tambahan
+            const minLat = Math.min(lat1, lat2) - 0.05;
+            const maxLat = Math.max(lat1, lat2) + 0.05;
+            const minLon = Math.min(lon1, lon2) - 0.05;
+            const maxLon = Math.max(lon1, lon2) + 0.05;
 
             const overpassQuery = `
-                [out:json][timeout:20];
+                [out:json][timeout:15];
                 (
                   node["amenity"="fuel"](${minLat},${minLon},${maxLat},${maxLon});
                   way["amenity"="fuel"](${minLat},${minLon},${maxLat},${maxLon});
@@ -858,10 +858,12 @@
                     popupAnchor: [0, -14]
                 });
 
+                let addedCount = 0;
                 data.elements.forEach(element => {
                     let lat = element.lat;
                     let lon = element.lon;
 
+                    // Handle jika elemen berupa way (polygon/titik tengah)
                     if (!lat && element.center) {
                         lat = element.center.lat;
                         lon = element.center.lon;
@@ -869,26 +871,26 @@
 
                     if (lat && lon) {
                         const tags = element.tags || {};
-                        const name = tags.name || tags.brand || "SPBU / Stasiun Pengisian BBM";
-                        const operator = tags.operator || tags.brand || "-";
-                        const refNumber = tags.ref || tags["addr:housenumber"] || "-";
-                        const address = tags["addr:street"] || tags["addr:village"] || tags["addr:subdistrict"] || tags["addr:city"] || "Area Terdekat Rute";
+                        const name = tags.name || tags.brand || "SPBU / Pertashop";
+                        const operator = tags.operator || tags.brand || "";
+                        const nameLower = (name + " " + operator).toLowerCase();
 
-                        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-                        
-                        // Menambahkan keterangan Nama SPBU, Nomor/Ref, dan Alamat lengkap sesuai permintaan
-                        const popupContent = `
-                            <div style="font-family: Arial, sans-serif; font-size: 11px; min-width: 160px; line-height: 1.4;">
-                                <b style="color: #d97706; font-size: 12px;">⛽ ${name}</b><br>
-                                <hr style="border: 0; border-top: 1px solid #ddd; margin: 4px 0;">
-                                <b>No / Ref:</b> ${refNumber}<br>
-                                <b>Operator:</b> ${operator}<br>
-                                <b>Alamat:</b> ${address}<br><br>
-                                <a href="${googleMapsUrl}" target="_blank" style="background: #0a84ff; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; text-align: center; width: 100%;">🗺️ Buka di Google Maps</a>
-                            </div>
-                        `;
-                        const marker = L.marker([lat, lon], { icon: spbuIcon }).bindPopup(popupContent);
-                        mapFeatureGroup.addLayer(marker);
+                        // Filter otomatis mengutamakan keyword Pertamina / Pertashop atau SPBU umum terdekat
+                        const isRelevant = nameLower.includes('pertamina') || nameLower.includes('pertashop') || nameLower.includes('spbu') || nameLower.includes('shell') || nameLower.includes('bp') || nameLower.includes('vivo') || nameLower.includes('fuel');
+
+                        if (isRelevant || addedCount < 10) {
+                            addedCount++;
+                            const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                            const popupContent = `
+                                <div style="font-family: Arial, sans-serif; font-size: 11px; min-width: 140px;">
+                                    <b>⛽ ${name}</b><br>
+                                    <span style="color: #555; font-size: 10px;">${tags.operator ? 'Operator: ' + tags.operator : 'Stasiun Pengisian BBM'}</span><br><br>
+                                    <a href="${googleMapsUrl}" target="_blank" style="background: #0a84ff; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block;">🗺️ Buka G-Maps</a>
+                                </div>
+                            `;
+                            const marker = L.marker([lat, lon], { icon: spbuIcon }).bindPopup(popupContent);
+                            mapFeatureGroup.addLayer(marker);
+                        }
                     }
                 });
             } catch (err) {
@@ -1065,6 +1067,9 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // ==========================================
+        // FITUR MASTER REQUESTOR UPLOAD & TEMPLATE
+        // ==========================================
         function downloadTemplateRequestor() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad", "Latitude": -6.2088, "Longitude": 106.8456 },
@@ -1172,6 +1177,9 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // ==========================================
+        // FITUR GPS AROBS UPLOAD & TEMPLATE
+        // ==========================================
         function downloadTemplateGps() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "SN GPS": "SN987654321", "Status GPS": "AKTIF", "Aktif Terakhir": "2026-06-01" },
@@ -1280,6 +1288,9 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // ==========================================
+        // FITUR DOWNLOAD DATA / EXPORT EXCEL
+        // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
             try {
@@ -1369,6 +1380,9 @@
             }
         }
 
+        // ==========================================
+        // FUNGSI UTAMA KALKULATOR & TAMPILAN
+        // ==========================================
         function formatKm(num) {
             if (!num || num <= 0) return "0 Km";
             let formatted = Math.round(num * 10) / 10;
@@ -1678,6 +1692,7 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
+        // FUNGSI LOAD MINI LOG DENGAN FORMAT WARNA RASIO (DIBAWAH 11: MERAH, DIBAWAH 12: KUNING, >= 12: HIJAU)
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1702,11 +1717,11 @@
                     const tglFormat = formatTanggalJam(rawTime);
                     
                     let rasioVal = parseFloat(r.rasio) || 0;
-                    let colorClass = "text-[#34c759]"; 
+                    let colorClass = "text-[#34c759]"; // Hijau (>= 12)
                     if (rasioVal < 11) {
-                        colorClass = "text-[#ff3b30]"; 
+                        colorClass = "text-[#ff3b30]"; // Merah (< 11)
                     } else if (rasioVal < 12) {
-                        colorClass = "text-[#ff9f0a]"; 
+                        colorClass = "text-[#ff9f0a]"; // Kuning (11 s.d < 12)
                     }
 
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
@@ -1745,6 +1760,7 @@
             }
         }
 
+        // FUNGSI HAPUS/DELETE SATU DATA LOG BBM BERDASARKAN ID
         async function hapusLogItem(idLog, plat) {
             if (!confirm(`Apakah Anda yakin ingin menghapus log BBM (ID: ${idLog}) ini?`)) return;
 
@@ -1806,6 +1822,7 @@
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
                     
+                    // Panggil fungsi auto untuk memunculkan status INNER/OUTER seketika
                     if (lastData.site_id) {
                         cariSiteIdAuto();
                     }
@@ -2032,75 +2049,62 @@
                 foto_urls: fotoUrlsValid
             };
 
-            let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter`;
+            let pesanRekues = `Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:${rasio} Km dari rekues sebelumnya ${liter} liter. (Defisit 1:11: ${val_total_kurang} Km | Defisit 1:12: ${val_total_kurang_12} Km)`;
             document.getElementById("label_rekues").innerText = pesanRekues;
+            
             return true;
         }
 
         async function simpanKeCloud() {
-            if (data_siap_simpan === null) {
-                let statusHitung = hitungRasio();
-                if (!statusHitung) return;
-            }
+            if (hitungRasio() === false) return;
+            if (!data_siap_simpan) return;
 
             const btnSave = document.getElementById("btn_save");
             btnSave.innerText = "MENYIMPAN...";
             btnSave.disabled = true;
 
             try {
-                let queryResponse;
+                let res;
                 if (id_log_sedang_diedit !== null) {
-                    queryResponse = await _supabase
+                    res = await _supabase
                         .from('log_bbm')
                         .update(data_siap_simpan)
                         .eq('id', id_log_sedang_diedit);
                 } else {
-                    queryResponse = await _supabase
+                    res = await _supabase
                         .from('log_bbm')
                         .insert([data_siap_simpan]);
                 }
 
-                if (queryResponse.error) throw queryResponse.error;
+                if (res.error) throw res.error;
 
-                alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM!" : "Berhasil menyimpan log BBM ke cloud!");
+                alert(id_log_sedang_diedit !== null ? "Berhasil mengupdate log BBM di cloud!" : "Berhasil menyimpan log BBM baru ke cloud!");
                 
                 const platTerkini = data_siap_simpan.plat_nomor;
-                resetFormKeepPlat();
-                await Promise.all([
-                    loadMiniLog(platTerkini),
-                    hitungKurangKemaren(platTerkini)
-                ]);
+                resetForm();
+                document.getElementById("entry_plat").value = platTerkini;
+                cekPlat();
+
             } catch (err) {
-                alert("Gagal menyimpan ke cloud: " + err.message);
+                alert("Gagal menyimpan ke cloud:\n" + err.message);
             } finally {
-                btnSave.innerText = id_log_sedang_diedit !== null ? `UPDATE (#${id_log_sedang_diedit})` : "SAVE";
+                btnSave.innerText = id_log_sedang_diedit !== null ? "UPDATE" : "SAVE";
                 btnSave.disabled = false;
             }
         }
 
         function resetForm() {
             id_log_sedang_diedit = null;
+            data_siap_simpan = null;
             document.getElementById("btn_save").innerText = "SAVE";
             document.getElementById("btn_save").style.backgroundColor = "#3a3f4d";
 
             document.getElementById("entry_plat").value = "";
             document.getElementById("txt_nama_req").innerText = "- Requestor -";
+            document.getElementById("txt_nama_req").classList.remove("text-red-400", "underline");
             document.getElementById("txt_sn_gps").innerText = "SN: -";
             document.getElementById("label_aktif_terakhir").classList.add("hidden");
 
-            resetFormKeepPlat();
-            document.getElementById("mini_log_container").innerHTML = `<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>`;
-            document.getElementById("log_plat_badge").innerText = "";
-            val_kurang_kemaren = 0;
-            val_kurang_sekarang = 0;
-            val_total_kurang = 0;
-            val_kurang_kemaren_12 = 0;
-            val_kurang_sekarang_12 = 0;
-            val_total_kurang_12 = 0;
-            updateKurangDisplay();
-        }
-
-        function resetFormKeepPlat() {
             document.getElementById("entry_start").value = "";
             document.getElementById("entry_akhir").value = "";
             document.getElementById("entry_liter").value = "";
@@ -2114,27 +2118,42 @@
 
             document.getElementById("label_hasil").innerText = "- KM/L";
             document.getElementById("label_jarak").innerText = "Jarak: -";
-            
             const lblStatus = document.getElementById("label_status");
             lblStatus.innerText = "-";
             lblStatus.style.backgroundColor = "transparent";
 
             document.getElementById("label_rekues").innerText = "Rekues ulang ketika masuk ratio 1:12 (1 lt untuk 12km) penggunaan sementara 1:... Km dari rekues sebelumnya ... liter";
-            
+
+            document.getElementById("log_plat_badge").innerText = "";
+            document.getElementById("mini_log_container").innerHTML = '<div class="text-center text-gray-600 py-6 italic">Cek plat nomor untuk melihat log...</div>';
+
+            if (mapFeatureGroup) {
+                mapFeatureGroup.clearLayers();
+            }
+            if (myLeafletMap) {
+                myLeafletMap.remove();
+                myLeafletMap = null;
+                mapFeatureGroup = null;
+            }
+            document.getElementById("label_map_distance").innerText = "- Km";
+
+            document.getElementById("preview_ocr_container").classList.add("hidden");
+            document.getElementById("img_ocr_original").src = "";
+            document.getElementById("canvas_ocr_wrapper").innerHTML = "";
+            document.getElementById("label_hasil_ocr").innerText = "-";
+
             toggleMafiaMode(false);
             document.getElementById("toggle_mafia").checked = false;
             setGpsStatus("MATI");
-
             clearAllPhotos();
-            document.getElementById("preview_ocr_container").classList.add("hidden");
-            document.getElementById("label_hasil_ocr").innerText = "-";
-            document.getElementById("label_map_distance").innerText = "- Km";
 
-            if (myLeafletMap && mapFeatureGroup) {
-                mapFeatureGroup.clearLayers();
-            }
-
-            data_siap_simpan = null;
+            val_kurang_kemaren = 0;
+            val_kurang_sekarang = 0;
+            val_total_kurang = 0;
+            val_kurang_kemaren_12 = 0;
+            val_kurang_sekarang_12 = 0;
+            val_total_kurang_12 = 0;
+            updateKurangDisplay();
         }
 
         function copasTeks(btn) {
@@ -2157,22 +2176,21 @@
 
         async function tambahAtauEditRequestor() {
             const plat = document.getElementById("entry_plat").value.trim().toUpperCase();
-            if (!plat) return alert("Isi nomor plat terlebih dahulu di kolom PLAT!");
+            if (!plat) return alert("Isi dahulu nomor plat kendaraan!");
 
-            let namaBaru = prompt(`Masukkan Nama Requestor untuk Plat ${plat}:`);
+            const namaBaru = prompt(`Masukkan Nama Requestor untuk plat ${plat}:`);
             if (namaBaru === null) return;
-            namaBaru = namaBaru.trim();
 
             try {
                 const { error } = await _supabase
                     .from('plat_requestor')
-                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru || null }, { onConflict: 'plat_nomor' });
+                    .upsert({ plat_nomor: plat, nama_requestor: namaBaru.trim() }, { onConflict: 'plat_nomor' });
 
                 if (error) throw error;
-                alert("Berhasil memperbarui nama Requestor!");
+                alert("Berhasil memperbarui data Requestor!");
                 cekRequestor(plat);
             } catch (err) {
-                alert("Gagal menyimpan requestor: " + err.message);
+                alert("Gagal memperbarui Requestor: " + err.message);
             }
         }
     </script>
