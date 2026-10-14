@@ -413,10 +413,21 @@
                 </div>
             </div>
 
-            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL (POIN 1, 2, 3) -->
+            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL (DENGAN PILIHAN PERIODE AMAN ID) -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2.5">
                 <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
                     <span>📊 Tarik Data Log & Master (Excel)</span>
+                </div>
+
+                <!-- PILIHAN FILTER PERIODE BERDASARKAN BATAS JUMLAH/ID -->
+                <div class="flex flex-col space-y-1 bg-[#2d323f] p-2 rounded text-[10px]">
+                    <label for="select_periode_download" class="text-gray-300 font-bold uppercase tracking-wider">⏱️ Pilih Filter Periode / Batas Data:</label>
+                    <select id="select_periode_download" class="bg-[#14161d] text-white p-1.5 rounded outline-none border border-gray-700 font-bold">
+                        <option value="100">100 Data Terbaru (1 Minggu Terakhir)</option>
+                        <option value="500" selected>500 Data Terbaru (1 Bulan Terakhir)</option>
+                        <option value="1500">1.500 Data Terbaru (3 Bulan Terakhir)</option>
+                        <option value="all">Semua Data (Tanpa Batas / All)</option>
+                    </select>
                 </div>
 
                 <div class="grid grid-cols-1 gap-2 text-[10px] font-bold pt-0.5">
@@ -425,11 +436,11 @@
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_1">1. Download All Log</span>
+                        <span id="txt_btn_1">1. Download All Log (Berdasarkan Filter)</span>
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_2">2. Download Plat Mafia</span>
+                        <span id="txt_btn_2">2. Download Plat Mafia (Berdasarkan Filter)</span>
                         <span class="text-xs">🚨</span>
                     </button>
                     <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
@@ -1264,7 +1275,16 @@
         }
 
         // ==========================================
-        // FUNGSI DOWNLOAD DATA EXCEL (POIN 1, 2, 3) TANPA TERGANTUNG CREATED_AT
+        // FUNGSI HELPER: MENGAMBIL BATAS JUMLAH DATA BERDASARKAN PILIHAN PERIODE
+        // ==========================================
+        function getLimitDataCount() {
+            const val = document.getElementById("select_periode_download").value;
+            if (val === 'all') return null;
+            return parseInt(val) || 500;
+        }
+
+        // ==========================================
+        // FUNGSI DOWNLOAD DATA EXCEL (POIN 1, 2, 3) AMAN DARI TIMEOUT & TANPA CREATED_AT
         // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
@@ -1303,7 +1323,7 @@
             }
         }
 
-        // POIN 1: Download Semua Data Log BBM
+        // POIN 1: Download All Log (Mengikuti Filter Jumlah Terbaru)
         async function downloadAllLog(btn) {
             btn.disabled = true;
             const originalText = document.getElementById("txt_btn_1").innerText;
@@ -1312,21 +1332,32 @@
                 let pageSize = 500;
                 let page = 0;
                 let fetchMore = true;
+                const maxLimit = getLimitDataCount();
 
-                document.getElementById("txt_btn_1").innerText = "Mengambil semua data...";
+                document.getElementById("txt_btn_1").innerText = "Mengambil data...";
 
                 while (fetchMore) {
-                    const { data, error } = await _supabase
+                    let query = _supabase
                         .from('log_bbm')
                         .select('*')
-                        .order('id', { ascending: false })
-                        .range(page * pageSize, (page + 1) * pageSize - 1);
+                        .order('id', { ascending: false });
 
+                    if (maxLimit !== null) {
+                        let currentFetchLimit = Math.min(pageSize, maxLimit - allData.length);
+                        if (currentFetchLimit <= 0) break;
+                        query = query.range(page * pageSize, (page * pageSize) + currentFetchLimit - 1);
+                    } else {
+                        query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+                    }
+
+                    const { data, error } = await query;
                     if (error) throw error;
 
                     if (data && data.length > 0) {
                         allData = allData.concat(data);
-                        if (data.length < pageSize) {
+                        if (maxLimit !== null && allData.length >= maxLimit) {
+                            fetchMore = false;
+                        } else if (data.length < pageSize) {
                             fetchMore = false;
                         } else {
                             page++;
@@ -1337,15 +1368,12 @@
                     }
                 }
 
-                if (allData.length === 0) {
-                    alert("Tidak ada data log BBM di database.");
-                    return;
-                }
+                if (allData.length === 0) return alert("Tidak ada data log BBM.");
 
                 const ws = XLSX.utils.json_to_sheet(allData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "All Log BBM");
-                XLSX.writeFile(wb, "All_Log_BBM.xlsx");
+                XLSX.writeFile(wb, "All_Log_BBM_Filtered.xlsx");
             } catch (err) {
                 alert("Gagal mendownload log: " + err.message);
             } finally {
@@ -1354,7 +1382,7 @@
             }
         }
 
-        // POIN 2: Download Semua Plat Nomor Status Mafia
+        // POIN 2: Download Plat Mafia (Mengikuti Filter Jumlah Terbaru)
         async function downloadMafiaLog(btn) {
             btn.disabled = true;
             const originalText = document.getElementById("txt_btn_2").innerText;
@@ -1363,22 +1391,33 @@
                 let pageSize = 500;
                 let page = 0;
                 let fetchMore = true;
+                const maxLimit = getLimitDataCount();
 
                 document.getElementById("txt_btn_2").innerText = "Mengambil data mafia...";
 
                 while (fetchMore) {
-                    const { data, error } = await _supabase
+                    let query = _supabase
                         .from('log_bbm')
                         .select('*')
                         .eq('is_mafia', true)
-                        .order('id', { ascending: false })
-                        .range(page * pageSize, (page + 1) * pageSize - 1);
+                        .order('id', { ascending: false });
 
+                    if (maxLimit !== null) {
+                        let currentFetchLimit = Math.min(pageSize, maxLimit - allData.length);
+                        if (currentFetchLimit <= 0) break;
+                        query = query.range(page * pageSize, (page * pageSize) + currentFetchLimit - 1);
+                    } else {
+                        query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+                    }
+
+                    const { data, error } = await query;
                     if (error) throw error;
 
                     if (data && data.length > 0) {
                         allData = allData.concat(data);
-                        if (data.length < pageSize) {
+                        if (maxLimit !== null && allData.length >= maxLimit) {
+                            fetchMore = false;
+                        } else if (data.length < pageSize) {
                             fetchMore = false;
                         } else {
                             page++;
@@ -1389,12 +1428,12 @@
                     }
                 }
 
-                if (allData.length === 0) return alert("Tidak ada data plat dengan status mafia.");
+                if (allData.length === 0) return alert("Tidak ada data plat mafia pada filter yang dipilih.");
 
                 const ws = XLSX.utils.json_to_sheet(allData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Plat Mafia");
-                XLSX.writeFile(wb, "Plat_Mafia_Log.xlsx");
+                XLSX.writeFile(wb, "Plat_Mafia_Log_Filtered.xlsx");
             } catch (err) {
                 alert("Gagal mendownload data mafia: " + err.message);
             } finally {
@@ -1403,7 +1442,7 @@
             }
         }
 
-        // POIN 3: Download Plat Nomor yang status KURANG >= 3 kali di 5 rekues terakhir
+        // POIN 3: Download Plat Sering Kurang (Mengikuti Filter Jumlah Terbaru)
         async function downloadKurang3of5Log(btn) {
             btn.disabled = true;
             const originalText = document.getElementById("txt_btn_3").innerText;
@@ -1412,21 +1451,32 @@
                 let pageSize = 500;
                 let page = 0;
                 let fetchMore = true;
+                const maxLimit = getLimitDataCount();
 
                 document.getElementById("txt_btn_3").innerText = "Memproses data kurang...";
 
                 while (fetchMore) {
-                    const { data, error } = await _supabase
+                    let query = _supabase
                         .from('log_bbm')
                         .select('*')
-                        .order('id', { ascending: false })
-                        .range(page * pageSize, (page + 1) * pageSize - 1);
+                        .order('id', { ascending: false });
 
+                    if (maxLimit !== null) {
+                        let currentFetchLimit = Math.min(pageSize, maxLimit - allData.length);
+                        if (currentFetchLimit <= 0) break;
+                        query = query.range(page * pageSize, (page * pageSize) + currentFetchLimit - 1);
+                    } else {
+                        query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+                    }
+
+                    const { data, error } = await query;
                     if (error) throw error;
 
                     if (data && data.length > 0) {
                         allData = allData.concat(data);
-                        if (data.length < pageSize) {
+                        if (maxLimit !== null && allData.length >= maxLimit) {
+                            fetchMore = false;
+                        } else if (data.length < pageSize) {
                             fetchMore = false;
                         } else {
                             page++;
@@ -1437,7 +1487,7 @@
                     }
                 }
 
-                if (allData.length === 0) return alert("Belum ada data log di database.");
+                if (allData.length === 0) return alert("Belum ada data log.");
 
                 let platMap = {};
                 allData.forEach(row => {
@@ -1459,7 +1509,7 @@
                 const ws = XLSX.utils.json_to_sheet(targetPlats);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Plat Sering Kurang");
-                XLSX.writeFile(wb, "Plat_Sering_Kurang_3of5.xlsx");
+                XLSX.writeFile(wb, "Plat_Sering_Kurang_3of5_Filtered.xlsx");
             } catch (err) {
                 alert("Gagal memproses data: " + err.message);
             } finally {
