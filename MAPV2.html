@@ -427,7 +427,7 @@
                 <div class="flex flex-col space-y-1 text-[10px]">
                     <label for="filter_waktu_log" class="text-gray-400 font-bold">Filter Waktu Penarikan All Log:</label>
                     <select id="filter_waktu_log" class="w-full bg-[#2d323f] text-white p-1.5 rounded outline-none border border-gray-700 focus:border-green-500">
-                        <option value="all">Semua Data (Full)</option>
+                        <option value="all">Semua Data (Full - Chunked)</option>
                         <option value="7">1 Minggu Terakhir</option>
                         <option value="30">1 Bulan Terakhir</option>
                         <option value="90">3 Bulan Terakhir</option>
@@ -814,7 +814,6 @@
                 myLeafletMap.fitBounds(bounds, { padding: [30, 30] });
             }
 
-            // PENCARIAN AUTOMATIS SPBU PERTAMINA / PERTASHOP TERDEKAT MENGGUNAKAN OVERPASS API OSM
             fetchPertaminaStations(startLat, startLng, siteLat, siteLng);
         }
 
@@ -1076,9 +1075,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR MASTER REQUESTOR UPLOAD & TEMPLATE
-        // ==========================================
         function downloadTemplateRequestor() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "Nama Requestor": "Ahmad", "Latitude": -6.2088, "Longitude": 106.8456 },
@@ -1186,9 +1182,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // FITUR GPS AROBS UPLOAD & TEMPLATE
-        // ==========================================
         function downloadTemplateGps() {
             const templateData = [
                 { "Plat Nomor": "B 1234 ABC", "SN GPS": "SN987654321", "Status GPS": "AKTIF", "Aktif Terakhir": "2026-06-01" },
@@ -1298,7 +1291,7 @@
         }
 
         // ==========================================
-        // FITUR DOWNLOAD DATA / EXPORT EXCEL (DENGAN FILTER WAKTU)
+        // FITUR DOWNLOAD DATA / EXPORT EXCEL (CHUNKED & FILTER)
         // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
@@ -1320,23 +1313,49 @@
 
         async function downloadAllLog(btn) {
             btn.disabled = true;
+            const originalText = document.getElementById("txt_btn_1").innerText;
             try {
                 const filterVal = document.getElementById("filter_waktu_log").value;
-                let query = _supabase.from('log_bbm').select('*').order('id', { ascending: false });
+                let allData = [];
+                let pageSize = 1000;
+                let page = 0;
+                let fetchMore = true;
 
-                // Jika filter waktu dipilih selain 'all', hitung tanggal cutoff
-                if (filterVal !== 'all') {
-                    const days = parseInt(filterVal);
-                    const cutoffDate = new Date();
-                    cutoffDate.setDate(cutoffDate.getDate() - days);
-                    query = query.gte('created_at', cutoffDate.toISOString());
+                // Indikator Loading dinamis pada tombol
+                document.getElementById("txt_btn_1").innerText = "Mengambil data bertahap...";
+
+                while (fetchMore) {
+                    let query = _supabase.from('log_bbm').select('*').order('id', { ascending: false });
+
+                    if (filterVal !== 'all') {
+                        const days = parseInt(filterVal);
+                        const cutoffDate = new Date();
+                        cutoffDate.setDate(cutoffDate.getDate() - days);
+                        query = query.gte('created_at', cutoffDate.toISOString());
+                    }
+
+                    // Range pagination untuk menghindari timeout query besar
+                    const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        allData = allData.concat(data);
+                        if (data.length < pageSize) {
+                            fetchMore = false;
+                        } else {
+                            page++;
+                        }
+                    } else {
+                        fetchMore = false;
+                    }
                 }
 
-                const { data, error } = await query;
-                if (error) throw error;
-                if (!data || data.length === 0) return alert("Tidak ada data log BBM pada rentang waktu yang dipilih.");
+                if (allData.length === 0) {
+                    alert("Tidak ada data log BBM pada rentang waktu atau filter yang dipilih.");
+                    return;
+                }
 
-                const ws = XLSX.utils.json_to_sheet(data);
+                const ws = XLSX.utils.json_to_sheet(allData);
                 const wb = XLSX.utils.book_new();
                 let sheetName = filterVal === 'all' ? "All Log BBM" : `Log_${filterVal}Hari`;
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
@@ -1344,6 +1363,7 @@
             } catch (err) {
                 alert("Gagal mendownload log: " + err.message);
             } finally {
+                document.getElementById("txt_btn_1").innerText = originalText;
                 btn.disabled = false;
             }
         }
@@ -1369,12 +1389,28 @@
         async function downloadKurang3of5Log(btn) {
             btn.disabled = true;
             try {
-                const { data, error } = await _supabase.from('log_bbm').select('*').order('id', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) return alert("Belum ada data log.");
+                // Menggunakan chunking juga untuk keamanan data besar
+                let allData = [];
+                let pageSize = 1000;
+                let page = 0;
+                let fetchMore = true;
+
+                while (fetchMore) {
+                    const { data, error } = await _supabase.from('log_bbm').select('*').order('id', { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
+                    if (error) throw error;
+                    if (data && data.length > 0) {
+                        allData = allData.concat(data);
+                        if (data.length < pageSize) fetchMore = false;
+                        else page++;
+                    } else {
+                        fetchMore = false;
+                    }
+                }
+
+                if (allData.length === 0) return alert("Belum ada data log.");
 
                 let platMap = {};
-                data.forEach(row => {
+                allData.forEach(row => {
                     if (!platMap[row.plat_nomor]) platMap[row.plat_nomor] = [];
                     platMap[row.plat_nomor].push(row);
                 });
@@ -1713,7 +1749,6 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI LOAD MINI LOG DENGAN FORMAT WARNA RASIO
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1781,7 +1816,6 @@
             }
         }
 
-        // FUNGSI HAPUS/DELETE SATU DATA LOG BBM BERDASARKAN ID
         async function hapusLogItem(idLog, plat) {
             if (!confirm(`Apakah Anda yakin ingin menghapus log BBM (ID: ${idLog}) ini?`)) return;
 
