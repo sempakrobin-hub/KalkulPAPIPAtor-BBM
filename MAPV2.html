@@ -247,7 +247,7 @@
                         <span id="label_map_distance" class="font-bold font-mono text-[#0a84ff] text-[11px]">- Km</span>
                     </div>
 
-                    <!-- FITUR SCAN FOTO LONGLAT (DENGAN PREVIEW & METODE CROP TERBUKTI SUKSES) -->
+                    <!-- FITUR SCAN FOTO LONGLAT -->
                     <div class="bg-[#13161c] border border-gray-800 rounded p-2.5 flex flex-col space-y-2 mt-1">
                         <span class="text-[10px] font-bold text-[#ff9f0a] uppercase">📷 Scan Foto LongLat (Klik Paste)</span>
 
@@ -271,7 +271,6 @@
                                     <span class="text-[7px] bg-green-600 text-white px-1 rounded font-bold">100% Sukses</span>
                                 </div>
                                 <div id="canvas_ocr_wrapper" class="w-full h-24 bg-white rounded border border-gray-700 flex items-center justify-center overflow-hidden">
-                                    <!-- Canvas Hasil Crop dimasukkan secara dinamis -->
                                 </div>
                             </div>
                         </div>
@@ -414,21 +413,10 @@
                 </div>
             </div>
 
-            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL DENGAN PILIHAN PERIODE WAKTU -->
+            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL (POIN 1, 2, 3) -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2.5">
                 <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
                     <span>📊 Tarik Data Log & Master (Excel)</span>
-                </div>
-
-                <!-- PILIHAN PERIODE WAKTU DOWNLOAD -->
-                <div class="flex flex-col space-y-1 bg-[#2d323f] p-2 rounded text-[10px]">
-                    <label for="select_periode_download" class="text-gray-300 font-bold uppercase tracking-wider">⏱️ Pilih Filter Periode Waktu:</label>
-                    <select id="select_periode_download" class="bg-[#14161d] text-white p-1.5 rounded outline-none border border-gray-700 font-bold">
-                        <option value="1w">1 Minggu Terakhir</option>
-                        <option value="1m" selected>1 Bulan Terakhir</option>
-                        <option value="3m">3 Bulan Terakhir</option>
-                        <option value="all">Semua Data (Tanpa Batas Waktu)</option>
-                    </select>
                 </div>
 
                 <div class="grid grid-cols-1 gap-2 text-[10px] font-bold pt-0.5">
@@ -437,11 +425,11 @@
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_1">1. Download All Log (Berdasarkan Filter)</span>
+                        <span id="txt_btn_1">1. Download All Log</span>
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_2">2. Download Plat Mafia (Berdasarkan Filter)</span>
+                        <span id="txt_btn_2">2. Download Plat Mafia</span>
                         <span class="text-xs">🚨</span>
                     </button>
                     <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
@@ -465,16 +453,13 @@
         let id_log_sedang_diedit = null; 
         let currentGpsStatusValue = "MATI";
 
-        // VARIABEL STATE MAP LEAFLET
         let myLeafletMap = null;
         let mapFeatureGroup = null;
 
-        // VARIABEL STATE KEKURANGAN KM 1:11
         let val_kurang_kemaren = 0;
         let val_kurang_sekarang = 0;
         let val_total_kurang = 0;
 
-        // VARIABEL STATE KEKURANGAN KM 1:12
         let val_kurang_kemaren_12 = 0;
         let val_kurang_sekarang_12 = 0;
         let val_total_kurang_12 = 0;
@@ -1279,25 +1264,7 @@
         }
 
         // ==========================================
-        // FUNGSI HELPER: MENDAPATKAN FILTER TANGGAL BERDASARKAN PILIHAN DROPDOWN
-        // ==========================================
-        function getFilterDateLimit() {
-            const val = document.getElementById("select_periode_download").value;
-            if (val === 'all') return null;
-
-            const now = new Date();
-            if (val === '1w') {
-                now.setDate(now.getDate() - 7);
-            } else if (val === '1m') {
-                now.setMonth(now.getMonth() - 1);
-            } else if (val === '3m') {
-                now.setMonth(now.getMonth() - 3);
-            }
-            return now.toISOString();
-        }
-
-        // ==========================================
-        // FUNGSI DOWNLOAD DATA EXCEL DENGAN FILTER PERIODE WAKTU
+        // FUNGSI DOWNLOAD DATA EXCEL (POIN 1, 2, 3) TANPA TERGANTUNG CREATED_AT
         // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
@@ -1336,6 +1303,7 @@
             }
         }
 
+        // POIN 1: Download Semua Data Log BBM
         async function downloadAllLog(btn) {
             btn.disabled = true;
             const originalText = document.getElementById("txt_btn_1").innerText;
@@ -1344,21 +1312,15 @@
                 let pageSize = 500;
                 let page = 0;
                 let fetchMore = true;
-                const dateLimit = getFilterDateLimit();
 
-                document.getElementById("txt_btn_1").innerText = "Mengambil data bertahap...";
+                document.getElementById("txt_btn_1").innerText = "Mengambil semua data...";
 
                 while (fetchMore) {
-                    let query = _supabase
+                    const { data, error } = await _supabase
                         .from('log_bbm')
                         .select('*')
-                        .order('id', { ascending: false });
-
-                    if (dateLimit) {
-                        query = query.gte('created_at', dateLimit);
-                    }
-
-                    const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+                        .order('id', { ascending: false })
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
 
@@ -1368,7 +1330,7 @@
                             fetchMore = false;
                         } else {
                             page++;
-                            await new Promise(resolve => setTimeout(resolve, 150));
+                            await new Promise(resolve => setTimeout(resolve, 100));
                         }
                     } else {
                         fetchMore = false;
@@ -1376,14 +1338,14 @@
                 }
 
                 if (allData.length === 0) {
-                    alert("Tidak ada data log BBM pada rentang waktu yang dipilih.");
+                    alert("Tidak ada data log BBM di database.");
                     return;
                 }
 
                 const ws = XLSX.utils.json_to_sheet(allData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "All Log BBM");
-                XLSX.writeFile(wb, "All_Log_BBM_Filtered.xlsx");
+                XLSX.writeFile(wb, "All_Log_BBM.xlsx");
             } catch (err) {
                 alert("Gagal mendownload log: " + err.message);
             } finally {
@@ -1392,6 +1354,7 @@
             }
         }
 
+        // POIN 2: Download Semua Plat Nomor Status Mafia
         async function downloadMafiaLog(btn) {
             btn.disabled = true;
             const originalText = document.getElementById("txt_btn_2").innerText;
@@ -1400,22 +1363,16 @@
                 let pageSize = 500;
                 let page = 0;
                 let fetchMore = true;
-                const dateLimit = getFilterDateLimit();
 
                 document.getElementById("txt_btn_2").innerText = "Mengambil data mafia...";
 
                 while (fetchMore) {
-                    let query = _supabase
+                    const { data, error } = await _supabase
                         .from('log_bbm')
                         .select('*')
                         .eq('is_mafia', true)
-                        .order('id', { ascending: false });
-
-                    if (dateLimit) {
-                        query = query.gte('created_at', dateLimit);
-                    }
-
-                    const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+                        .order('id', { ascending: false })
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
 
@@ -1425,19 +1382,19 @@
                             fetchMore = false;
                         } else {
                             page++;
-                            await new Promise(resolve => setTimeout(resolve, 150));
+                            await new Promise(resolve => setTimeout(resolve, 100));
                         }
                     } else {
                         fetchMore = false;
                     }
                 }
 
-                if (allData.length === 0) return alert("Tidak ada data plat mafia pada rentang waktu yang dipilih.");
+                if (allData.length === 0) return alert("Tidak ada data plat dengan status mafia.");
 
                 const ws = XLSX.utils.json_to_sheet(allData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Plat Mafia");
-                XLSX.writeFile(wb, "Plat_Mafia_Log_Filtered.xlsx");
+                XLSX.writeFile(wb, "Plat_Mafia_Log.xlsx");
             } catch (err) {
                 alert("Gagal mendownload data mafia: " + err.message);
             } finally {
@@ -1446,6 +1403,7 @@
             }
         }
 
+        // POIN 3: Download Plat Nomor yang status KURANG >= 3 kali di 5 rekues terakhir
         async function downloadKurang3of5Log(btn) {
             btn.disabled = true;
             const originalText = document.getElementById("txt_btn_3").innerText;
@@ -1454,21 +1412,15 @@
                 let pageSize = 500;
                 let page = 0;
                 let fetchMore = true;
-                const dateLimit = getFilterDateLimit();
 
                 document.getElementById("txt_btn_3").innerText = "Memproses data kurang...";
 
                 while (fetchMore) {
-                    let query = _supabase
+                    const { data, error } = await _supabase
                         .from('log_bbm')
                         .select('*')
-                        .order('id', { ascending: false });
-
-                    if (dateLimit) {
-                        query = query.gte('created_at', dateLimit);
-                    }
-
-                    const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+                        .order('id', { ascending: false })
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
 
                     if (error) throw error;
 
@@ -1478,14 +1430,14 @@
                             fetchMore = false;
                         } else {
                             page++;
-                            await new Promise(resolve => setTimeout(resolve, 150));
+                            await new Promise(resolve => setTimeout(resolve, 100));
                         }
                     } else {
                         fetchMore = false;
                     }
                 }
 
-                if (allData.length === 0) return alert("Belum ada data log pada rentang waktu yang dipilih.");
+                if (allData.length === 0) return alert("Belum ada data log di database.");
 
                 let platMap = {};
                 allData.forEach(row => {
@@ -1507,7 +1459,7 @@
                 const ws = XLSX.utils.json_to_sheet(targetPlats);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Plat Sering Kurang");
-                XLSX.writeFile(wb, "Plat_Sering_Kurang_3of5_Filtered.xlsx");
+                XLSX.writeFile(wb, "Plat_Sering_Kurang_3of5.xlsx");
             } catch (err) {
                 alert("Gagal memproses data: " + err.message);
             } finally {
@@ -1812,15 +1764,15 @@
 
                 container.innerHTML = "";
                 data.forEach((r) => {
-                    let rawTime = r.tanggal || r.created_at || "";
+                    let rawTime = r.tanggal || r.id || "";
                     const tglFormat = formatTanggalJam(rawTime);
                     
                     let rasioVal = parseFloat(r.rasio) || 0;
-                    let colorClass = "text-[#34c759]"; // Hijau (>= 12)
+                    let colorClass = "text-[#34c759]"; 
                     if (rasioVal < 11) {
-                        colorClass = "text-[#ff3b30]"; // Merah (< 11)
+                        colorClass = "text-[#ff3b30]"; 
                     } else if (rasioVal < 12) {
-                        colorClass = "text-[#ff9f0a]"; // Kuning (11 s.d < 12)
+                        colorClass = "text-[#ff9f0a]"; 
                     }
 
                     const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
@@ -1835,7 +1787,7 @@
 
                     row.innerHTML = `
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400 font-bold">${tglFormat}</span>
+                            <span class="text-gray-400 font-bold">ID: ${r.id}</span>
                             <span class="${colorClass} font-black text-[9px] tracking-wide">${r.status} (${r.rasio} KM/L)</span>
                         </div>
                         <div class="text-gray-300 mt-0.5">
