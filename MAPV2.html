@@ -1289,12 +1289,16 @@
         }
 
         // ==========================================
-        // FITUR DOWNLOAD DATA / EXPORT EXCEL
+        // FITUR DOWNLOAD DATA / EXPORT EXCEL (DIPERBAIKI DARI TIMEOUT)
         // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
             try {
-                const { data, error } = await _supabase.from('plat_gps_status').select('*');
+                // Menggunakan timeout 20 detik agar tidak mengalami hanging/timeout
+                const fetchPromise = _supabase.from('plat_gps_status').select('*');
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
+                
+                const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
                 if (error) throw error;
                 if (!data || data.length === 0) return alert("Belum ada data status GPS di database.");
 
@@ -1312,11 +1316,38 @@
         async function downloadAllLog(btn) {
             btn.disabled = true;
             try {
-                const { data, error } = await _supabase.from('log_bbm').select('*').order('id', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) return alert("Belum ada log BBM tersimpan.");
+                // 1. PENGATURAN TIMEOUT & PAGING UNTUK MENGATASI TIMEOUT PADA TABEL BESAR
+                let allData = [];
+                let page = 0;
+                let pageSize = 1000;
+                let hasMore = true;
 
-                const ws = XLSX.utils.json_to_sheet(data);
+                while (hasMore) {
+                    const fetchPromise = _supabase
+                        .from('log_bbm')
+                        .select('*')
+                        .order('id', { ascending: false })
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
+                    
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
+                    const res = await Promise.race([fetchPromise, timeoutPromise]);
+                    
+                    if (res.error) throw res.error;
+                    if (res.data && res.data.length > 0) {
+                        allData = allData.concat(res.data);
+                        if (res.data.length < pageSize) {
+                            hasMore = false;
+                        } else {
+                            page++;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                if (allData.length === 0) return alert("Belum ada log BBM tersimpan.");
+
+                const ws = XLSX.utils.json_to_sheet(allData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "All Log BBM");
                 XLSX.writeFile(wb, "All_Log_BBM.xlsx");
@@ -1330,7 +1361,11 @@
         async function downloadMafiaLog(btn) {
             btn.disabled = true;
             try {
-                const { data, error } = await _supabase.from('log_bbm').select('*').eq('is_mafia', true);
+                // 2. PENGATURAN TIMEOUT & OPTIMALISASI FILTER MAFIA
+                const fetchPromise = _supabase.from('log_bbm').select('*').eq('is_mafia', true).order('id', { ascending: false });
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
+
+                const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
                 if (error) throw error;
                 if (!data || data.length === 0) return alert("Tidak ada data plat mafia.");
 
@@ -1348,31 +1383,26 @@
         async function downloadKurang3of5Log(btn) {
             btn.disabled = true;
             try {
-                // Perbaikan: Ambil daftar plat unik terlebih dahulu untuk menghindari timeout query besar
-                const { data: listPlat, error: errPlat } = await _supabase
-                    .from('log_bbm')
-                    .select('plat_nomor');
+                // 3. PENGATURAN TIMEOUT & PENGAMBILAN LOG TERBARU DENGAN LIMIT EFEKTIF
+                const fetchPromise = _supabase.from('log_bbm').select('id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, tanggal, created_at, remark').order('id', { ascending: false }).limit(2500);
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
 
-                if (errPlat) throw errPlat;
-                if (!listPlat || listPlat.length === 0) return alert("Belum ada data log.");
+                const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+                if (error) throw error;
+                if (!data || data.length === 0) return alert("Belum ada data log.");
 
-                const unikPlats = [...new Set(listPlat.map(item => item.plat_nomor).filter(Boolean))];
+                let platMap = {};
+                data.forEach(row => {
+                    if (!platMap[row.plat_nomor]) platMap[row.plat_nomor] = [];
+                    platMap[row.plat_nomor].push(row);
+                });
+
                 let targetPlats = [];
-
-                // Periksa setiap plat secara efisien dengan mengambil 5 rekues terakhir per plat
-                for (let plat of unikPlats) {
-                    const { data: logsPlat, error: errLogs } = await _supabase
-                        .from('log_bbm')
-                        .select('*')
-                        .eq('plat_nomor', plat)
-                        .order('id', { ascending: false })
-                        .limit(5);
-
-                    if (!errLogs && logsPlat && logsPlat.length > 0) {
-                        let kurangCount = logsPlat.filter(l => l.status === "KURANG").length;
-                        if (kurangCount >= 3) {
-                            targetPlats.push(...logsPlat);
-                        }
+                for (let plat in platMap) {
+                    let logs = platMap[plat].slice(0, 5);
+                    let kurangCount = logs.filter(l => l.status === "KURANG").length;
+                    if (kurangCount >= 3) {
+                        targetPlats.push(...logs);
                     }
                 }
 
