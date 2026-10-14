@@ -417,25 +417,37 @@
                 </div>
             </div>
 
-            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL -->
+            <!-- FITUR: PANEL DOWNLOAD DATA EXCEL DENGAN FILTER WAKTU -->
             <div class="bg-[#13161c] border border-gray-800 rounded-lg p-3 flex flex-col space-y-2">
-                <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center gap-1">
+                <div class="text-[11px] font-bold tracking-wider text-[#34c759] uppercase border-b border-gray-800 pb-1 flex items-center justify-between">
                     <span>📊 Tarik Data Log & Master (Excel)</span>
                 </div>
-                <div class="grid grid-cols-1 gap-2 text-[10px] font-bold">
+                
+                <!-- DROPDOWN FILTER WAKTU UNTUK MENGHINDARI TIME-OUT -->
+                <div class="flex flex-col space-y-1 text-[10px]">
+                    <label for="filter_waktu_log" class="text-gray-400 font-bold">Filter Waktu Penarikan All Log:</label>
+                    <select id="filter_waktu_log" class="w-full bg-[#2d323f] text-white p-1.5 rounded outline-none border border-gray-700 focus:border-green-500">
+                        <option value="all">Semua Data (Full)</option>
+                        <option value="7">1 Minggu Terakhir</option>
+                        <option value="30">1 Bulan Terakhir</option>
+                        <option value="90">3 Bulan Terakhir</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 gap-2 text-[10px] font-bold pt-1">
                     <button onclick="downloadStatusGpsMaster(this)" class="bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/50 text-cyan-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
                         <span id="txt_btn_gps_master">📡 Download Status GPS Terbaru (Plat, Requestor, Status)</span>
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadAllLog(this)" class="bg-[#2d323f] hover:bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded flex items-center justify-between transition">
-                        <span id="txt_btn_1">1. Download All Log</span>
+                        <span id="txt_btn_1">1. Download All Log (Sesuai Filter)</span>
                         <span class="text-xs">📥</span>
                     </button>
                     <button onclick="downloadMafiaLog(this)" class="bg-[#7f1d1d]/40 hover:bg-[#7f1d1d]/80 border border-red-500/50 text-red-300 py-2 px-3 rounded flex items-center justify-between transition">
                         <span id="txt_btn_2">2. Download Plat Mafia</span>
                         <span class="text-xs">🚨</span>
                     </button>
-                    <button onclick="downloadKurang3of5Log(this)" class="bg-[#amber-950/40] hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
+                    <button onclick="downloadKurang3of5Log(this)" class="bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/50 text-amber-300 py-2 px-3 rounded flex items-center justify-between transition text-left">
                         <span id="txt_btn_3">3. Data Plat (3+ status KURANG di 5 rekues terakhir)</span>
                         <span class="text-xs">⚠️</span>
                     </button>
@@ -807,7 +819,6 @@
         }
 
         async function fetchPertaminaStations(lat1, lon1, lat2, lon2) {
-            // Hitung Bounding Box (BBOX) di sekitar rute dengan margin tambahan
             const minLat = Math.min(lat1, lat2) - 0.05;
             const maxLat = Math.max(lat1, lat2) + 0.05;
             const minLon = Math.min(lon1, lon2) - 0.05;
@@ -863,7 +874,6 @@
                     let lat = element.lat;
                     let lon = element.lon;
 
-                    // Handle jika elemen berupa way (polygon/titik tengah)
                     if (!lat && element.center) {
                         lat = element.center.lat;
                         lon = element.center.lon;
@@ -875,7 +885,6 @@
                         const operator = tags.operator || tags.brand || "";
                         const nameLower = (name + " " + operator).toLowerCase();
 
-                        // Filter otomatis mengutamakan keyword Pertamina / Pertashop atau SPBU umum terdekat
                         const isRelevant = nameLower.includes('pertamina') || nameLower.includes('pertashop') || nameLower.includes('spbu') || nameLower.includes('shell') || nameLower.includes('bp') || nameLower.includes('vivo') || nameLower.includes('fuel');
 
                         if (isRelevant || addedCount < 10) {
@@ -1289,41 +1298,16 @@
         }
 
         // ==========================================
-        // FITUR DOWNLOAD DATA / EXPORT EXCEL (DIPERBAIKI DENGAN PAGING & TIMEOUT)
+        // FITUR DOWNLOAD DATA / EXPORT EXCEL (DENGAN FILTER WAKTU)
         // ==========================================
         async function downloadStatusGpsMaster(btn) {
             btn.disabled = true;
             try {
-                let allData = [];
-                let page = 0;
-                let pageSize = 1000;
-                let hasMore = true;
+                const { data, error } = await _supabase.from('plat_gps_status').select('*');
+                if (error) throw error;
+                if (!data || data.length === 0) return alert("Belum ada data status GPS di database.");
 
-                while (hasMore) {
-                    const fetchPromise = _supabase
-                        .from('plat_gps_status')
-                        .select('*')
-                        .range(page * pageSize, (page + 1) * pageSize - 1);
-                    
-                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
-                    const res = await Promise.race([fetchPromise, timeoutPromise]);
-                    
-                    if (res.error) throw res.error;
-                    if (res.data && res.data.length > 0) {
-                        allData = allData.concat(res.data);
-                        if (res.data.length < pageSize) {
-                            hasMore = false;
-                        } else {
-                            page++;
-                        }
-                    } else {
-                        hasMore = false;
-                    }
-                }
-
-                if (allData.length === 0) return alert("Belum ada data status GPS di database.");
-
-                const ws = XLSX.utils.json_to_sheet(allData);
+                const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Status GPS Terbaru");
                 XLSX.writeFile(wb, "Status_GPS_Master.xlsx");
@@ -1337,40 +1321,26 @@
         async function downloadAllLog(btn) {
             btn.disabled = true;
             try {
-                let allData = [];
-                let page = 0;
-                let pageSize = 1000;
-                let hasMore = true;
+                const filterVal = document.getElementById("filter_waktu_log").value;
+                let query = _supabase.from('log_bbm').select('*').order('id', { ascending: false });
 
-                while (hasMore) {
-                    const fetchPromise = _supabase
-                        .from('log_bbm')
-                        .select('*')
-                        .order('id', { ascending: false })
-                        .range(page * pageSize, (page + 1) * pageSize - 1);
-                    
-                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
-                    const res = await Promise.race([fetchPromise, timeoutPromise]);
-                    
-                    if (res.error) throw res.error;
-                    if (res.data && res.data.length > 0) {
-                        allData = allData.concat(res.data);
-                        if (res.data.length < pageSize) {
-                            hasMore = false;
-                        } else {
-                            page++;
-                        }
-                    } else {
-                        hasMore = false;
-                    }
+                // Jika filter waktu dipilih selain 'all', hitung tanggal cutoff
+                if (filterVal !== 'all') {
+                    const days = parseInt(filterVal);
+                    const cutoffDate = new Date();
+                    cutoffDate.setDate(cutoffDate.getDate() - days);
+                    query = query.gte('created_at', cutoffDate.toISOString());
                 }
 
-                if (allData.length === 0) return alert("Belum ada log BBM tersimpan.");
+                const { data, error } = await query;
+                if (error) throw error;
+                if (!data || data.length === 0) return alert("Tidak ada data log BBM pada rentang waktu yang dipilih.");
 
-                const ws = XLSX.utils.json_to_sheet(allData);
+                const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "All Log BBM");
-                XLSX.writeFile(wb, "All_Log_BBM.xlsx");
+                let sheetName = filterVal === 'all' ? "All Log BBM" : `Log_${filterVal}Hari`;
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                XLSX.writeFile(wb, `Log_BBM_${filterVal === 'all' ? 'All' : filterVal + '_Hari'}.xlsx`);
             } catch (err) {
                 alert("Gagal mendownload log: " + err.message);
             } finally {
@@ -1381,38 +1351,11 @@
         async function downloadMafiaLog(btn) {
             btn.disabled = true;
             try {
-                let allData = [];
-                let page = 0;
-                let pageSize = 1000;
-                let hasMore = true;
+                const { data, error } = await _supabase.from('log_bbm').select('*').eq('is_mafia', true);
+                if (error) throw error;
+                if (!data || data.length === 0) return alert("Tidak ada data plat mafia.");
 
-                while (hasMore) {
-                    const fetchPromise = _supabase
-                        .from('log_bbm')
-                        .select('*')
-                        .eq('is_mafia', true)
-                        .order('id', { ascending: false })
-                        .range(page * pageSize, (page + 1) * pageSize - 1);
-                    
-                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
-                    const res = await Promise.race([fetchPromise, timeoutPromise]);
-                    
-                    if (res.error) throw res.error;
-                    if (res.data && res.data.length > 0) {
-                        allData = allData.concat(res.data);
-                        if (res.data.length < pageSize) {
-                            hasMore = false;
-                        } else {
-                            page++;
-                        }
-                    } else {
-                        hasMore = false;
-                    }
-                }
-
-                if (allData.length === 0) return alert("Tidak ada data plat mafia.");
-
-                const ws = XLSX.utils.json_to_sheet(allData);
+                const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Plat Mafia");
                 XLSX.writeFile(wb, "Plat_Mafia_Log.xlsx");
@@ -1426,15 +1369,7 @@
         async function downloadKurang3of5Log(btn) {
             btn.disabled = true;
             try {
-                const fetchPromise = _supabase
-                    .from('log_bbm')
-                    .select('id, plat_nomor, km_start, km_akhir, jarak, liter, rasio, status, tanggal, created_at, remark')
-                    .order('id', { ascending: false })
-                    .limit(2500);
-                
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout koneksi database")), 20000));
-                const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
-
+                const { data, error } = await _supabase.from('log_bbm').select('*').order('id', { ascending: false });
                 if (error) throw error;
                 if (!data || data.length === 0) return alert("Belum ada data log.");
 
@@ -1778,7 +1713,7 @@
             document.getElementById("counter_foto").innerText = `${total} / 3 Foto`;
         }
 
-        // FUNGSI LOAD MINI LOG DENGAN FORMAT WARNA RASIO (DIBAWAH 11: MERAH, DIBAWAH 12: KUNING, >= 12: HIJAU)
+        // FUNGSI LOAD MINI LOG DENGAN FORMAT WARNA RASIO
         async function loadMiniLog(plat) {
             const container = document.getElementById("mini_log_container");
             document.getElementById("log_plat_badge").innerText = plat;
@@ -1908,7 +1843,6 @@
                     document.getElementById("entry_site_lat").value = lastData.site_lat || "";
                     document.getElementById("entry_site_lng").value = lastData.site_lng || "";
                     
-                    // Panggil fungsi auto untuk memunculkan status INNER/OUTER seketika
                     if (lastData.site_id) {
                         cariSiteIdAuto();
                     }
