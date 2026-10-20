@@ -292,11 +292,11 @@
                             <span id="label_hasil_ocr" class="font-mono text-amber-400 font-bold select-all text-[10px] break-all">-</span>
                         </div>
 
-                        <!-- FITUR BARU: TAMPILAN FOTO ASLI DARI HASIL SCAN BARCODE -->
+                        <!-- FITUR BARU: TAMPILAN FOTO ASLI DARI HASIL SCAN BARCODE KIRI BAWAH -->
                         <div id="barcode_result_container" class="hidden flex flex-col space-y-1 pt-1 border-t border-gray-800">
-                            <span class="text-gray-400 text-[8px] font-bold uppercase">📸 Foto Asli Dari Barcode (Kiri Bawah):</span>
+                            <span class="text-gray-400 text-[8px] font-bold uppercase">📸 Foto Asli Dari Barcode Kiri Bawah:</span>
                             <div class="w-full h-32 bg-black rounded border border-gray-700 flex items-center justify-center overflow-hidden relative">
-                                <img id="img_barcode_result" class="max-w-full max-h-full object-contain cursor-zoom-in" title="Foto Asli Hasil Barcode">
+                                <img id="img_barcode_result" class="max-w-full max-h-full object-contain cursor-zoom-in" title="Foto Asli Hasil Barcode Kiri Bawah">
                             </div>
                             <span id="label_info_barcode" class="text-[9px] text-green-400 font-mono truncate">-</span>
                         </div>
@@ -653,8 +653,8 @@
                     labelHasil.innerText = "Gagal menemukan koordinat LongLat pada foto!";
                 }
 
-                // Scan Barcode Kuadran Kiri Bawah
-                scanBarcodeBottomLeft(imageFile, barcodeContainer, imgBarcodeResult, labelInfoBarcode, originalUrl);
+                // Scan Barcode Kuadran Kiri Bawah Secara Akurat
+                scanBarcodeBottomLeft(imageFile, barcodeContainer, imgBarcodeResult, labelInfoBarcode);
 
             } catch (err) {
                 console.error("OCR Error:", err);
@@ -664,53 +664,62 @@
             }
         }
 
-        // FUNGSI KHUSUS SCAN BARCODE / QR KIRI BAWAH
-        function scanBarcodeBottomLeft(file, containerEl, imgEl, labelEl, fallbackUrl) {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+        // FUNGSI KHUSUS SCAN BARCODE / QR KIRI BAWAH (MENDAPATKAN URL/FOTO ASLI)
+        function scanBarcodeBottomLeft(file, containerEl, imgEl, labelEl) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
 
-                const cropWidth = img.width * 0.5;
-                const cropHeight = img.height * 0.5;
-                const startX = 0;
-                const startY = img.height * 0.5;
+                    // Crop khusus kuadran kiri bawah (X: 0 s/d 50%, Y: 50% s/d 100%)
+                    const cropWidth = img.width * 0.5;
+                    const cropHeight = img.height * 0.5;
+                    const startX = 0;
+                    const startY = img.height * 0.5;
 
-                canvas.width = cropWidth;
-                canvas.height = cropHeight;
-                ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                    canvas.width = cropWidth;
+                    canvas.height = cropHeight;
+                    ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imgData.data, imgData.width, imgData.height);
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imgData.data, imgData.width, imgData.height);
 
-                if (code) {
-                    containerEl.classList.remove("hidden");
-                    labelEl.innerText = `Data Barcode: ${code.data}`;
-                    if (code.data.startsWith("http") || code.data.startsWith("data:image")) {
-                        imgEl.src = code.data;
-                    } else {
-                        imgEl.src = fallbackUrl;
-                    }
-                } else {
-                    // Coba full image jika di kiri bawah tidak terdeteksi langsung
-                    const canvasFull = document.createElement('canvas');
-                    const ctxFull = canvasFull.getContext('2d');
-                    canvasFull.width = img.width;
-                    canvasFull.height = img.height;
-                    ctxFull.drawImage(img, 0, 0);
-                    const fullData = ctxFull.getImageData(0, 0, canvasFull.width, canvasFull.height);
-                    const codeFull = jsQR(fullData.data, fullData.width, fullData.height);
-
-                    if (codeFull) {
+                    if (code) {
                         containerEl.classList.remove("hidden");
-                        labelEl.innerText = `Data Barcode: ${codeFull.data}`;
-                        imgEl.src = codeFull.data.startsWith("http") ? codeFull.data : fallbackUrl;
+                        labelEl.innerText = `Data Barcode: ${code.data}`;
+                        
+                        // Jika isi barcode berupa URL gambar atau data base64
+                        if (code.data.startsWith("http://") || code.data.startsWith("https://") || code.data.startsWith("data:image")) {
+                            imgEl.src = code.data;
+                        } else {
+                            // Jika teks biasa, tampilkan placeholder/info teks
+                            imgEl.src = e.target.result; 
+                        }
                     } else {
-                        containerEl.classList.add("hidden");
+                        // Backup scan pada keseluruhan gambar jika di kiri bawah terhalang/tidak pas
+                        const canvasFull = document.createElement('canvas');
+                        const ctxFull = canvasFull.getContext('2d');
+                        canvasFull.width = img.width;
+                        canvasFull.height = img.height;
+                        ctxFull.drawImage(img, 0, 0);
+                        const fullData = ctxFull.getImageData(0, 0, canvasFull.width, canvasFull.height);
+                        const codeFull = jsQR(fullData.data, fullData.width, fullData.height);
+
+                        if (codeFull) {
+                            containerEl.classList.remove("hidden");
+                            labelEl.innerText = `Data Barcode: ${codeFull.data}`;
+                            imgEl.src = (codeFull.data.startsWith("http") || codeFull.data.startsWith("data:image")) ? codeFull.data : e.target.result;
+                        } else {
+                            containerEl.classList.add("hidden");
+                            alert("Barcode / QR Code di kiri bawah tidak terdeteksi pada gambar yang dipaste.");
+                        }
                     }
-                }
+                };
+                img.src = e.target.result;
             };
-            img.src = fallbackUrl;
+            reader.readAsDataURL(file);
         }
 
         function extractLongLatFromText(rawText) {
